@@ -1,0 +1,84 @@
+.msgs__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.msgs__item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #0e0e1a;
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 16px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.msgs__item:hover {
+  background: #111120;
+  border-color: rgba(255,255,255,0.08);
+  transform: translateX(4px);
+}
+
+.msgs__avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.msgs__info { flex: 1; min-width: 0; }
+
+.msgs__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.msgs__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+}
+
+.msgs__time {
+  font-size: 11px;
+  color: rgba(255,255,255,0.25);
+}
+
+.msgs__skill-tag {
+  font-size: 11px;
+  color: #7c6fff;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.msgs__preview {
+  font-size: 12.5px;
+  color: rgba(255,255,255,0.3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.msgs__unread {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #7c6fff;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}

@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* ===== LIGHT MODE — Default ===== */
+:root {
+  --bg: #f8f7ff;
+  --bg2: #f0effe;
+  --surface: #ffffff;
+  --card: #ffffff;
+  --card2: #fafafe;
+  --border: rgba(124,111,255,0.1);
+  --border2: rgba(0,0,0,0.06);
+  --text: #0d0b1e;
+  --text-secondary: #6b6888;
+  --text-muted: #a9a6c0;
+  --accent: #6c5ce7;
+  --accent2: #e84393;
+  --accent3: #00b894;
+  --accent4: #fdcb6e;
+  --sidebar-bg: #ffffff;
+  --nav-hover: rgba(108,92,231,0.06);
+  --nav-active: rgba(108,92,231,0.08);
+  --input-bg: rgba(108,92,231,0.04);
+  --shadow: 0 2px 20px rgba(108,92,231,0.08);
+  --shadow-lg: 0 8px 40px rgba(108,92,231,0.12);
+}
+
+/* ===== DARK MODE ===== */
+[data-theme='dark'] {
+  --bg: #080810;
+  --bg2: #0a0a14;
+  --surface: #0e0e1a;
+  --card: #0e0e1a;
+  --card2: #111120;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.04);
+  --text: #f0f0ff;
+  --text-secondary: rgba(255,255,255,0.45);
+  --text-muted: rgba(255,255,255,0.2);
+  --accent: #7c6fff;
+  --accent2: #ff6fb0;
+  --accent3: #6fffd4;
+  --accent4: #ffd166;
+  --sidebar-bg: #0a0a14;
+  --nav-hover: rgba(255,255,255,0.04);
+  --nav-active: rgba(124,111,255,0.08);
+  --input-bg: rgba(255,255,255,0.03);
+  --shadow: 0 2px 20px rgba(0,0,0,0.3);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.4);
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+a { text-decoration: none; color: inherit; }
+button { cursor: pointer; font-family: inherit; }
+
+.gradient-text {
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+html { scroll-behavior: smooth; }

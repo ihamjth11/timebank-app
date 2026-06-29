@@ -1,0 +1,128 @@
+.profile__card {
+  background: #0e0e1a;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.profile__cover {
+  height: 100px;
+  background: linear-gradient(135deg, #1a1040, #0d0820, #1a0d20);
+  position: relative;
+}
+
+.profile__cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(124,111,255,0.2), rgba(255,111,176,0.1));
+}
+
+.profile__info {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  padding: 0 24px 24px;
+  position: relative;
+  flex-wrap: wrap;
+}
+
+.profile__avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #7c6fff, #ff6fb0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  color: white;
+  margin-top: -36px;
+  border: 3px solid #0e0e1a;
+  flex-shrink: 0;
+  letter-spacing: -1px;
+}
+
+.profile__details { flex: 1; padding-top: 12px; }
+
+.profile__name {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
+
+.profile__email {
+  font-size: 13px;
+  color: rgba(255,255,255,0.3);
+  margin-bottom: 10px;
+}
+
+.profile__badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.profile__badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.profile__edit-btn {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.6);
+  padding: 9px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: auto;
+  align-self: center;
+}
+
+.profile__edit-btn:hover {
+  background: rgba(124,111,255,0.1);
+  border-color: rgba(124,111,255,0.2);
+  color: #a89fff;
+}
+
+.profile__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.profile__stat {
+  background: #0e0e1a;
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+}
+
+.profile__stat-num {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -1px;
+  margin-bottom: 6px;
+}
+
+.profile__stat-label {
+  font-size: 12px;
+  color: rgba(255,255,255,0.3);
+}
+
+@media (max-width: 768px) {
+  .profile__stats { grid-template-columns: repeat(2, 1fr); }
+  .profile__info { flex-direction: column; align-items: flex-start; }
+  .profile__edit-btn { margin-left: 0; }
+}

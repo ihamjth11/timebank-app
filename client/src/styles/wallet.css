@@ -1,0 +1,117 @@
+.wallet__card {
+  background: linear-gradient(135deg, #120d2e, #0d0820);
+  border: 1px solid rgba(124,111,255,0.2);
+  border-radius: 20px;
+  padding: 28px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.wallet__card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(124,111,255,0.5), rgba(111,255,212,0.3), transparent);
+}
+
+.wallet__card-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.25);
+  margin-bottom: 8px;
+}
+
+.wallet__card-balance {
+  font-size: 56px;
+  font-weight: 900;
+  letter-spacing: -3px;
+  line-height: 1;
+  background: linear-gradient(90deg, #a89fff, #6fffd4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 4px;
+}
+
+.wallet__card-unit {
+  font-size: 13px;
+  color: rgba(255,255,255,0.3);
+  margin-bottom: 24px;
+}
+
+.wallet__card-stats {
+  display: flex;
+  gap: 28px;
+}
+
+.wallet__card-stat-num {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.wallet__card-stat-label {
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+  margin-top: 2px;
+}
+
+/* How credits work */
+.wallet__how {
+  background: #0e0e1a;
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 20px;
+  padding: 24px;
+}
+
+.wallet__how-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.wallet__how-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 14px;
+  padding: 18px;
+  transition: all 0.2s;
+}
+
+.wallet__how-card:hover {
+  background: rgba(255,255,255,0.04);
+  transform: translateY(-2px);
+}
+
+.wallet__how-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.wallet__how-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  margin-bottom: 6px;
+}
+
+.wallet__how-desc {
+  font-size: 11.5px;
+  color: rgba(255,255,255,0.3);
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .wallet__how-grid { grid-template-columns: repeat(2, 1fr); }
+  .wallet__card { flex-direction: column; gap: 24px; }
+}

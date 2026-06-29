@@ -1,0 +1,197 @@
+.how {
+  padding: 120px 48px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.how__header {
+  text-align: center;
+  margin-bottom: 72px;
+  opacity: 0;
+  transform: translateY(24px);
+  transition: all 0.6s ease;
+}
+
+.how__header.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.how__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: #7c6fff;
+  margin-bottom: 20px;
+  background: rgba(124,111,255,0.08);
+  border: 1px solid rgba(124,111,255,0.2);
+  padding: 6px 16px;
+  border-radius: 20px;
+}
+
+.how__title {
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 900;
+  letter-spacing: -2px;
+  color: #f0f0ff;
+  margin-bottom: 16px;
+  line-height: 1.05;
+}
+
+.how__title span {
+  background: linear-gradient(90deg, #7c6fff, #ff6fb0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.how__sub {
+  font-size: 16px;
+  color: #8888aa;
+  line-height: 1.7;
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+/* ===== GRID ===== */
+.how__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  position: relative;
+}
+
+/* Connecting line behind cards */
+.how__grid::before {
+  content: '';
+  position: absolute;
+  top: 52px;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    rgba(124,111,255,0.3),
+    rgba(255,111,176,0.3),
+    rgba(111,255,212,0.3),
+    rgba(255,209,102,0.3)
+  );
+  z-index: 0;
+}
+
+/* ===== CARD ===== */
+.how__card {
+  background: linear-gradient(145deg, #13131e, #0f0f18);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 24px;
+  padding: 32px 24px 28px;
+  position: relative;
+  transition: all 0.4s ease;
+  opacity: 0;
+  transform: translateY(32px);
+  z-index: 1;
+  overflow: hidden;
+}
+
+/* Card glow on hover */
+.how__card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.how__card:nth-child(1)::before { background: radial-gradient(circle at 50% 0%, rgba(124,111,255,0.08), transparent 70%); }
+.how__card:nth-child(2)::before { background: radial-gradient(circle at 50% 0%, rgba(255,111,176,0.08), transparent 70%); }
+.how__card:nth-child(3)::before { background: radial-gradient(circle at 50% 0%, rgba(111,255,212,0.08), transparent 70%); }
+.how__card:nth-child(4)::before { background: radial-gradient(circle at 50% 0%, rgba(255,209,102,0.08), transparent 70%); }
+
+.how__card.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.how__card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.how__card:hover::before { opacity: 1; }
+
+/* Step number */
+.how__card-num {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  margin-bottom: 20px;
+  opacity: 0.6;
+}
+
+/* Icon */
+.how__card-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  transition: transform 0.3s;
+  position: relative;
+  z-index: 1;
+}
+
+.how__card:hover .how__card-icon {
+  transform: scale(1.1) rotate(-4deg);
+}
+
+/* Title */
+.how__card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f0f0ff;
+  margin-bottom: 10px;
+  letter-spacing: -0.3px;
+}
+
+/* Description */
+.how__card-desc {
+  font-size: 13px;
+  color: #6666888;
+  line-height: 1.7;
+  color: #8888aa;
+}
+
+/* Arrow */
+.how__arrow {
+  position: absolute;
+  top: 50px;
+  right: -13px;
+  z-index: 3;
+  background: #0a0a0f;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* ===== MOBILE ===== */
+@media (max-width: 900px) {
+  .how__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .how__grid::before { display: none; }
+  .how__arrow { display: none; }
+  .how { padding: 80px 24px; }
+}
+
+@media (max-width: 560px) {
+  .how__grid { grid-template-columns: 1fr; }
+}
