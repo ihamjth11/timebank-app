@@ -9,7 +9,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const API = 'http://localhost:5000/api'
+  const API = 'https://timebank-app.onrender.com/api'
 
   // Register
   const register = async (name, email, password) => {
