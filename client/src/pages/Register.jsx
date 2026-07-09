@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { GoogleLogin } from '@react-oauth/google'
 import { useAuth } from '../context/AuthContext'
 import '../styles/auth.css'
 
@@ -11,7 +12,7 @@ function Register() {
     confirm: ''
   })
   const [err, setErr] = useState('')
-  const { register, loading } = useAuth()
+  const { register, googleLogin, loading } = useAuth()
   const navigate = useNavigate()
 
   const handleChange = (e) => {
@@ -31,6 +32,16 @@ function Register() {
       return setErr('Password must be at least 6 characters')
     }
     const result = await register(form.name, form.email, form.password)
+    if (result.success) {
+      navigate('/dashboard')
+    } else {
+      setErr(result.message)
+    }
+  }
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setErr('')
+    const result = await googleLogin(credentialResponse.credential)
     if (result.success) {
       navigate('/dashboard')
     } else {
@@ -66,6 +77,23 @@ function Register() {
         <p className="auth__sub">Join Sri Lanka's first time exchange community</p>
 
         {err && <div className="auth__error">{err}</div>}
+
+        <div className="auth__google-wrap">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => setErr('Google login failed')}
+            theme="filled_black"
+            shape="pill"
+            width="100%"
+            text="signup_with"
+          />
+        </div>
+
+        <div className="auth__divider">
+          <div className="auth__divider-line" />
+          <span className="auth__divider-text">or sign up with email</span>
+          <div className="auth__divider-line" />
+        </div>
 
         <form className="auth__form" onSubmit={handleSubmit}>
           <div className="auth__field">

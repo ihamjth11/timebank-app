@@ -11,7 +11,6 @@ export function AuthProvider({ children }) {
 
   const API = 'https://timebank-app.onrender.com/api'
 
-  // Register
   const register = async (name, email, password) => {
     setLoading(true)
     setError(null)
@@ -32,7 +31,6 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // Login
   const login = async (email, password) => {
     setLoading(true)
     setError(null)
@@ -53,7 +51,24 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // Logout
+  const googleLogin = async (credential) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await axios.post(`${API}/auth/google`, { credential })
+      setToken(res.data.token)
+      setUser(res.data.user)
+      localStorage.setItem('token', res.data.token)
+      return { success: true }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Google login failed'
+      setError(msg)
+      return { success: false, message: msg }
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const logout = () => {
     setUser(null)
     setToken(null)
@@ -63,7 +78,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       user, token, loading, error,
-      register, login, logout
+      register, login, googleLogin, logout
     }}>
       {children}
     </AuthContext.Provider>

@@ -1,8 +1,11 @@
 import ThemeToggle from '../components/ThemeToggle'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import '../styles/dashboard.css'
+
+const API = 'https://timebank-app.onrender.com/api'
 
 const NAV_ITEMS = [
   {
@@ -27,39 +30,58 @@ const NAV_ITEMS = [
   },
 ]
 
-const TXNS = [
-  { icon: '💻', name: 'Coding Help', time: '2 hours ago', amount: '+2.0', type: 'earn', bg: 'rgba(111,255,212,0.1)' },
-  { icon: '📚', name: 'Tamil Lesson', time: 'Yesterday', amount: '-1.0', type: 'spend', bg: 'rgba(255,111,176,0.1)' },
-  { icon: '🎨', name: 'Design Review', time: '2 days ago', amount: '+1.5', type: 'earn', bg: 'rgba(124,111,255,0.1)' },
-  { icon: '🍳', name: 'Cooking Class', time: '3 days ago', amount: '-1.0', type: 'spend', bg: 'rgba(255,209,102,0.1)' },
-]
-
-const SKILLS = [
-  { name: 'Coding', color: '#7c6fff', bg: 'rgba(124,111,255,0.1)', border: 'rgba(124,111,255,0.3)' },
-  { name: 'UI/UX Design', color: '#ff6fb0', bg: 'rgba(255,111,176,0.1)', border: 'rgba(255,111,176,0.3)' },
-  { name: 'Python', color: '#6fffd4', bg: 'rgba(111,255,212,0.1)', border: 'rgba(111,255,212,0.3)' },
-  { name: 'JavaScript', color: '#ffd166', bg: 'rgba(255,209,102,0.1)', border: 'rgba(255,209,102,0.3)' },
-]
-
 function Dashboard() {
-  const { user, logout } = useAuth()
+  const { user, token, logout } = useAuth()
   const navigate = useNavigate()
   const [activeNav, setActiveNav] = useState(0)
+  const [mySkills, setMySkills] = useState([])
+  const [loadingSkills, setLoadingSkills] = useState(true)
+  const [showOnboarding, setShowOnboarding] = useState(
+    !localStorage.getItem('tb_onboarding_seen')
+  )
 
   const handleLogout = () => {
     logout()
     navigate('/')
   }
   const handleNavClick = (path) => {
-  navigate(path)
-}
+    navigate(path)
+  }
 
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase()
     : 'MH'
 
+  useEffect(() => {
+    const fetchMySkills = async () => {
+      try {
+        const res = await axios.get(`${API}/skills`)
+        const all = res.data.skills || []
+        const mine = all.filter(s => s.userName === user?.name)
+        setMySkills(mine)
+      } catch (err) {
+        console.error('Failed to fetch skills:', err)
+      } finally {
+        setLoadingSkills(false)
+      }
+    }
+    fetchMySkills()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const SKILL_COLORS = [
+    { color: '#7c6fff', bg: 'rgba(124,111,255,0.1)', border: 'rgba(124,111,255,0.3)' },
+    { color: '#ff6fb0', bg: 'rgba(255,111,176,0.1)', border: 'rgba(255,111,176,0.3)' },
+    { color: '#6fffd4', bg: 'rgba(111,255,212,0.1)', border: 'rgba(111,255,212,0.3)' },
+    { color: '#ffd166', bg: 'rgba(255,209,102,0.1)', border: 'rgba(255,209,102,0.3)' },
+  ]
+
   return (
     <div className="dash">
+
+      {showOnboarding && (
+        <OnboardingTour onClose={() => setShowOnboarding(false)} />
+      )}
 
       {/* SIDEBAR */}
       <aside className="dash__sidebar">
@@ -77,23 +99,23 @@ function Dashboard() {
         <nav className="dash__nav">
           <div className="dash__nav-label">Main Menu</div>
           {NAV_ITEMS.map((item, i) => (
-  <div
-    key={i}
-    className={`dash__nav-item ${activeNav === i ? 'active' : ''}`}
-    onClick={() => {
-      setActiveNav(i)
-      handleNavClick(item.path)
-    }}
-  >
-    <div className="dash__nav-item-icon" style={{
-      background: activeNav === i ? item.bg : 'rgba(255,255,255,0.04)',
-      color: activeNav === i ? item.color : '#8888aa'
-    }}>
-      {item.icon}
-    </div>
-    {item.label}
-  </div>
-))}
+            <div
+              key={i}
+              className={`dash__nav-item ${activeNav === i ? 'active' : ''}`}
+              onClick={() => {
+                setActiveNav(i)
+                handleNavClick(item.path)
+              }}
+            >
+              <div className="dash__nav-item-icon" style={{
+                background: activeNav === i ? item.bg : 'var(--input-bg)',
+                color: activeNav === i ? item.color : 'var(--text-secondary)'
+              }}>
+                {item.icon}
+              </div>
+              {item.label}
+            </div>
+          ))}
 
           <div className="dash__nav-label">Account</div>
           <div className="dash__nav-item" onClick={handleLogout}>
@@ -126,12 +148,12 @@ function Dashboard() {
         <div className="dash__header">
           <div>
             <h1 className="dash__header-title">
-              Good day, {user?.name?.split(' ')[0] || 'Hamjath'} 👋
+              Good day, {user?.name?.split(' ')[0] || 'Hamjath'} <span className="wave-icon">👋</span>
             </h1>
             <p className="dash__header-sub">Here's what's happening in your TimeBank</p>
           </div>
           <div className="dash__header-right">
-              <ThemeToggle />
+            <ThemeToggle />
             <button className="dash__notif-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
@@ -149,9 +171,8 @@ function Dashboard() {
                 <path d="M12 6v6l4 2" stroke="#7c6fff" strokeWidth="1.5" strokeLinecap="round"/>
               </svg>
             </div>
-            <div className="dash__stat-num">{user?.timeCredits || 5}</div>
+            <div className="dash__stat-num">{user?.timeCredits ?? 5}</div>
             <div className="dash__stat-label">Time Credits</div>
-            <div className="dash__stat-change up">+2 this week</div>
           </div>
 
           <div className="dash__stat-card">
@@ -162,9 +183,8 @@ function Dashboard() {
                 <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="#6fffd4" strokeWidth="1.5" strokeLinecap="round"/>
               </svg>
             </div>
-            <div className="dash__stat-num">12</div>
-            <div className="dash__stat-label">People Helped</div>
-            <div className="dash__stat-change up">+3 this week</div>
+            <div className="dash__stat-num">{mySkills.length}</div>
+            <div className="dash__stat-label">Skills Posted</div>
           </div>
 
           <div className="dash__stat-card">
@@ -173,9 +193,8 @@ function Dashboard() {
                 <path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1 3-6z" stroke="#ff6fb0" strokeWidth="1.5" strokeLinejoin="round"/>
               </svg>
             </div>
-            <div className="dash__stat-num">4.9</div>
-            <div className="dash__stat-label">Impact Score</div>
-            <div className="dash__stat-change up">Top 10%</div>
+            <div className="dash__stat-num">New</div>
+            <div className="dash__stat-label">Member Status</div>
           </div>
 
           <div className="dash__stat-card">
@@ -185,9 +204,8 @@ function Dashboard() {
                 <path d="M2 10h20" stroke="#ffd166" strokeWidth="1.5"/>
               </svg>
             </div>
-            <div className="dash__stat-num">8</div>
+            <div className="dash__stat-num">0</div>
             <div className="dash__stat-label">Sessions Done</div>
-            <div className="dash__stat-change neutral">This month</div>
           </div>
         </div>
 
@@ -197,11 +215,11 @@ function Dashboard() {
           {/* Wallet */}
           <div className="dash__wallet">
             <div className="dash__wallet-label">TIME BALANCE</div>
-            <div className="dash__wallet-balance">{user?.timeCredits || 5}.0</div>
+            <div className="dash__wallet-balance">{user?.timeCredits ?? 5}.0</div>
             <div className="dash__wallet-unit">Time Credits available</div>
             <div className="dash__wallet-actions">
-              <button className="dash__wallet-btn primary">Offer Help</button>
-              <button className="dash__wallet-btn secondary">Request Help</button>
+              <button className="dash__wallet-btn primary" onClick={() => navigate('/skills')}>Offer Help</button>
+              <button className="dash__wallet-btn secondary" onClick={() => navigate('/skills')}>Request Help</button>
             </div>
           </div>
 
@@ -209,7 +227,7 @@ function Dashboard() {
           <div className="dash__actions">
             <div className="dash__section-title">Quick Actions</div>
             <div className="dash__action-grid">
-              <div className="dash__action-btn">
+              <div className="dash__action-btn" onClick={() => navigate('/skills')}>
                 <div className="dash__action-icon" style={{ background: 'rgba(124,111,255,0.1)', color: '#7c6fff' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5"/>
@@ -218,7 +236,7 @@ function Dashboard() {
                 </div>
                 Find Skills
               </div>
-              <div className="dash__action-btn">
+              <div className="dash__action-btn" onClick={() => navigate('/skills')}>
                 <div className="dash__action-icon" style={{ background: 'rgba(111,255,212,0.1)', color: '#6fffd4' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
@@ -226,7 +244,7 @@ function Dashboard() {
                 </div>
                 Post Skill
               </div>
-              <div className="dash__action-btn">
+              <div className="dash__action-btn" onClick={() => navigate('/messages')}>
                 <div className="dash__action-icon" style={{ background: 'rgba(255,111,176,0.1)', color: '#ff6fb0' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" strokeWidth="1.5"/>
@@ -234,7 +252,7 @@ function Dashboard() {
                 </div>
                 Messages
               </div>
-              <div className="dash__action-btn">
+              <div className="dash__action-btn" onClick={() => navigate('/profile')}>
                 <div className="dash__action-icon" style={{ background: 'rgba(255,209,102,0.1)', color: '#ffd166' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5"/>
@@ -250,45 +268,36 @@ function Dashboard() {
           <div className="dash__txns">
             <div className="dash__section-title">
               Recent Transactions
-              <span className="dash__section-link">View all</span>
+              <span className="dash__section-link" onClick={() => navigate('/wallet')}>View all</span>
             </div>
-            {TXNS.map((txn, i) => (
-              <div key={i} className="dash__txn">
-                <div className="dash__txn-icon" style={{ background: txn.bg }}>
-                  {txn.icon}
-                </div>
-                <div className="dash__txn-info">
-                  <div className="dash__txn-name">{txn.name}</div>
-                  <div className="dash__txn-time">{txn.time}</div>
-                </div>
-                <div className={`dash__txn-amount ${txn.type}`}>
-                  {txn.amount}
-                </div>
-              </div>
-            ))}
+            <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: '13px' }}>No transactions yet</div>
+              <div style={{ fontSize: '12px', marginTop: '4px' }}>Start helping others to see activity here</div>
+            </div>
           </div>
 
           {/* Skills */}
           <div className="dash__skills">
             <div className="dash__section-title">
               My Skills
-              <span className="dash__section-link">Edit</span>
+              <span className="dash__section-link" onClick={() => navigate('/skills')}>Edit</span>
             </div>
             <div className="dash__skill-tags">
-              {SKILLS.map((skill, i) => (
-                <div
-                  key={i}
-                  className="dash__skill-tag"
-                  style={{
-                    color: skill.color,
-                    background: skill.bg,
-                    borderColor: skill.border
-                  }}
-                >
-                  {skill.name}
-                </div>
-              ))}
-              <button className="dash__skill-add">+ Add Skill</button>
+              {loadingSkills ? (
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Loading...</span>
+              ) : mySkills.length === 0 ? (
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>You haven't posted any skills yet</span>
+              ) : (
+                mySkills.map((skill, i) => {
+                  const c = SKILL_COLORS[i % SKILL_COLORS.length]
+                  return (
+                    <div key={skill._id} className="dash__skill-tag" style={{ color: c.color, background: c.bg, borderColor: c.border }}>
+                      {skill.title}
+                    </div>
+                  )
+                })
+              )}
+              <button className="dash__skill-add" onClick={() => navigate('/skills')}>+ Add Skill</button>
             </div>
           </div>
 

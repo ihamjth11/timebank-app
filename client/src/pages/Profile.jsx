@@ -34,25 +34,25 @@ function Profile() {
         <nav className="dash__nav">
           <div className="dash__nav-label">Main Menu</div>
           <div className="dash__nav-item" onClick={() => navigate('/dashboard')}>
-            <div className="dash__nav-item-icon" style={{ background: 'rgba(255,255,255,0.04)', color: '#8888aa' }}>
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="14" y="3" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="3" y="14" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="14" y="14" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/></svg>
             </div>
             Dashboard
           </div>
           <div className="dash__nav-item" onClick={() => navigate('/wallet')}>
-            <div className="dash__nav-item-icon" style={{ background: 'rgba(255,255,255,0.04)', color: '#8888aa' }}>
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             </div>
             Time Wallet
           </div>
           <div className="dash__nav-item" onClick={() => navigate('/skills')}>
-            <div className="dash__nav-item-icon" style={{ background: 'rgba(255,255,255,0.04)', color: '#8888aa' }}>
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5"/><path d="M16.5 16.5l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             </div>
             Find Skills
           </div>
           <div className="dash__nav-item" onClick={() => navigate('/messages')}>
-            <div className="dash__nav-item-icon" style={{ background: 'rgba(255,255,255,0.04)', color: '#8888aa' }}>
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>
             </div>
             Messages
@@ -105,10 +105,10 @@ function Profile() {
                 <span className="profile__badge" style={{ background: 'rgba(124,111,255,0.1)', color: '#7c6fff', border: '1px solid rgba(124,111,255,0.2)' }}>
                   ✦ Creator
                 </span>
-                <span className="profile__badge" style={{ background: 'rgba(111,255,212,0.1)', color: '#6fffd4', border: '1px solid rgba(111,255,212,0.2)' }}>
+                <span className="profile__badge" style={{ background: 'rgba(111,255,212,0.1)', color: '#00b894', border: '1px solid rgba(111,255,212,0.2)' }}>
                   🇱🇰 Sri Lanka
                 </span>
-                <span className="profile__badge" style={{ background: 'rgba(255,209,102,0.1)', color: '#ffd166', border: '1px solid rgba(255,209,102,0.2)' }}>
+                <span className="profile__badge" style={{ background: 'rgba(255,209,102,0.1)', color: '#b8860b', border: '1px solid rgba(255,209,102,0.2)' }}>
                   ⭐ Top Helper
                 </span>
               </div>
@@ -155,7 +155,7 @@ function Profile() {
         {/* Bio */}
         <div className="dash__txns" style={{ marginTop: '14px' }}>
           <div className="dash__section-title">About Me</div>
-          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.4)', lineHeight: '1.7', marginTop: '12px' }}>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.7', marginTop: '12px' }}>
             Full Stack Developer from Sri Lanka 🇱🇰 Passionate about technology, community building, and helping others grow through skill exchange. Creator of TimeBank — Sri Lanka's first time exchange platform.
           </p>
         </div>

@@ -1,23 +1,70 @@
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
-import { useNavigate } from 'react-router-dom'
 import '../styles/dashboard.css'
 import '../styles/messages.css'
 
-const CHATS = [
-  { id: 1, name: 'Aisha Fernando', initials: 'AF', color: '#ff6fb0', bg: 'rgba(255,111,176,0.15)', lastMsg: 'Sure! I can help you with Tamil lessons tomorrow.', time: '2m ago', unread: 2, skill: 'Tamil Lessons' },
-  { id: 2, name: 'Kamal Perera', initials: 'KP', color: '#7c6fff', bg: 'rgba(124,111,255,0.15)', lastMsg: 'Thanks for the React help! Really appreciated.', time: '1h ago', unread: 0, skill: 'React Tutoring' },
-  { id: 3, name: 'Nimal Silva', initials: 'NS', color: '#6fffd4', bg: 'rgba(111,255,212,0.15)', lastMsg: 'The cooking session was amazing! Lets do it again.', time: '3h ago', unread: 1, skill: 'Cooking Class' },
-  { id: 4, name: 'Priya Rajapaksa', initials: 'PR', color: '#ffd166', bg: 'rgba(255,209,102,0.15)', lastMsg: 'When are you free for the Python session?', time: 'Yesterday', unread: 0, skill: 'Python Help' },
-  { id: 5, name: 'Dilshan Bandara', initials: 'DB', color: '#ff6fb0', bg: 'rgba(255,111,176,0.15)', lastMsg: 'Guitar session confirmed for Saturday!', time: 'Yesterday', unread: 0, skill: 'Guitar Lessons' },
-]
+const API = 'https://timebank-app.onrender.com/api'
 
 function Messages() {
-  const { user, logout } = useAuth()
-  const navigate = useNavigate()
+  const { user, token, logout } = useAuth()
+  const [conversations, setConversations] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [activeChat, setActiveChat] = useState(null)
+  const [thread, setThread] = useState([])
+  const [newMsg, setNewMsg] = useState('')
 
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase()
     : 'MH'
+
+  const fetchConversations = async () => {
+    setLoading(true)
+    try {
+      const res = await axios.get(`${API}/messages/conversations`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setConversations(res.data.conversations || [])
+    } catch (err) {
+      console.error('Failed to fetch conversations:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchConversations()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const openChat = async (convo) => {
+    setActiveChat(convo)
+    try {
+      const res = await axios.get(`${API}/messages/${convo.otherUserId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setThread(res.data.messages || [])
+    } catch (err) {
+      console.error('Failed to fetch thread:', err)
+    }
+  }
+
+  const sendMessage = async () => {
+    if (!newMsg.trim() || !activeChat) return
+    try {
+      await axios.post(`${API}/messages`, {
+        receiverId: activeChat.otherUserId,
+        text: newMsg
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setNewMsg('')
+      openChat(activeChat)
+      fetchConversations()
+    } catch (err) {
+      console.error('Failed to send message:', err)
+    }
+  }
 
   return (
     <div className="dash">
@@ -34,38 +81,38 @@ function Messages() {
 
         <nav className="dash__nav">
           <div className="dash__nav-label">Main Menu</div>
-          <div className="dash__nav-item" onClick={() => navigate('/dashboard')}>
-            <div className="dash__nav-item-icon" style={{ background: 'rgba(255,255,255,0.04)', color: '#8888aa' }}>
+          <a href="/dashboard" className="dash__nav-item">
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="14" y="3" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="3" y="14" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="14" y="14" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/></svg>
             </div>
             Dashboard
-          </div>
-          <div className="dash__nav-item" onClick={() => navigate('/wallet')}>
-            <div className="dash__nav-item-icon" style={{ background: 'rgba(255,255,255,0.04)', color: '#8888aa' }}>
+          </a>
+          <a href="/wallet" className="dash__nav-item">
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             </div>
             Time Wallet
-          </div>
-          <div className="dash__nav-item" onClick={() => navigate('/skills')}>
-            <div className="dash__nav-item-icon" style={{ background: 'rgba(255,255,255,0.04)', color: '#8888aa' }}>
+          </a>
+          <a href="/skills" className="dash__nav-item">
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5"/><path d="M16.5 16.5l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             </div>
             Find Skills
-          </div>
+          </a>
           <div className="dash__nav-item active">
             <div className="dash__nav-item-icon" style={{ background: 'rgba(255,209,102,0.15)', color: '#ffd166' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>
             </div>
             Messages
           </div>
-          <div className="dash__nav-item" onClick={() => navigate('/profile')}>
-            <div className="dash__nav-item-icon" style={{ background: 'rgba(255,255,255,0.04)', color: '#8888aa' }}>
+          <a href="/profile" className="dash__nav-item">
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             </div>
             Profile
-          </div>
+          </a>
           <div className="dash__nav-label">Account</div>
-          <div className="dash__nav-item" onClick={() => { logout(); navigate('/') }}>
+          <div className="dash__nav-item" onClick={logout}>
             <div className="dash__nav-item-icon" style={{ background: 'rgba(255,80,80,0.1)', color: '#ff8080' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             </div>
@@ -92,26 +139,88 @@ function Messages() {
           </div>
         </div>
 
-        <div className="msgs__list">
-          {CHATS.map(chat => (
-            <div key={chat.id} className="msgs__item">
-              <div className="msgs__avatar" style={{ background: chat.bg, color: chat.color }}>
-                {chat.initials}
+        {!activeChat ? (
+          <div className="msgs__list">
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+                Loading conversations...
               </div>
-              <div className="msgs__info">
-                <div className="msgs__top">
-                  <span className="msgs__name">{chat.name}</span>
-                  <span className="msgs__time">{chat.time}</span>
+            ) : conversations.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: '40px', marginBottom: '16px', opacity: 0.4 }}>💬</div>
+                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                  No conversations yet
                 </div>
-                <div className="msgs__skill-tag">{chat.skill}</div>
-                <div className="msgs__preview">{chat.lastMsg}</div>
+                <div style={{ fontSize: '13px' }}>
+                  Connect with someone from Find Skills to start chatting!
+                </div>
               </div>
-              {chat.unread > 0 && (
-                <div className="msgs__unread">{chat.unread}</div>
-              )}
+            ) : (
+              conversations.map(convo => (
+                <div key={convo.otherUserId} className="msgs__item" onClick={() => openChat(convo)}>
+                  <div className="msgs__avatar" style={{ background: 'rgba(124,111,255,0.15)', color: '#7c6fff' }}>
+                    {convo.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  </div>
+                  <div className="msgs__info">
+                    <div className="msgs__top">
+                      <span className="msgs__name">{convo.name}</span>
+                      <span className="msgs__time">{new Date(convo.lastTime).toLocaleDateString()}</span>
+                    </div>
+                    <div className="msgs__preview">{convo.lastMessage}</div>
+                  </div>
+                  {convo.unread > 0 && (
+                    <div className="msgs__unread">{convo.unread}</div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        ) : (
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '16px', display: 'flex', flexDirection: 'column', height: '65vh' }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '18px' }}>←</button>
+              <span style={{ fontWeight: 600, color: 'var(--text)' }}>{activeChat.name}</span>
             </div>
-          ))}
-        </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {thread.map((msg, i) => {
+                const isMine = msg.sender !== activeChat.otherUserId
+                return (
+                  <div key={i} style={{
+                    alignSelf: isMine ? 'flex-end' : 'flex-start',
+                    background: isMine ? 'var(--accent)' : 'var(--input-bg)',
+                    color: isMine ? '#fff' : 'var(--text)',
+                    padding: '10px 14px',
+                    borderRadius: '14px',
+                    maxWidth: '70%',
+                    fontSize: '13.5px'
+                  }}>
+                    {msg.text}
+                  </div>
+                )
+              })}
+            </div>
+
+            <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: '10px' }}>
+              <input
+                value={newMsg}
+                onChange={e => setNewMsg(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sendMessage()}
+                placeholder="Type a message..."
+                style={{
+                  flex: 1, background: 'var(--input-bg)', border: '1px solid var(--border)',
+                  borderRadius: '20px', padding: '10px 16px', color: 'var(--text)', outline: 'none', fontSize: '13.5px'
+                }}
+              />
+              <button onClick={sendMessage} style={{
+                background: 'var(--accent)', color: '#fff', border: 'none',
+                borderRadius: '20px', padding: '10px 20px', cursor: 'pointer', fontWeight: 600, fontSize: '13px'
+              }}>
+                Send
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )

@@ -2,7 +2,7 @@
 
 .feed {
   min-height: 100vh;
-  background: #080810;
+  background: var(--bg);
   display: flex;
   font-family: 'Inter', sans-serif;
 }
@@ -13,7 +13,6 @@
   padding: 28px 32px;
 }
 
-/* Header */
 .feed__header {
   display: flex;
   align-items: center;
@@ -24,13 +23,13 @@
 .feed__title {
   font-size: 22px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text);
   letter-spacing: -0.6px;
 }
 
 .feed__sub {
   font-size: 13px;
-  color: rgba(255,255,255,0.3);
+  color: var(--text-secondary);
   margin-top: 4px;
 }
 
@@ -55,7 +54,6 @@
   box-shadow: 0 6px 20px rgba(124,111,255,0.3);
 }
 
-/* Search + Filter */
 .feed__controls {
   display: flex;
   gap: 12px;
@@ -74,14 +72,14 @@
   left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(255,255,255,0.25);
+  color: var(--text-muted);
 }
 
 .feed__search-input {
   width: 100%;
-  background: #0e0e1a;
-  border: 1px solid rgba(255,255,255,0.06);
-  color: #fff;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
   padding: 11px 16px 11px 40px;
   border-radius: 12px;
   font-size: 13.5px;
@@ -91,13 +89,12 @@
 }
 
 .feed__search-input:focus {
-  border-color: rgba(124,111,255,0.3);
-  background: #111120;
+  border-color: var(--accent);
+  background: var(--card2);
 }
 
-.feed__search-input::placeholder { color: rgba(255,255,255,0.2); }
+.feed__search-input::placeholder { color: var(--text-muted); }
 
-/* Filter tabs */
 .feed__filters {
   display: flex;
   gap: 6px;
@@ -111,24 +108,23 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  border: 1px solid rgba(255,255,255,0.06);
-  background: #0e0e1a;
-  color: rgba(255,255,255,0.35);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-secondary);
   letter-spacing: -0.1px;
 }
 
 .feed__filter:hover {
-  border-color: rgba(124,111,255,0.2);
-  color: rgba(255,255,255,0.7);
+  border-color: var(--accent);
+  color: var(--text);
 }
 
 .feed__filter.active {
-  background: rgba(124,111,255,0.1);
-  border-color: rgba(124,111,255,0.25);
-  color: #a89fff;
+  background: var(--nav-active);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
-/* Type tabs */
 .feed__type-tabs {
   display: flex;
   gap: 6px;
@@ -142,9 +138,9 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
   background: transparent;
-  color: rgba(255,255,255,0.35);
+  color: var(--text-secondary);
 }
 
 .feed__type-tab.active-offer {
@@ -159,17 +155,15 @@
   color: #ff6fb0;
 }
 
-/* Grid */
 .feed__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 14px;
 }
 
-/* Skill Card */
 .skill-card {
-  background: #0e0e1a;
-  border: 1px solid rgba(255,255,255,0.05);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 18px;
   padding: 22px;
   transition: all 0.2s;
@@ -198,14 +192,13 @@
 }
 
 .skill-card:hover {
-  border-color: rgba(255,255,255,0.1);
-  background: #111120;
+  border-color: var(--border);
+  background: var(--card2);
   transform: translateY(-2px);
 }
 
 .skill-card:hover::before { opacity: 1; }
 
-/* Card top */
 .skill-card__top {
   display: flex;
   align-items: flex-start;
@@ -240,14 +233,13 @@
   gap: 4px;
   font-size: 12px;
   font-weight: 600;
-  color: #a89fff;
+  color: var(--accent);
 }
 
-/* Card content */
 .skill-card__title {
   font-size: 15px;
   font-weight: 600;
-  color: rgba(255,255,255,0.9);
+  color: var(--text);
   margin-bottom: 8px;
   letter-spacing: -0.3px;
   line-height: 1.3;
@@ -255,7 +247,7 @@
 
 .skill-card__desc {
   font-size: 12.5px;
-  color: rgba(255,255,255,0.3);
+  color: var(--text-secondary);
   line-height: 1.6;
   margin-bottom: 14px;
   display: -webkit-box;
@@ -264,7 +256,6 @@
   overflow: hidden;
 }
 
-/* Tags */
 .skill-card__tags {
   display: flex;
   flex-wrap: wrap;
@@ -277,18 +268,17 @@
   border-radius: 20px;
   font-size: 11px;
   font-weight: 500;
-  background: rgba(255,255,255,0.04);
-  color: rgba(255,255,255,0.35);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 
-/* Card bottom */
 .skill-card__bottom {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding-top: 14px;
-  border-top: 1px solid rgba(255,255,255,0.04);
+  border-top: 1px solid var(--border2);
 }
 
 .skill-card__user {
@@ -312,7 +302,7 @@
 
 .skill-card__username {
   font-size: 12px;
-  color: rgba(255,255,255,0.4);
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -343,12 +333,11 @@
   transform: translateY(-1px);
 }
 
-/* Empty state */
 .feed__empty {
   grid-column: 1 / -1;
   text-align: center;
   padding: 60px 20px;
-  color: rgba(255,255,255,0.2);
+  color: var(--text-muted);
 }
 
 .feed__empty-icon {
@@ -361,14 +350,13 @@
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: rgba(255,255,255,0.4);
+  color: var(--text-secondary);
 }
 
 .feed__empty-sub {
   font-size: 13px;
 }
 
-/* Loading */
 .feed__loading {
   grid-column: 1 / -1;
   display: flex;
@@ -389,7 +377,6 @@
   to { transform: rotate(360deg); }
 }
 
-/* Post Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -403,8 +390,8 @@
 }
 
 .modal {
-  background: #0e0e1a;
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 20px;
   padding: 32px;
   width: 100%;
@@ -415,7 +402,7 @@
 .modal__title {
   font-size: 18px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text);
   letter-spacing: -0.5px;
   margin-bottom: 24px;
 }
@@ -427,9 +414,9 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: rgba(255,255,255,0.05);
+  background: var(--input-bg);
   border: none;
-  color: rgba(255,255,255,0.4);
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -438,8 +425,8 @@
 }
 
 .modal__close:hover {
-  background: rgba(255,255,255,0.08);
-  color: #fff;
+  background: var(--nav-hover);
+  color: var(--text);
 }
 
 .modal__form {
@@ -457,15 +444,15 @@
 .modal__label {
   font-size: 12.5px;
   font-weight: 500;
-  color: rgba(255,255,255,0.4);
+  color: var(--text-secondary);
 }
 
 .modal__input,
 .modal__select,
 .modal__textarea {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.07);
-  color: #fff;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
   padding: 11px 14px;
   border-radius: 10px;
   font-size: 13.5px;
@@ -477,14 +464,14 @@
 .modal__input:focus,
 .modal__select:focus,
 .modal__textarea:focus {
-  border-color: rgba(124,111,255,0.3);
-  background: rgba(124,111,255,0.04);
+  border-color: var(--accent);
+  background: var(--nav-hover);
 }
 
 .modal__input::placeholder,
-.modal__textarea::placeholder { color: rgba(255,255,255,0.15); }
+.modal__textarea::placeholder { color: var(--text-muted); }
 
-.modal__select option { background: #0e0e1a; }
+.modal__select option { background: var(--card); color: var(--text); }
 
 .modal__textarea {
   resize: vertical;
@@ -504,9 +491,9 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  border: 1px solid rgba(255,255,255,0.07);
+  border: 1px solid var(--border);
   background: transparent;
-  color: rgba(255,255,255,0.3);
+  color: var(--text-secondary);
 }
 
 .modal__type-btn.active-offer {

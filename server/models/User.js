@@ -25,11 +25,16 @@ const UserSchema = new mongoose.Schema({
     match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email']
   },
 
-  // Password
+  // Password — Google users-ku required illa
   password: {
     type: String,
-    required: [true, 'Password is required'],
     minlength: 6
+  },
+
+  // Google OAuth ID — Google vachi login pannina users-ku mattum
+  googleId: {
+    type: String,
+    default: null
   },
 
   // Time Credits — default 5 credits kedaikum join panrapa

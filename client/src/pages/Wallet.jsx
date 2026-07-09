@@ -11,14 +11,6 @@ function Wallet() {
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase()
     : 'MH'
 
-  const TXNS = [
-    { icon: '💻', name: 'Coding Help Given', time: '2 hours ago', amount: '+2.0', type: 'earn', bg: 'rgba(111,255,212,0.1)', desc: 'Helped with React project' },
-    { icon: '📚', name: 'Tamil Lesson Received', time: 'Yesterday', amount: '-1.0', type: 'spend', bg: 'rgba(255,111,176,0.1)', desc: 'Language learning session' },
-    { icon: '🎨', name: 'Design Review Given', time: '2 days ago', amount: '+1.5', type: 'earn', bg: 'rgba(124,111,255,0.1)', desc: 'UI feedback session' },
-    { icon: '🍳', name: 'Cooking Class Attended', time: '3 days ago', amount: '-1.0', type: 'spend', bg: 'rgba(255,209,102,0.1)', desc: 'Sri Lankan recipes' },
-    { icon: '🎸', name: 'Guitar Lesson Given', time: '5 days ago', amount: '+1.0', type: 'earn', bg: 'rgba(111,255,212,0.1)', desc: 'Basic chords session' },
-  ]
-
   return (
     <div className="dash">
       <aside className="dash__sidebar">
@@ -35,7 +27,7 @@ function Wallet() {
         <nav className="dash__nav">
           <div className="dash__nav-label">Main Menu</div>
           <div className="dash__nav-item" onClick={() => navigate('/dashboard')}>
-            <div className="dash__nav-item-icon" style={{ background: 'rgba(255,255,255,0.04)', color: '#8888aa' }}>
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="14" y="3" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="3" y="14" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="14" y="14" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/></svg>
             </div>
             Dashboard
@@ -47,19 +39,19 @@ function Wallet() {
             Time Wallet
           </div>
           <div className="dash__nav-item" onClick={() => navigate('/skills')}>
-            <div className="dash__nav-item-icon" style={{ background: 'rgba(255,255,255,0.04)', color: '#8888aa' }}>
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5"/><path d="M16.5 16.5l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             </div>
             Find Skills
           </div>
           <div className="dash__nav-item" onClick={() => navigate('/messages')}>
-            <div className="dash__nav-item-icon" style={{ background: 'rgba(255,255,255,0.04)', color: '#8888aa' }}>
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>
             </div>
             Messages
           </div>
           <div className="dash__nav-item" onClick={() => navigate('/profile')}>
-            <div className="dash__nav-item-icon" style={{ background: 'rgba(255,255,255,0.04)', color: '#8888aa' }}>
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             </div>
             Profile
@@ -78,7 +70,7 @@ function Wallet() {
             <div className="dash__sidebar-avatar">{initials}</div>
             <div>
               <div className="dash__sidebar-user-name">{user?.name || 'Mohamed Hamjath'}</div>
-              <div className="dash__sidebar-user-credits">{user?.timeCredits || 5} Time Credits</div>
+              <div className="dash__sidebar-user-credits">{user?.timeCredits ?? 5} Time Credits</div>
             </div>
           </div>
         </div>
@@ -96,19 +88,19 @@ function Wallet() {
         <div className="wallet__card">
           <div className="wallet__card-left">
             <div className="wallet__card-label">TOTAL BALANCE</div>
-            <div className="wallet__card-balance">{user?.timeCredits || 5}.0</div>
+            <div className="wallet__card-balance">{user?.timeCredits ?? 5}.0</div>
             <div className="wallet__card-unit">Time Credits</div>
             <div className="wallet__card-stats">
               <div className="wallet__card-stat">
-                <div className="wallet__card-stat-num" style={{ color: '#6fffd4' }}>+4.5</div>
+                <div className="wallet__card-stat-num" style={{ color: '#6fffd4' }}>+0.0</div>
                 <div className="wallet__card-stat-label">Earned</div>
               </div>
               <div className="wallet__card-stat">
-                <div className="wallet__card-stat-num" style={{ color: '#ff6fb0' }}>-2.0</div>
+                <div className="wallet__card-stat-num" style={{ color: '#ff6fb0' }}>-0.0</div>
                 <div className="wallet__card-stat-label">Spent</div>
               </div>
               <div className="wallet__card-stat">
-                <div className="wallet__card-stat-num" style={{ color: '#ffd166' }}>8</div>
+                <div className="wallet__card-stat-num" style={{ color: '#ffd166' }}>0</div>
                 <div className="wallet__card-stat-label">Sessions</div>
               </div>
             </div>
@@ -118,7 +110,7 @@ function Wallet() {
               <svg viewBox="0 0 120 120" width="120" height="120">
                 <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="10"/>
                 <circle cx="60" cy="60" r="50" fill="none" stroke="url(#walletGrad)" strokeWidth="10"
-                  strokeDasharray="314" strokeDashoffset="94" strokeLinecap="round"
+                  strokeDasharray="314" strokeDashoffset="0" strokeLinecap="round"
                   transform="rotate(-90 60 60)"/>
                 <defs>
                   <linearGradient id="walletGrad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -126,7 +118,7 @@ function Wallet() {
                     <stop offset="100%" stopColor="#6fffd4"/>
                   </linearGradient>
                 </defs>
-                <text x="60" y="55" textAnchor="middle" fill="white" fontSize="18" fontWeight="800">{user?.timeCredits || 5}</text>
+                <text x="60" y="55" textAnchor="middle" fill="white" fontSize="18" fontWeight="800">{user?.timeCredits ?? 5}</text>
                 <text x="60" y="72" textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize="9">credits</text>
               </svg>
             </div>
@@ -180,18 +172,16 @@ function Wallet() {
         <div className="dash__txns" style={{ marginTop: '20px' }}>
           <div className="dash__section-title">
             Transaction History
-            <span className="dash__section-link">Export</span>
           </div>
-          {TXNS.map((txn, i) => (
-            <div key={i} className="dash__txn">
-              <div className="dash__txn-icon" style={{ background: txn.bg }}>{txn.icon}</div>
-              <div className="dash__txn-info">
-                <div className="dash__txn-name">{txn.name}</div>
-                <div className="dash__txn-time">{txn.desc} · {txn.time}</div>
-              </div>
-              <div className={`dash__txn-amount ${txn.type}`}>{txn.amount}</div>
+          <div style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: '36px', marginBottom: '12px', opacity: 0.4 }}>📋</div>
+            <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+              No transactions yet
             </div>
-          ))}
+            <div style={{ fontSize: '13px' }}>
+              Your earned and spent credits will appear here once you start exchanging skills
+            </div>
+          </div>
         </div>
 
       </main>

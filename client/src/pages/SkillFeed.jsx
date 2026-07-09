@@ -1,18 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import '../styles/skillfeed.css'
 import '../styles/dashboard.css'
 
-const CATEGORIES = ['All', 'Technology', 'Design', 'Education', 'Cooking', 'Music', 'Language', 'Business', 'Health', 'Other']
+const API = 'https://timebank-app.onrender.com/api'
 
-const SAMPLE_SKILLS = [
-  { _id: '1', title: 'React & JavaScript Tutoring', description: 'I can help you learn React, JavaScript, and modern web development. Perfect for beginners!', category: 'Technology', type: 'offer', credits: 1, userName: 'Mohamed Hamjath', tags: ['React', 'JavaScript', 'Web Dev'], location: 'Online' },
-  { _id: '2', title: 'Need Tamil Language Lessons', description: 'Looking for someone to teach me conversational Tamil. 1 hour sessions preferred.', category: 'Language', type: 'request', credits: 1, userName: 'Aisha Fernando', tags: ['Tamil', 'Language', 'Speaking'], location: 'Online' },
-  { _id: '3', title: 'UI/UX Design Consultation', description: 'I can review your designs, give feedback, and help improve user experience for your app or website.', category: 'Design', type: 'offer', credits: 2, userName: 'Kamal Perera', tags: ['UI/UX', 'Figma', 'Design'], location: 'Online' },
-  { _id: '4', title: 'Sri Lankan Cooking Class', description: 'Learn authentic Sri Lankan recipes including rice & curry, kottu, and string hoppers!', category: 'Cooking', type: 'offer', credits: 1, userName: 'Nimal Silva', tags: ['Cooking', 'Sri Lankan', 'Food'], location: 'Colombo' },
-  { _id: '5', title: 'Need Help with Python', description: 'Looking for someone to help me understand Python basics and data structures.', category: 'Technology', type: 'request', credits: 1, userName: 'Priya Rajapaksa', tags: ['Python', 'Coding', 'Beginner'], location: 'Online' },
-  { _id: '6', title: 'Guitar Lessons for Beginners', description: 'I can teach you basic guitar chords and simple songs. Patient teacher, fun sessions!', category: 'Music', type: 'offer', credits: 1, userName: 'Dilshan Bandara', tags: ['Guitar', 'Music', 'Beginner'], location: 'Kandy' },
-]
+const CATEGORIES = ['All', 'Technology', 'Design', 'Education', 'Cooking', 'Music', 'Language', 'Business', 'Health', 'Other']
 
 function SkillCard({ skill, onConnect }) {
   const initials = skill.userName ? skill.userName.split(' ').map(n => n[0]).join('').toUpperCase() : '?'
@@ -56,20 +50,26 @@ function PostModal({ onClose, onPost }) {
     type: 'offer', credits: 1, location: 'Online', tags: ''
   })
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
   const handleSubmit = async () => {
     if (!form.title || !form.description) return
     setLoading(true)
+    setError('')
     const newSkill = {
       ...form,
       tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
       credits: Number(form.credits)
     }
-    await onPost(newSkill)
+    const result = await onPost(newSkill)
     setLoading(false)
-    onClose()
+    if (result.success) {
+      onClose()
+    } else {
+      setError(result.message || 'Failed to post skill')
+    }
   }
 
   return (
@@ -81,6 +81,15 @@ function PostModal({ onClose, onPost }) {
           </svg>
         </button>
         <h2 className="modal__title">Post a Skill</h2>
+        {error && (
+          <div style={{
+            background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)',
+            color: '#ff5050', padding: '10px 14px', borderRadius: '10px',
+            fontSize: '13px', marginBottom: '14px'
+          }}>
+            {error}
+          </div>
+        )}
         <div className="modal__form">
           <div className="modal__field">
             <label className="modal__label">Type</label>
@@ -123,30 +132,69 @@ function PostModal({ onClose, onPost }) {
 }
 
 function SkillFeed() {
-  const { user } = useAuth()
-  const [skills, setSkills] = useState(SAMPLE_SKILLS)
+  const { user, token } = useAuth()
+  const [skills, setSkills] = useState([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('All')
   const [typeFilter, setTypeFilter] = useState('all')
   const [showModal, setShowModal] = useState(false)
 
-  const filtered = skills.filter(skill => {
-    const matchSearch = skill.title.toLowerCase().includes(search.toLowerCase()) ||
-      skill.description.toLowerCase().includes(search.toLowerCase())
-    const matchCat = category === 'All' || skill.category === category
-    const matchType = typeFilter === 'all' || skill.type === typeFilter
-    return matchSearch && matchCat && matchType
-  })
+  const fetchSkills = async () => {
+    setLoading(true)
+    try {
+      const params = {}
+      if (category !== 'All') params.category = category
+      if (typeFilter !== 'all') params.type = typeFilter
+      if (search) params.search = search
+
+      const res = await axios.get(`${API}/skills`, { params })
+      setSkills(res.data.skills || [])
+    } catch (err) {
+      console.error('Failed to fetch skills:', err)
+      setSkills([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchSkills()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, typeFilter])
+
+  useEffect(() => {
+    const delay = setTimeout(() => fetchSkills(), 400)
+    return () => clearTimeout(delay)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search])
 
   const handlePost = async (newSkill) => {
-    const skill = { ...newSkill, _id: Date.now().toString(), userName: user?.name || 'You' }
-    setSkills([skill, ...skills])
+    try {
+      const res = await axios.post(`${API}/skills`, newSkill, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setSkills([res.data.skill, ...skills])
+      return { success: true }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to post skill'
+      return { success: false, message: msg }
+    }
   }
 
-  const handleConnect = (skill) => {
-    alert(`Connecting with ${skill.userName} for "${skill.title}"!`)
+  const handleConnect = async (skill) => {
+  try {
+    await axios.post(`${API}/messages`, {
+      receiverId: skill.user,
+      text: `Hi! I'm interested in your skill: "${skill.title}"`
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    alert(`Message sent to ${skill.userName}! Check your Messages page.`)
+  } catch (err) {
+    alert('Failed to send message. Please try again.')
   }
-
+}
   return (
     <div className="feed">
       <aside className="dash__sidebar">
@@ -164,14 +212,14 @@ function SkillFeed() {
           <div className="dash__nav-label">Main Menu</div>
 
           <a href="/dashboard" className="dash__nav-item">
-            <div className="dash__nav-item-icon" style={{ background: 'rgba(255,255,255,0.04)', color: '#8888aa' }}>
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="14" y="3" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="3" y="14" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="14" y="14" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/></svg>
             </div>
             Dashboard
           </a>
 
-          <a href="/dashboard" className="dash__nav-item">
-            <div className="dash__nav-item-icon" style={{ background: 'rgba(255,255,255,0.04)', color: '#8888aa' }}>
+          <a href="/wallet" className="dash__nav-item">
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             </div>
             Time Wallet
@@ -184,15 +232,15 @@ function SkillFeed() {
             Find Skills
           </a>
 
-          <a href="/dashboard" className="dash__nav-item">
-            <div className="dash__nav-item-icon" style={{ background: 'rgba(255,255,255,0.04)', color: '#8888aa' }}>
+          <a href="/messages" className="dash__nav-item">
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>
             </div>
             Messages
           </a>
 
-          <a href="/dashboard" className="dash__nav-item">
-            <div className="dash__nav-item-icon" style={{ background: 'rgba(255,255,255,0.04)', color: '#8888aa' }}>
+          <a href="/profile" className="dash__nav-item">
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             </div>
             Profile
@@ -251,14 +299,18 @@ function SkillFeed() {
         </div>
 
         <div className="feed__grid">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="feed__loading">
+              <div className="feed__spinner" />
+            </div>
+          ) : skills.length === 0 ? (
             <div className="feed__empty">
               <div className="feed__empty-icon">🔍</div>
-              <div className="feed__empty-title">No skills found</div>
-              <div className="feed__empty-sub">Try different filters or post your own skill!</div>
+              <div className="feed__empty-title">No skills posted yet</div>
+              <div className="feed__empty-sub">Be the first to post a skill in your community!</div>
             </div>
           ) : (
-            filtered.map(skill => (
+            skills.map(skill => (
               <SkillCard key={skill._id} skill={skill} onConnect={handleConnect}/>
             ))
           )}
