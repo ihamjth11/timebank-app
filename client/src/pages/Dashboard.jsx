@@ -1,4 +1,5 @@
 import ThemeToggle from '../components/ThemeToggle'
+import OnboardingTour from '../components/OnboardingTour'
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
