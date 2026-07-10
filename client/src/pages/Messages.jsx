@@ -203,7 +203,19 @@ function Messages() {
     }
   }
 
-  // Merge messages + sessions into one timeline
+  const deleteConversation = async () => {
+    if (!window.confirm('Delete this entire conversation?')) return
+    try {
+      await axios.delete(`${API}/messages/${activeChat.otherUserId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setActiveChat(null)
+      fetchConversations()
+    } catch (err) {
+      console.error('Failed to delete conversation:', err)
+    }
+  }
+
   const timeline = [
     ...thread.map(m => ({ ...m, _type: 'message' })),
     ...sessions.map(s => ({ ...s, _type: 'session', createdAt: s.createdAt }))
@@ -325,12 +337,20 @@ function Messages() {
                 <button onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '18px' }}>←</button>
                 <span style={{ fontWeight: 600, color: 'var(--text)' }}>{activeChat.name}</span>
               </div>
-              <button onClick={() => setShowSchedule(true)} style={{
-                background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--accent)',
-                borderRadius: '10px', padding: '7px 14px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer'
-              }}>
-                📅 Schedule Session
-              </button>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => setShowSchedule(true)} style={{
+                  background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--accent)',
+                  borderRadius: '10px', padding: '7px 14px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer'
+                }}>
+                  📅 Schedule
+                </button>
+                <button onClick={deleteConversation} style={{
+                  background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', color: '#ff5050',
+                  borderRadius: '10px', padding: '7px 14px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer'
+                }}>
+                  🗑️ Delete
+                </button>
+              </div>
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>

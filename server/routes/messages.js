@@ -16,7 +16,6 @@ const auth = (req, res, next) => {
   }
 }
 
-// GET all conversations for logged in user
 router.get('/conversations', auth, async (req, res) => {
   try {
     const userId = req.user.id
@@ -60,7 +59,6 @@ router.get('/conversations', auth, async (req, res) => {
   }
 })
 
-// GET thread with a specific user
 router.get('/:userId', auth, async (req, res) => {
   try {
     const userId = req.user.id
@@ -84,7 +82,6 @@ router.get('/:userId', auth, async (req, res) => {
   }
 })
 
-// POST send a message
 router.post('/', auth, async (req, res) => {
   try {
     const { receiverId, text } = req.body
@@ -100,6 +97,24 @@ router.post('/', auth, async (req, res) => {
 
     await message.save()
     res.status(201).json({ success: true, message })
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+router.delete('/:otherUserId', auth, async (req, res) => {
+  try {
+    const userId = req.user.id
+    const otherId = req.params.otherUserId
+
+    await Message.deleteMany({
+      $or: [
+        { sender: userId, receiver: otherId },
+        { sender: otherId, receiver: userId }
+      ]
+    })
+
+    res.json({ success: true, message: 'Conversation deleted' })
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error' })
   }

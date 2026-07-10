@@ -1,539 +1,352 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
-.feed {
-  min-height: 100vh;
-  background: var(--bg);
-  display: flex;
-  font-family: 'Inter', sans-serif;
-}
-
-.feed__main {
-  margin-left: 248px;
-  flex: 1;
-  padding: 28px 32px;
-}
-
-.feed__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-
-.feed__title {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.6px;
-}
-
-.feed__sub {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-top: 4px;
-}
-
-.feed__post-btn {
-  background: linear-gradient(135deg, #7c6fff, #ff6fb0);
-  color: #fff;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  letter-spacing: -0.1px;
-}
-
-.feed__post-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(124,111,255,0.3);
-}
-
-.feed__controls {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-}
-
-.feed__search {
-  flex: 1;
-  min-width: 200px;
-  position: relative;
-}
-
-.feed__search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-muted);
-}
-
-.feed__search-input {
-  width: 100%;
-  background: var(--input-bg);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 11px 16px 11px 40px;
-  border-radius: 12px;
-  font-size: 13.5px;
-  font-family: 'Inter', sans-serif;
-  outline: none;
-  transition: all 0.2s;
-}
-
-.feed__search-input:focus {
-  border-color: var(--accent);
-  background: var(--card2);
-}
-
-.feed__search-input::placeholder { color: var(--text-muted); }
-
-.feed__filters {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.feed__filter {
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 12.5px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--text-secondary);
-  letter-spacing: -0.1px;
-}
-
-.feed__filter:hover {
-  border-color: var(--accent);
-  color: var(--text);
-}
-
-.feed__filter.active {
-  background: var(--nav-active);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.feed__type-tabs {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 20px;
-}
-
-.feed__type-tab {
-  padding: 8px 20px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-secondary);
-}
-
-.feed__type-tab.active-offer {
-  background: rgba(111,255,212,0.08);
-  border-color: rgba(111,255,212,0.2);
-  color: #6fffd4;
-}
-
-.feed__type-tab.active-request {
-  background: rgba(255,111,176,0.08);
-  border-color: rgba(255,111,176,0.2);
-  color: #ff6fb0;
-}
-
-.feed__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 14px;
-}
-
-.skill-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 22px;
-  transition: all 0.2s;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-}
-
-.skill-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.skill-card.offer::before {
-  background: linear-gradient(90deg, #6fffd4, transparent);
-}
-
-.skill-card.request::before {
-  background: linear-gradient(90deg, #ff6fb0, transparent);
-}
-
-.skill-card:hover {
-  border-color: var(--border);
-  background: var(--card2);
-  transform: translateY(-2px);
-}
-
-.skill-card:hover::before { opacity: 1; }
-
-.skill-card__top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.skill-card__type {
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  padding: 4px 10px;
-  border-radius: 20px;
-}
-
-.skill-card__type.offer {
-  background: rgba(111,255,212,0.08);
-  color: #6fffd4;
-  border: 1px solid rgba(111,255,212,0.15);
-}
-
-.skill-card__type.request {
-  background: rgba(255,111,176,0.08);
-  color: #ff6fb0;
-  border: 1px solid rgba(255,111,176,0.15);
-}
-
-.skill-card__credits {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--accent);
-}
-
-.skill-card__title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 8px;
-  letter-spacing: -0.3px;
-  line-height: 1.3;
-}
-
-.skill-card__desc {
-  font-size: 12.5px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin-bottom: 14px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.skill-card__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 16px;
-}
-
-.skill-card__tag {
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 500;
-  background: var(--input-bg);
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-}
-
-.skill-card__bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 14px;
-  border-top: 1px solid var(--border2);
-}
-
-.skill-card__user {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.skill-card__avatar {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #7c6fff, #ff6fb0);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
-  color: white;
-}
-
-.skill-card__username {
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-.skill-card__connect {
-  padding: 7px 14px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-  letter-spacing: -0.1px;
-}
-
-.skill-card__connect.offer {
-  background: rgba(111,255,212,0.08);
-  color: #6fffd4;
-  border: 1px solid rgba(111,255,212,0.15);
-}
-
-.skill-card__connect.request {
-  background: rgba(255,111,176,0.08);
-  color: #ff6fb0;
-  border: 1px solid rgba(255,111,176,0.15);
-}
-
-.skill-card__connect:hover {
-  transform: translateY(-1px);
-}
-
-.feed__empty {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--text-muted);
-}
-
-.feed__empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-  opacity: 0.3;
-}
-
-.feed__empty-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: var(--text-secondary);
-}
-
-.feed__empty-sub {
-  font-size: 13px;
-}
-
-.feed__loading {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: center;
-  padding: 60px;
-}
-
-.feed__spinner {
-  width: 32px;
-  height: 32px;
-  border: 2px solid rgba(124,111,255,0.2);
-  border-top-color: #7c6fff;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(8px);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-
-.modal {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 32px;
-  width: 100%;
-  max-width: 480px;
-  max-height: 85vh;
-  overflow-y: auto;
-  position: relative;
-}
-.modal__title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: -0.5px;
-  margin-bottom: 24px;
-}
-
-.modal__close {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: var(--input-bg);
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.modal__close:hover {
-  background: var(--nav-hover);
-  color: var(--text);
-}
-
-.modal__form {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.modal__field {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.modal__label {
-  font-size: 12.5px;
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
-.modal__input,
-.modal__select,
-.modal__textarea {
-  background: var(--input-bg);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 11px 14px;
-  border-radius: 10px;
-  font-size: 13.5px;
-  font-family: 'Inter', sans-serif;
-  outline: none;
-  transition: all 0.2s;
-}
-
-.modal__input:focus,
-.modal__select:focus,
-.modal__textarea:focus {
-  border-color: var(--accent);
-  background: var(--nav-hover);
-}
-
-.modal__input::placeholder,
-.modal__textarea::placeholder { color: var(--text-muted); }
-
-.modal__select option { background: var(--card); color: var(--text); }
-
-.modal__textarea {
-  resize: vertical;
-  min-height: 90px;
-}
-
-.modal__type-row {
-  display: flex;
-  gap: 8px;
-}
-
-.modal__type-btn {
-  flex: 1;
-  padding: 10px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-secondary);
-}
-
-.modal__type-btn.active-offer {
-  background: rgba(111,255,212,0.08);
-  border-color: rgba(111,255,212,0.2);
-  color: #6fffd4;
-}
-
-.modal__type-btn.active-request {
-  background: rgba(255,111,176,0.08);
-  border-color: rgba(255,111,176,0.2);
-  color: #ff6fb0;
-}
-
-.modal__submit {
-  background: linear-gradient(135deg, #7c6fff, #ff6fb0);
-  color: #fff;
-  border: none;
-  padding: 13px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-top: 4px;
-}
-
-.modal__submit:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(124,111,255,0.3);
-}
-
-.modal__submit:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-@media (max-width: 768px) {
-  .feed__main { margin-left: 0; padding: 20px; }
-  .feed__grid { grid-template-columns: 1fr; }
-}
+import { useState, useEffect } from 'react'
+import axios from 'axios'
+import { useAuth } from '../context/AuthContext'
+import '../styles/skillfeed.css'
+import '../styles/dashboard.css'
+
+const API = 'https://timebank-app.onrender.com/api'
+
+const CATEGORIES = ['All', 'Technology', 'Design', 'Education', 'Cooking', 'Music', 'Language', 'Business', 'Health', 'Other']
+
+function SkillCard({ skill, onConnect, onDelete, currentUserName }) {
+  const initials = skill.userName ? skill.userName.split(' ').map(n => n[0]).join('').toUpperCase() : '?'
+  const isOwner = skill.userName === currentUserName
+
+  return (
+    <div className={`skill-card ${skill.type}`}>
+      <div className="skill-card__top">
+        <span className={`skill-card__type ${skill.type}`}>
+          {skill.type === 'offer' ? 'Offering' : 'Requesting'}
+        </span>
+        <div className="skill-card__credits">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
+            <path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+          {skill.credits}h
+        </div>
+      </div>
+      <h3 className="skill-card__title">{skill.title}</h3>
+      <p className="skill-card__desc">{skill.description}</p>
+      <div className="skill-card__tags">
+        {skill.tags?.map((tag, i) => (
+          <span key={i} className="skill-card__tag">{tag}</span>
+        ))}
+      </div>
+      <div className="skill-card__bottom">
+        <div className="skill-card__user">
+          <div className="skill-card__avatar">{initials}</div>
+          <span className="skill-card__username">{skill.userName}</span>
+        </div>
+        {isOwner ? (
+          <button
+            className="skill-card__connect"
+            style={{ background: 'rgba(255,80,80,0.1)', color: '#ff5050', border: '1px solid rgba(255,80,80,0.2)' }}
+            onClick={() => onDelete(skill._id)}
+          >
+            Delete
+          </button>
+        ) : (
+          <button className={`skill-card__connect ${skill.type}`} onClick={() => onConnect(skill)}>
+            {skill.type === 'offer' ? 'Connect' : 'Help'}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function PostModal({ onClose, onPost }) {
+  const [form, setForm] = useState({
+    title: '', description: '', category: 'Technology',
+    type: 'offer', credits: 1, location: 'Online', tags: ''
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
+
+  const handleSubmit = async () => {
+    if (!form.title || !form.description) return
+    setLoading(true)
+    setError('')
+    const newSkill = {
+      ...form,
+      tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
+      credits: Number(form.credits)
+    }
+    const result = await onPost(newSkill)
+    setLoading(false)
+    if (result.success) {
+      onClose()
+    } else {
+      setError(result.message || 'Failed to post skill')
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <button className="modal__close" onClick={onClose}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </button>
+        <h2 className="modal__title">Post a Skill</h2>
+        {error && (
+          <div style={{
+            background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)',
+            color: '#ff5050', padding: '10px 14px', borderRadius: '10px',
+            fontSize: '13px', marginBottom: '14px'
+          }}>
+            {error}
+          </div>
+        )}
+        <div className="modal__form">
+          <div className="modal__field">
+            <label className="modal__label">Type</label>
+            <div className="modal__type-row">
+              <button className={`modal__type-btn ${form.type === 'offer' ? 'active-offer' : ''}`} onClick={() => setForm({ ...form, type: 'offer' })}>Offering</button>
+              <button className={`modal__type-btn ${form.type === 'request' ? 'active-request' : ''}`} onClick={() => setForm({ ...form, type: 'request' })}>Requesting</button>
+            </div>
+          </div>
+          <div className="modal__field">
+            <label className="modal__label">Title</label>
+            <input className="modal__input" name="title" placeholder="e.g. React Tutoring..." value={form.title} onChange={handleChange}/>
+          </div>
+          <div className="modal__field">
+            <label className="modal__label">Description</label>
+            <textarea className="modal__textarea" name="description" placeholder="Describe what you offer or need..." value={form.description} onChange={handleChange}/>
+          </div>
+          <div className="modal__field">
+            <label className="modal__label">Category</label>
+            <select className="modal__select" name="category" value={form.category} onChange={handleChange}>
+              {CATEGORIES.filter(c => c !== 'All').map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+          <div className="modal__field">
+            <label className="modal__label">Tags (comma separated)</label>
+            <input className="modal__input" name="tags" placeholder="React, JavaScript..." value={form.tags} onChange={handleChange}/>
+          </div>
+          <div className="modal__field">
+            <label className="modal__label">Location</label>
+            <input className="modal__input" name="location" placeholder="Online / Colombo..." value={form.location} onChange={handleChange}/>
+          </div>
+          <button className="modal__submit" onClick={handleSubmit} disabled={loading || !form.title || !form.description}>
+            {loading ? 'Posting...' : 'Post Skill →'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SkillFeed() {
+  const { user, token } = useAuth()
+  const [skills, setSkills] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [category, setCategory] = useState('All')
+  const [typeFilter, setTypeFilter] = useState('all')
+  const [showModal, setShowModal] = useState(false)
+
+  const fetchSkills = async () => {
+    setLoading(true)
+    try {
+      const params = {}
+      if (category !== 'All') params.category = category
+      if (typeFilter !== 'all') params.type = typeFilter
+      if (search) params.search = search
+
+      const res = await axios.get(`${API}/skills`, { params })
+      setSkills(res.data.skills || [])
+    } catch (err) {
+      console.error('Failed to fetch skills:', err)
+      setSkills([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchSkills()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, typeFilter])
+
+  useEffect(() => {
+    const delay = setTimeout(() => fetchSkills(), 400)
+    return () => clearTimeout(delay)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search])
+
+  const handlePost = async (newSkill) => {
+    try {
+      const res = await axios.post(`${API}/skills`, newSkill, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setSkills([res.data.skill, ...skills])
+      return { success: true }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to post skill'
+      return { success: false, message: msg }
+    }
+  }
+
+  const handleConnect = async (skill) => {
+    try {
+      await axios.post(`${API}/messages`, {
+        receiverId: skill.user,
+        text: `Hi! I'm interested in your skill: "${skill.title}"`
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      alert(`Message sent to ${skill.userName}! Check your Messages page.`)
+    } catch (err) {
+      alert('Failed to send message. Please try again.')
+    }
+  }
+
+  const handleDelete = async (skillId) => {
+    if (!window.confirm('Delete this skill?')) return
+    try {
+      await axios.delete(`${API}/skills/${skillId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setSkills(skills.filter(s => s._id !== skillId))
+    } catch (err) {
+      alert('Failed to delete skill')
+    }
+  }
+
+  return (
+    <div className="feed">
+      <aside className="dash__sidebar">
+        <a href="/" className="dash__sidebar-logo">
+          <div className="dash__sidebar-logo-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="1.5"/>
+              <path d="M12 6v6l4 2" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <span className="dash__sidebar-logo-text">TimeBank</span>
+        </a>
+
+        <nav className="dash__nav">
+          <div className="dash__nav-label">Main Menu</div>
+
+          <a href="/dashboard" className="dash__nav-item">
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="14" y="3" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="3" y="14" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="14" y="14" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/></svg>
+            </div>
+            Dashboard
+          </a>
+
+          <a href="/wallet" className="dash__nav-item">
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            </div>
+            Time Wallet
+          </a>
+
+          <a href="/skills" className="dash__nav-item active">
+            <div className="dash__nav-item-icon" style={{ background: 'rgba(255,111,176,0.15)', color: '#ff6fb0' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5"/><path d="M16.5 16.5l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            </div>
+            Find Skills
+          </a>
+
+          <a href="/messages" className="dash__nav-item">
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>
+            </div>
+            Messages
+          </a>
+
+          <a href="/profile" className="dash__nav-item">
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            </div>
+            Profile
+          </a>
+        </nav>
+
+        <div className="dash__sidebar-bottom">
+          <div className="dash__sidebar-user">
+            <div className="dash__sidebar-avatar">
+              {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'MH'}
+            </div>
+            <div>
+              <div className="dash__sidebar-user-name">{user?.name || 'Mohamed Hamjath'}</div>
+              <div className="dash__sidebar-user-credits">{user?.timeCredits ?? 5} Time Credits</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main className="feed__main">
+        <div className="feed__header">
+          <div>
+            <h1 className="feed__title">Skill Feed</h1>
+            <p className="feed__sub">Discover skills to exchange in your community</p>
+          </div>
+          <button className="feed__post-btn" onClick={() => setShowModal(true)}>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 1v12M1 7h12" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            Post Skill
+          </button>
+        </div>
+
+        <div className="feed__controls">
+          <div className="feed__search">
+            <svg className="feed__search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M16.5 16.5l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            <input className="feed__search-input" placeholder="Search skills..." value={search} onChange={e => setSearch(e.target.value)}/>
+          </div>
+        </div>
+
+        <div className="feed__filters" style={{ marginBottom: '14px' }}>
+          {CATEGORIES.map(cat => (
+            <button key={cat} className={`feed__filter ${category === cat ? 'active' : ''}`} onClick={() => setCategory(cat)}>
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        <div className="feed__type-tabs">
+          <button className={`feed__type-tab ${typeFilter === 'all' ? 'active-offer' : ''}`} onClick={() => setTypeFilter('all')}>All Skills</button>
+          <button className={`feed__type-tab ${typeFilter === 'offer' ? 'active-offer' : ''}`} onClick={() => setTypeFilter('offer')}>Offerings</button>
+          <button className={`feed__type-tab ${typeFilter === 'request' ? 'active-request' : ''}`} onClick={() => setTypeFilter('request')}>Requests</button>
+        </div>
+
+        <div className="feed__grid">
+          {loading ? (
+            <div className="feed__loading">
+              <div className="feed__spinner" />
+            </div>
+          ) : skills.length === 0 ? (
+            <div className="feed__empty">
+              <div className="feed__empty-icon">🔍</div>
+              <div className="feed__empty-title">No skills posted yet</div>
+              <div className="feed__empty-sub">Be the first to post a skill in your community!</div>
+            </div>
+          ) : (
+            skills.map(skill => (
+              <SkillCard key={skill._id} skill={skill} onConnect={handleConnect} onDelete={handleDelete} currentUserName={user?.name}/>
+            ))
+          )}
+        </div>
+      </main>
+
+      {showModal && (
+        <PostModal onClose={() => setShowModal(false)} onPost={handlePost}/>
+      )}
+    </div>
+  )
+}
+
+export default SkillFeed
