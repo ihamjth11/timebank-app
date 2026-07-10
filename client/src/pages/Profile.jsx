@@ -1,11 +1,100 @@
+import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import '../styles/dashboard.css'
 import '../styles/profile.css'
 
+function EditProfileModal({ user, onClose, onSave }) {
+  const [form, setForm] = useState({
+    name: user?.name || '',
+    bio: user?.bio || '',
+    location: user?.location || 'Sri Lanka'
+  })
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async () => {
+    setLoading(true)
+    const result = await onSave(form)
+    setLoading(false)
+    if (result.success) onClose()
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+      backdropFilter: 'blur(6px)', zIndex: 1000, display: 'flex',
+      alignItems: 'center', justifyContent: 'center', padding: '20px'
+    }} onClick={onClose}>
+      <div style={{
+        background: 'var(--card)', border: '1px solid var(--border)',
+        borderRadius: '20px', padding: '28px', width: '100%', maxWidth: '420px'
+      }} onClick={e => e.stopPropagation()}>
+        <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', marginBottom: '20px' }}>
+          Edit Profile
+        </h2>
+
+        <div style={{ marginBottom: '14px' }}>
+          <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Full Name</label>
+          <input
+            value={form.name}
+            onChange={e => setForm({ ...form, name: e.target.value })}
+            style={{
+              width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)',
+              borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <div style={{ marginBottom: '14px' }}>
+          <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Location</label>
+          <input
+            value={form.location}
+            onChange={e => setForm({ ...form, location: e.target.value })}
+            style={{
+              width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)',
+              borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Bio</label>
+          <textarea
+            value={form.bio}
+            onChange={e => setForm({ ...form, bio: e.target.value })}
+            maxLength={200}
+            rows={3}
+            style={{
+              width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)',
+              borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none',
+              fontSize: '14px', fontFamily: 'inherit', resize: 'vertical'
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={onClose} style={{
+            flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid var(--border)',
+            background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer'
+          }}>
+            Cancel
+          </button>
+          <button onClick={handleSubmit} disabled={loading} style={{
+            flex: 1, padding: '11px', borderRadius: '10px', border: 'none',
+            background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', fontWeight: 600, cursor: 'pointer'
+          }}>
+            {loading ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function Profile() {
-  const { user, logout } = useAuth()
+  const { user, logout, updateProfile } = useAuth()
   const navigate = useNavigate()
+  const [showEdit, setShowEdit] = useState(false)
 
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase()
@@ -77,7 +166,7 @@ function Profile() {
             <div className="dash__sidebar-avatar">{initials}</div>
             <div>
               <div className="dash__sidebar-user-name">{user?.name || 'Mohamed Hamjath'}</div>
-              <div className="dash__sidebar-user-credits">{user?.timeCredits || 5} Time Credits</div>
+              <div className="dash__sidebar-user-credits">{user?.timeCredits ?? 5} Time Credits</div>
             </div>
           </div>
         </div>
@@ -91,7 +180,6 @@ function Profile() {
           </div>
         </div>
 
-        {/* Profile Card */}
         <div className="profile__card">
           <div className="profile__cover" />
           <div className="profile__info">
@@ -106,21 +194,20 @@ function Profile() {
                   ✦ Creator
                 </span>
                 <span className="profile__badge" style={{ background: 'rgba(111,255,212,0.1)', color: '#00b894', border: '1px solid rgba(111,255,212,0.2)' }}>
-                  🇱🇰 Sri Lanka
+                  🇱🇰 {user?.location || 'Sri Lanka'}
                 </span>
                 <span className="profile__badge" style={{ background: 'rgba(255,209,102,0.1)', color: '#b8860b', border: '1px solid rgba(255,209,102,0.2)' }}>
                   ⭐ Top Helper
                 </span>
               </div>
             </div>
-            <button className="profile__edit-btn">Edit Profile</button>
+            <button className="profile__edit-btn" onClick={() => setShowEdit(true)}>Edit Profile</button>
           </div>
         </div>
 
-        {/* Stats */}
         <div className="profile__stats">
           <div className="profile__stat">
-            <div className="profile__stat-num" style={{ color: '#7c6fff' }}>{user?.timeCredits || 5}</div>
+            <div className="profile__stat-num" style={{ color: '#7c6fff' }}>{user?.timeCredits ?? 5}</div>
             <div className="profile__stat-label">Time Credits</div>
           </div>
           <div className="profile__stat">
@@ -137,11 +224,10 @@ function Profile() {
           </div>
         </div>
 
-        {/* Skills */}
         <div className="dash__txns" style={{ marginTop: '20px' }}>
           <div className="dash__section-title">
             My Skills
-            <span className="dash__section-link">+ Add Skill</span>
+            <span className="dash__section-link" onClick={() => navigate('/skills')}>+ Add Skill</span>
           </div>
           <div className="dash__skill-tags" style={{ marginTop: '14px' }}>
             {SKILLS.map((skill, i) => (
@@ -152,15 +238,22 @@ function Profile() {
           </div>
         </div>
 
-        {/* Bio */}
         <div className="dash__txns" style={{ marginTop: '14px' }}>
           <div className="dash__section-title">About Me</div>
           <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.7', marginTop: '12px' }}>
-            Full Stack Developer from Sri Lanka 🇱🇰 Passionate about technology, community building, and helping others grow through skill exchange. Creator of TimeBank — Sri Lanka's first time exchange platform.
+            {user?.bio || "Full Stack Developer from Sri Lanka 🇱🇰 Passionate about technology, community building, and helping others grow through skill exchange. Creator of TimeBank — Sri Lanka's first time exchange platform."}
           </p>
         </div>
 
       </main>
+
+      {showEdit && (
+        <EditProfileModal
+          user={user}
+          onClose={() => setShowEdit(false)}
+          onSave={updateProfile}
+        />
+      )}
     </div>
   )
 }

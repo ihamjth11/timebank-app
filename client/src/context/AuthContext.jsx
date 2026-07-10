@@ -68,6 +68,23 @@ export function AuthProvider({ children }) {
       setLoading(false)
     }
   }
+  const updateProfile = async (data) => {
+  setLoading(true)
+  setError(null)
+  try {
+    const res = await axios.put(`${API}/auth/profile`, data, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    setUser(res.data.user)
+    return { success: true }
+  } catch (err) {
+    const msg = err.response?.data?.message || 'Update failed'
+    setError(msg)
+    return { success: false, message: msg }
+  } finally {
+    setLoading(false)
+  }
+}
 
   const logout = () => {
     setUser(null)

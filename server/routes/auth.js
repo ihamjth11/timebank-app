@@ -219,5 +219,49 @@ router.get('/me', async (req, res) => {
     })
   }
 })
+// ===================================
+// UPDATE PROFILE — PUT /api/auth/profile
+// ===================================
+router.put('/profile', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1]
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'No token' })
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const { name, bio, location } = req.body
+
+    const user = await User.findById(decoded.id)
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' })
+    }
+
+    if (name) user.name = name
+    if (bio !== undefined) user.bio = bio
+    if (location) user.location = location
+
+    await user.save()
+
+    res.json({
+      success: true,
+      message: 'Profile updated!',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        timeCredits: user.timeCredits,
+        skills: user.skills,
+        avatar: user.avatar,
+        location: user.location,
+        bio: user.bio
+      }
+    })
+
+  } catch (error) {
+    console.error('Update profile error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
 
 module.exports = router
