@@ -15,6 +15,7 @@ app.use(express.json())
 app.use('/api/auth', require('./routes/auth'))
 app.use('/api/skills', require('./routes/skills'))
 app.use('/api/messages', require('./routes/messages'))
+app.use('/api/sessions', require('./routes/sessions'))
 
 app.get('/', (req, res) => {
   res.json({

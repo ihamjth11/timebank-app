@@ -396,9 +396,10 @@
   padding: 32px;
   width: 100%;
   max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
   position: relative;
 }
-
 .modal__title {
   font-size: 18px;
   font-weight: 700;

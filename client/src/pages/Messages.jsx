@@ -6,13 +6,130 @@ import '../styles/messages.css'
 
 const API = 'https://timebank-app.onrender.com/api'
 
+function ScheduleModal({ onClose, onSchedule }) {
+  const [date, setDate] = useState('')
+  const [time, setTime] = useState('')
+  const [link, setLink] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async () => {
+    if (!date || !time) return
+    setLoading(true)
+    await onSchedule({ date, time, meetingLink: link })
+    setLoading(false)
+    onClose()
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+      backdropFilter: 'blur(6px)', zIndex: 1000, display: 'flex',
+      alignItems: 'center', justifyContent: 'center', padding: '20px'
+    }} onClick={onClose}>
+      <div style={{
+        background: 'var(--card)', border: '1px solid var(--border)',
+        borderRadius: '20px', padding: '28px', width: '100%', maxWidth: '380px'
+      }} onClick={e => e.stopPropagation()}>
+        <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', marginBottom: '20px' }}>
+          Schedule a Session
+        </h2>
+
+        <div style={{ marginBottom: '14px' }}>
+          <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Date</label>
+          <input
+            type="date"
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            style={{
+              width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)',
+              borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <div style={{ marginBottom: '14px' }}>
+          <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Time</label>
+          <input
+            type="time"
+            value={time}
+            onChange={e => setTime(e.target.value)}
+            style={{
+              width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)',
+              borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>
+            Meeting Link (optional — Zoom, Google Meet, etc.)
+          </label>
+          <input
+            type="text"
+            placeholder="https://meet.google.com/..."
+            value={link}
+            onChange={e => setLink(e.target.value)}
+            style={{
+              width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)',
+              borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px'
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={onClose} style={{
+            flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid var(--border)',
+            background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer'
+          }}>
+            Cancel
+          </button>
+          <button onClick={handleSubmit} disabled={loading || !date || !time} style={{
+            flex: 1, padding: '11px', borderRadius: '10px', border: 'none',
+            background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', fontWeight: 600,
+            cursor: 'pointer', opacity: (!date || !time) ? 0.5 : 1
+          }}>
+            {loading ? 'Scheduling...' : 'Schedule'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SessionCard({ session, currentUserId }) {
+  const isOrganizer = session.organizer === currentUserId
+  return (
+    <div style={{
+      alignSelf: 'center', background: 'var(--input-bg)', border: '1px solid var(--accent)',
+      borderRadius: '14px', padding: '14px 18px', maxWidth: '85%', textAlign: 'center'
+    }}>
+      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent)', marginBottom: '6px' }}>
+        📅 Session Scheduled
+      </div>
+      <div style={{ fontSize: '13px', color: 'var(--text)', fontWeight: 600 }}>
+        {new Date(session.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} at {session.time}
+      </div>
+      {session.meetingLink && (
+        <a href={session.meetingLink} target="_blank" rel="noopener noreferrer" style={{
+          display: 'inline-block', marginTop: '8px', fontSize: '12px', color: 'var(--accent)', fontWeight: 600
+        }}>
+          Join Meeting →
+        </a>
+      )}
+      {!isOrganizer && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Proposed by the other person</div>}
+    </div>
+  )
+}
+
 function Messages() {
   const { user, token, logout } = useAuth()
   const [conversations, setConversations] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeChat, setActiveChat] = useState(null)
   const [thread, setThread] = useState([])
+  const [sessions, setSessions] = useState([])
   const [newMsg, setNewMsg] = useState('')
+  const [showSchedule, setShowSchedule] = useState(false)
 
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase()
@@ -40,10 +157,16 @@ function Messages() {
   const openChat = async (convo) => {
     setActiveChat(convo)
     try {
-      const res = await axios.get(`${API}/messages/${convo.otherUserId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      setThread(res.data.messages || [])
+      const [msgRes, sessRes] = await Promise.all([
+        axios.get(`${API}/messages/${convo.otherUserId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        axios.get(`${API}/sessions/${convo.otherUserId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ])
+      setThread(msgRes.data.messages || [])
+      setSessions(sessRes.data.sessions || [])
     } catch (err) {
       console.error('Failed to fetch thread:', err)
     }
@@ -65,6 +188,26 @@ function Messages() {
       console.error('Failed to send message:', err)
     }
   }
+
+  const scheduleSession = async ({ date, time, meetingLink }) => {
+    try {
+      await axios.post(`${API}/sessions`, {
+        participantId: activeChat.otherUserId,
+        date, time, meetingLink
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      openChat(activeChat)
+    } catch (err) {
+      console.error('Failed to schedule session:', err)
+    }
+  }
+
+  // Merge messages + sessions into one timeline
+  const timeline = [
+    ...thread.map(m => ({ ...m, _type: 'message' })),
+    ...sessions.map(s => ({ ...s, _type: 'session', createdAt: s.createdAt }))
+  ].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
 
   return (
     <div className="dash">
@@ -125,7 +268,7 @@ function Messages() {
             <div className="dash__sidebar-avatar">{initials}</div>
             <div>
               <div className="dash__sidebar-user-name">{user?.name || 'Mohamed Hamjath'}</div>
-              <div className="dash__sidebar-user-credits">{user?.timeCredits || 5} Time Credits</div>
+              <div className="dash__sidebar-user-credits">{user?.timeCredits ?? 5} Time Credits</div>
             </div>
           </div>
         </div>
@@ -177,16 +320,27 @@ function Messages() {
           </div>
         ) : (
           <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '16px', display: 'flex', flexDirection: 'column', height: '65vh' }}>
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <button onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '18px' }}>←</button>
-              <span style={{ fontWeight: 600, color: 'var(--text)' }}>{activeChat.name}</span>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '18px' }}>←</button>
+                <span style={{ fontWeight: 600, color: 'var(--text)' }}>{activeChat.name}</span>
+              </div>
+              <button onClick={() => setShowSchedule(true)} style={{
+                background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--accent)',
+                borderRadius: '10px', padding: '7px 14px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer'
+              }}>
+                📅 Schedule Session
+              </button>
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {thread.map((msg, i) => {
-                const isMine = msg.sender !== activeChat.otherUserId
+              {timeline.map((item, i) => {
+                if (item._type === 'session') {
+                  return <SessionCard key={`s-${i}`} session={item} currentUserId={user?.id} />
+                }
+                const isMine = item.sender !== activeChat.otherUserId
                 return (
-                  <div key={i} style={{
+                  <div key={`m-${i}`} style={{
                     alignSelf: isMine ? 'flex-end' : 'flex-start',
                     background: isMine ? 'var(--accent)' : 'var(--input-bg)',
                     color: isMine ? '#fff' : 'var(--text)',
@@ -195,7 +349,7 @@ function Messages() {
                     maxWidth: '70%',
                     fontSize: '13.5px'
                   }}>
-                    {msg.text}
+                    {item.text}
                   </div>
                 )
               })}
@@ -222,6 +376,10 @@ function Messages() {
           </div>
         )}
       </main>
+
+      {showSchedule && (
+        <ScheduleModal onClose={() => setShowSchedule(false)} onSchedule={scheduleSession} />
+      )}
     </div>
   )
 }
