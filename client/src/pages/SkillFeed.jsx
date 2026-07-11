@@ -8,8 +8,10 @@ const API = 'https://timebank-app.onrender.com/api'
 
 const CATEGORIES = ['All', 'Technology', 'Design', 'Education', 'Cooking', 'Music', 'Language', 'Business', 'Health', 'Other']
 
-function SkillCard({ skill, onConnect }) {
+function SkillCard({ skill, onConnect, onDelete, currentUserId }) {
   const initials = skill.userName ? skill.userName.split(' ').map(n => n[0]).join('').toUpperCase() : '?'
+  const isOwner = skill.user === currentUserId
+
   return (
     <div className={`skill-card ${skill.type}`}>
       <div className="skill-card__top">
@@ -36,9 +38,19 @@ function SkillCard({ skill, onConnect }) {
           <div className="skill-card__avatar">{initials}</div>
           <span className="skill-card__username">{skill.userName}</span>
         </div>
-        <button className={`skill-card__connect ${skill.type}`} onClick={() => onConnect(skill)}>
-          {skill.type === 'offer' ? 'Connect' : 'Help'}
-        </button>
+        {isOwner ? (
+          <button
+            className="skill-card__connect"
+            style={{ background: 'rgba(255,80,80,0.1)', color: '#ff5050', border: '1px solid rgba(255,80,80,0.2)' }}
+            onClick={() => onDelete(skill._id)}
+          >
+            Delete
+          </button>
+        ) : (
+          <button className={`skill-card__connect ${skill.type}`} onClick={() => onConnect(skill)}>
+            {skill.type === 'offer' ? 'Connect' : 'Help'}
+          </button>
+        )}
       </div>
     </div>
   )
@@ -184,6 +196,21 @@ function SkillFeed() {
 
   const handleConnect = async (skill) => {
   try {
+    // First check if a conversation already exists with this user
+    const convoRes = await axios.get(`${API}/messages/conversations`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    const existing = (convoRes.data.conversations || []).find(
+      c => c.otherUserId === skill.user
+    )
+
+    if (existing) {
+      // Already connected — don't send a duplicate message
+      alert(`You're already connected with ${skill.userName}. Check your Messages to chat!`)
+      return
+    }
+
+    // No conversation yet — send the first message
     await axios.post(`${API}/messages`, {
       receiverId: skill.user,
       text: `Hi! I'm interested in your skill: "${skill.title}"`
@@ -195,6 +222,19 @@ function SkillFeed() {
     alert('Failed to send message. Please try again.')
   }
 }
+
+  const handleDelete = async (skillId) => {
+    if (!window.confirm('Delete this skill?')) return
+    try {
+      await axios.delete(`${API}/skills/${skillId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setSkills(skills.filter(s => s._id !== skillId))
+    } catch (err) {
+      alert('Failed to delete skill')
+    }
+  }
+
   return (
     <div className="feed">
       <aside className="dash__sidebar">
@@ -254,7 +294,7 @@ function SkillFeed() {
             </div>
             <div>
               <div className="dash__sidebar-user-name">{user?.name || 'Mohamed Hamjath'}</div>
-              <div className="dash__sidebar-user-credits">{user?.timeCredits || 5} Time Credits</div>
+              <div className="dash__sidebar-user-credits">{user?.timeCredits ?? 5} Time Credits</div>
             </div>
           </div>
         </div>
@@ -311,7 +351,7 @@ function SkillFeed() {
             </div>
           ) : (
             skills.map(skill => (
-              <SkillCard key={skill._id} skill={skill} onConnect={handleConnect}/>
+              <SkillCard key={skill._id} skill={skill} onConnect={handleConnect} onDelete={handleDelete} currentUserId={user?.id}/>
             ))
           )}
         </div>

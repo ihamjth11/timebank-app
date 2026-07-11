@@ -101,7 +101,7 @@ function SessionCard({ session, currentUserId }) {
   return (
     <div style={{
       alignSelf: 'center', background: 'var(--input-bg)', border: '1px solid var(--accent)',
-      borderRadius: '14px', padding: '14px 18px', maxWidth: '85%', textAlign: 'center'
+      borderRadius: '14px', padding: '14px 18px', maxWidth: '85%', textAlign: 'center', margin: '8px 0'
     }}>
       <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent)', marginBottom: '6px' }}>
         📅 Session Scheduled
@@ -121,6 +121,51 @@ function SessionCard({ session, currentUserId }) {
   )
 }
 
+function ChatBubble({ text, isMine, senderInitials, time }) {
+  return (
+    <div style={{
+      display: 'flex',
+      justifyContent: isMine ? 'flex-end' : 'flex-start',
+      alignItems: 'flex-end',
+      gap: '8px',
+      marginBottom: '2px'
+    }}>
+      {!isMine && (
+        <div style={{
+          width: '26px', height: '26px', borderRadius: '50%',
+          background: 'rgba(124,111,255,0.15)', color: '#7c6fff',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '10px', fontWeight: 700, flexShrink: 0
+        }}>
+          {senderInitials}
+        </div>
+      )}
+      <div style={{
+        background: isMine ? 'linear-gradient(135deg, #7c6fff, #9d7cff)' : 'var(--input-bg)',
+        color: isMine ? '#fff' : 'var(--text)',
+        padding: '9px 13px',
+        borderRadius: isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+        maxWidth: '65%',
+        fontSize: '13.5px',
+        lineHeight: '1.4',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
+        position: 'relative'
+      }}>
+        <div>{text}</div>
+        <div style={{
+          fontSize: '10px',
+          opacity: 0.7,
+          marginTop: '3px',
+          textAlign: 'right',
+          color: isMine ? 'rgba(255,255,255,0.75)' : 'var(--text-muted)'
+        }}>
+          {time}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function Messages() {
   const { user, token, logout } = useAuth()
   const [conversations, setConversations] = useState([])
@@ -134,6 +179,10 @@ function Messages() {
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase()
     : 'MH'
+
+  const otherInitials = activeChat?.name
+    ? activeChat.name.split(' ').map(n => n[0]).join('').toUpperCase()
+    : '?'
 
   const fetchConversations = async () => {
     setLoading(true)
@@ -332,45 +381,50 @@ function Messages() {
           </div>
         ) : (
           <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '16px', display: 'flex', flexDirection: 'column', height: '65vh' }}>
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <button onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '18px' }}>←</button>
-                <span style={{ fontWeight: 600, color: 'var(--text)' }}>{activeChat.name}</span>
+                <div style={{
+                  width: '32px', height: '32px', borderRadius: '50%',
+                  background: 'rgba(124,111,255,0.15)', color: '#7c6fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '12px', fontWeight: 700
+                }}>
+                  {otherInitials}
+                </div>
+                <span style={{ fontWeight: 600, color: 'var(--text)', fontSize: '14px' }}>{activeChat.name}</span>
               </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '6px' }}>
                 <button onClick={() => setShowSchedule(true)} style={{
                   background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--accent)',
-                  borderRadius: '10px', padding: '7px 14px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer'
+                  borderRadius: '10px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap'
                 }}>
                   📅 Schedule
                 </button>
                 <button onClick={deleteConversation} style={{
                   background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', color: '#ff5050',
-                  borderRadius: '10px', padding: '7px 14px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer'
+                  borderRadius: '10px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap'
                 }}>
                   🗑️ Delete
                 </button>
               </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px', background: 'var(--bg2)' }}>
               {timeline.map((item, i) => {
                 if (item._type === 'session') {
                   return <SessionCard key={`s-${i}`} session={item} currentUserId={user?.id} />
                 }
                 const isMine = item.sender !== activeChat.otherUserId
+                const time = new Date(item.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
                 return (
-                  <div key={`m-${i}`} style={{
-                    alignSelf: isMine ? 'flex-end' : 'flex-start',
-                    background: isMine ? 'var(--accent)' : 'var(--input-bg)',
-                    color: isMine ? '#fff' : 'var(--text)',
-                    padding: '10px 14px',
-                    borderRadius: '14px',
-                    maxWidth: '70%',
-                    fontSize: '13.5px'
-                  }}>
-                    {item.text}
-                  </div>
+                  <ChatBubble
+                    key={`m-${i}`}
+                    text={item.text}
+                    isMine={isMine}
+                    senderInitials={otherInitials}
+                    time={time}
+                  />
                 )
               })}
             </div>
