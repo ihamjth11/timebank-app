@@ -119,5 +119,21 @@ router.delete('/:otherUserId', auth, async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' })
   }
 })
+// DELETE a single message
+router.delete('/single/:messageId', auth, async (req, res) => {
+  try {
+    const message = await Message.findById(req.params.messageId)
+    if (!message) {
+      return res.status(404).json({ success: false, message: 'Message not found' })
+    }
+    if (message.sender.toString() !== req.user.id) {
+      return res.status(401).json({ success: false, message: 'Not authorized' })
+    }
+    await message.deleteOne()
+    res.json({ success: true, message: 'Message deleted' })
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
 
 module.exports = router

@@ -121,15 +121,21 @@ function SessionCard({ session, currentUserId }) {
   )
 }
 
-function ChatBubble({ text, isMine, senderInitials, time }) {
+function ChatBubble({ msg, isMine, senderInitials, time, onDeleteMessage }) {
+  const [showActions, setShowActions] = useState(false)
+
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: isMine ? 'flex-end' : 'flex-start',
-      alignItems: 'flex-end',
-      gap: '8px',
-      marginBottom: '2px'
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: isMine ? 'flex-end' : 'flex-start',
+        alignItems: 'flex-end',
+        gap: '8px',
+        marginBottom: '2px'
+      }}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
+    >
       {!isMine && (
         <div style={{
           width: '26px', height: '26px', borderRadius: '50%',
@@ -140,6 +146,22 @@ function ChatBubble({ text, isMine, senderInitials, time }) {
           {senderInitials}
         </div>
       )}
+
+      {isMine && showActions && (
+        <button
+          onClick={() => onDeleteMessage(msg._id)}
+          title="Delete message"
+          style={{
+            background: 'var(--input-bg)', border: '1px solid var(--border)',
+            borderRadius: '50%', width: '22px', height: '22px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#ff5050', fontSize: '11px', flexShrink: 0
+          }}
+        >
+          🗑
+        </button>
+      )}
+
       <div style={{
         background: isMine ? 'linear-gradient(135deg, #7c6fff, #9d7cff)' : 'var(--input-bg)',
         color: isMine ? '#fff' : 'var(--text)',
@@ -151,7 +173,7 @@ function ChatBubble({ text, isMine, senderInitials, time }) {
         boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
         position: 'relative'
       }}>
-        <div>{text}</div>
+        <div>{msg.text}</div>
         <div style={{
           fontSize: '10px',
           opacity: 0.7,
@@ -253,7 +275,7 @@ function Messages() {
   }
 
   const deleteConversation = async () => {
-    if (!window.confirm('Delete this entire conversation?')) return
+    if (!window.confirm('Delete this entire conversation? This cannot be undone.')) return
     try {
       await axios.delete(`${API}/messages/${activeChat.otherUserId}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -262,6 +284,19 @@ function Messages() {
       fetchConversations()
     } catch (err) {
       console.error('Failed to delete conversation:', err)
+    }
+  }
+
+  const deleteSingleMessage = async (messageId) => {
+    if (!window.confirm('Delete this message?')) return
+    try {
+      await axios.delete(`${API}/messages/single/${messageId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setThread(thread.filter(m => m._id !== messageId))
+      fetchConversations()
+    } catch (err) {
+      console.error('Failed to delete message:', err)
     }
   }
 
@@ -380,32 +415,40 @@ function Messages() {
             )}
           </div>
         ) : (
-          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '16px', display: 'flex', flexDirection: 'column', height: '65vh' }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '18px', display: 'flex', flexDirection: 'column', height: '65vh', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+            <div style={{
+              padding: '14px 20px',
+              background: 'linear-gradient(135deg, rgba(124,111,255,0.06), rgba(255,111,176,0.04))',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px'
+            }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <button onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '18px' }}>←</button>
                 <div style={{
-                  width: '32px', height: '32px', borderRadius: '50%',
-                  background: 'rgba(124,111,255,0.15)', color: '#7c6fff',
+                  width: '34px', height: '34px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '12px', fontWeight: 700
                 }}>
                   {otherInitials}
                 </div>
-                <span style={{ fontWeight: 600, color: 'var(--text)', fontSize: '14px' }}>{activeChat.name}</span>
+                <span style={{ fontWeight: 700, color: 'var(--text)', fontSize: '14.5px', letterSpacing: '-0.2px' }}>{activeChat.name}</span>
               </div>
-              <div style={{ display: 'flex', gap: '6px' }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={() => setShowSchedule(true)} style={{
-                  background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--accent)',
-                  borderRadius: '10px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap'
+                  background: 'linear-gradient(135deg, #7c6fff, #9d7cff)', border: 'none', color: '#fff',
+                  borderRadius: '10px', padding: '7px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                  whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px',
+                  boxShadow: '0 2px 8px rgba(124,111,255,0.3)'
                 }}>
                   📅 Schedule
                 </button>
                 <button onClick={deleteConversation} style={{
-                  background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', color: '#ff5050',
-                  borderRadius: '10px', padding: '6px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap'
+                  background: 'var(--card)', border: '1px solid rgba(255,80,80,0.3)', color: '#ff5050',
+                  borderRadius: '10px', padding: '7px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                  whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px'
                 }}>
-                  🗑️ Delete
+                  🗑 Delete Chat
                 </button>
               </div>
             </div>
@@ -419,17 +462,18 @@ function Messages() {
                 const time = new Date(item.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
                 return (
                   <ChatBubble
-                    key={`m-${i}`}
-                    text={item.text}
+                    key={item._id || `m-${i}`}
+                    msg={item}
                     isMine={isMine}
                     senderInitials={otherInitials}
                     time={time}
+                    onDeleteMessage={deleteSingleMessage}
                   />
                 )
               })}
             </div>
 
-            <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: '10px' }}>
+            <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: '10px', background: 'var(--card)' }}>
               <input
                 value={newMsg}
                 onChange={e => setNewMsg(e.target.value)}
@@ -441,8 +485,9 @@ function Messages() {
                 }}
               />
               <button onClick={sendMessage} style={{
-                background: 'var(--accent)', color: '#fff', border: 'none',
-                borderRadius: '20px', padding: '10px 20px', cursor: 'pointer', fontWeight: 600, fontSize: '13px'
+                background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none',
+                borderRadius: '20px', padding: '10px 22px', cursor: 'pointer', fontWeight: 600, fontSize: '13px',
+                boxShadow: '0 2px 8px rgba(124,111,255,0.3)'
               }}>
                 Send
               </button>
