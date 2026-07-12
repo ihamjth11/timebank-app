@@ -1,15 +1,40 @@
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import '../styles/dashboard.css'
 import '../styles/wallet.css'
 
+const API = 'https://timebank-app.onrender.com/api'
+
 function Wallet() {
-  const { user, logout } = useAuth()
+  const { user, token, logout } = useAuth()
   const navigate = useNavigate()
+  const [txns, setTxns] = useState([])
+  const [loading, setLoading] = useState(true)
 
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase()
     : 'MH'
+
+  useEffect(() => {
+    const fetchTxns = async () => {
+      try {
+        const res = await axios.get(`${API}/transactions`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        setTxns(res.data.transactions || [])
+      } catch (err) {
+        console.error('Failed to fetch transactions:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    if (token) fetchTxns()
+  }, [token])
+
+  const earned = txns.filter(t => t.type === 'earn').reduce((sum, t) => sum + t.amount, 0)
+  const spent = txns.filter(t => t.type === 'spend').reduce((sum, t) => sum + t.amount, 0)
 
   return (
     <div className="dash">
@@ -84,7 +109,6 @@ function Wallet() {
           </div>
         </div>
 
-        {/* Wallet Card */}
         <div className="wallet__card">
           <div className="wallet__card-left">
             <div className="wallet__card-label">TOTAL BALANCE</div>
@@ -92,15 +116,15 @@ function Wallet() {
             <div className="wallet__card-unit">Time Credits</div>
             <div className="wallet__card-stats">
               <div className="wallet__card-stat">
-                <div className="wallet__card-stat-num" style={{ color: '#6fffd4' }}>+0.0</div>
+                <div className="wallet__card-stat-num" style={{ color: '#6fffd4' }}>+{earned}.0</div>
                 <div className="wallet__card-stat-label">Earned</div>
               </div>
               <div className="wallet__card-stat">
-                <div className="wallet__card-stat-num" style={{ color: '#ff6fb0' }}>-0.0</div>
+                <div className="wallet__card-stat-num" style={{ color: '#ff6fb0' }}>-{spent}.0</div>
                 <div className="wallet__card-stat-label">Spent</div>
               </div>
               <div className="wallet__card-stat">
-                <div className="wallet__card-stat-num" style={{ color: '#ffd166' }}>0</div>
+                <div className="wallet__card-stat-num" style={{ color: '#ffd166' }}>{txns.length}</div>
                 <div className="wallet__card-stat-label">Sessions</div>
               </div>
             </div>
@@ -110,7 +134,7 @@ function Wallet() {
               <svg viewBox="0 0 120 120" width="120" height="120">
                 <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="10"/>
                 <circle cx="60" cy="60" r="50" fill="none" stroke="url(#walletGrad)" strokeWidth="10"
-                  strokeDasharray="314" strokeDashoffset="0" strokeLinecap="round"
+                  strokeDasharray="314" strokeDashoffset="94" strokeLinecap="round"
                   transform="rotate(-90 60 60)"/>
                 <defs>
                   <linearGradient id="walletGrad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -125,7 +149,6 @@ function Wallet() {
           </div>
         </div>
 
-        {/* How Credits Work */}
         <div className="wallet__how">
           <h3 className="dash__section-title" style={{ marginBottom: '16px' }}>How Time Credits Work</h3>
           <div className="wallet__how-grid">
@@ -168,20 +191,38 @@ function Wallet() {
           </div>
         </div>
 
-        {/* Transactions */}
         <div className="dash__txns" style={{ marginTop: '20px' }}>
           <div className="dash__section-title">
             Transaction History
           </div>
-          <div style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: '36px', marginBottom: '12px', opacity: 0.4 }}>📋</div>
-            <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-              No transactions yet
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-secondary)' }}>Loading...</div>
+          ) : txns.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: '36px', marginBottom: '12px', opacity: 0.4 }}>📋</div>
+              <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                No transactions yet
+              </div>
+              <div style={{ fontSize: '13px' }}>
+                Complete a scheduled session to earn your first credit
+              </div>
             </div>
-            <div style={{ fontSize: '13px' }}>
-              Your earned and spent credits will appear here once you start exchanging skills
-            </div>
-          </div>
+          ) : (
+            txns.map((txn) => (
+              <div key={txn._id} className="dash__txn">
+                <div className="dash__txn-icon" style={{ background: txn.type === 'earn' ? 'rgba(111,255,212,0.1)' : 'rgba(255,111,176,0.1)' }}>
+                  {txn.type === 'earn' ? '💰' : '🤝'}
+                </div>
+                <div className="dash__txn-info">
+                  <div className="dash__txn-name">{txn.type === 'earn' ? `Helped ${txn.otherName}` : `Helped by ${txn.otherName}`}</div>
+                  <div className="dash__txn-time">{new Date(txn.createdAt).toLocaleDateString()}</div>
+                </div>
+                <div className={`dash__txn-amount ${txn.type}`}>
+                  {txn.type === 'earn' ? '+' : '-'}{txn.amount}.0
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
       </main>

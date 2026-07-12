@@ -27,6 +27,19 @@ const sessionSchema = new mongoose.Schema({
     type: String,
     enum: ['scheduled', 'completed', 'cancelled'],
     default: 'scheduled'
+  },
+  completionConfirmedBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  helper: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  creditsTransferred: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true })
 

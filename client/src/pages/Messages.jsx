@@ -96,15 +96,59 @@ function ScheduleModal({ onClose, onSchedule }) {
   )
 }
 
-function SessionCard({ session, currentUserId }) {
+function HelperPickModal({ activeChat, onClose, onPick }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+      backdropFilter: 'blur(6px)', zIndex: 1000, display: 'flex',
+      alignItems: 'center', justifyContent: 'center', padding: '20px'
+    }} onClick={onClose}>
+      <div style={{
+        background: 'var(--card)', border: '1px solid var(--border)',
+        borderRadius: '20px', padding: '26px', width: '100%', maxWidth: '360px', textAlign: 'center'
+      }} onClick={e => e.stopPropagation()}>
+        <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text)', marginBottom: '8px' }}>
+          Who helped in this session?
+        </h2>
+        <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+          The helper earns 1 Time Credit. Both people must agree.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <button onClick={() => onPick('me')} style={{
+            padding: '13px', borderRadius: '12px', border: '1px solid var(--accent)',
+            background: 'var(--input-bg)', color: 'var(--accent)', fontWeight: 700, cursor: 'pointer', fontSize: '14px'
+          }}>
+            I helped them
+          </button>
+          <button onClick={() => onPick('other')} style={{
+            padding: '13px', borderRadius: '12px', border: '1px solid var(--border)',
+            background: 'transparent', color: 'var(--text)', fontWeight: 700, cursor: 'pointer', fontSize: '14px'
+          }}>
+            {activeChat?.name} helped me
+          </button>
+          <button onClick={onClose} style={{
+            padding: '10px', borderRadius: '12px', border: 'none',
+            background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px'
+          }}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SessionCard({ session, currentUserId, activeChat, onMarkCompleted }) {
   const isOrganizer = session.organizer === currentUserId
+  const iConfirmed = session.completionConfirmedBy?.includes(currentUserId)
+
   return (
     <div style={{
       alignSelf: 'center', background: 'var(--input-bg)', border: '1px solid var(--accent)',
       borderRadius: '14px', padding: '14px 18px', maxWidth: '85%', textAlign: 'center', margin: '8px 0'
     }}>
       <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent)', marginBottom: '6px' }}>
-        📅 Session Scheduled
+        {session.status === 'completed' ? '✅ Session Completed' : '📅 Session Scheduled'}
       </div>
       <div style={{ fontSize: '13px', color: 'var(--text)', fontWeight: 600 }}>
         {new Date(session.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} at {session.time}
@@ -117,7 +161,33 @@ function SessionCard({ session, currentUserId }) {
         </a>
       )}
       {!isOrganizer && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Proposed by the other person</div>}
+
+      {session.status !== 'completed' && (
+        <div style={{ marginTop: '10px' }}>
+          {iConfirmed ? (
+            <div style={{ fontSize: '11.5px', color: 'var(--accent3, #00b894)', fontWeight: 600 }}>
+              ✓ Waiting for the other person to confirm...
+            </div>
+          ) : (
+            <button onClick={() => onMarkCompleted(session._id)} style={{
+              background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none',
+              borderRadius: '10px', padding: '7px 16px', fontSize: '12px', fontWeight: 600, cursor: 'pointer'
+            }}>
+              Mark as Completed
+            </button>
+          )}
+        </div>
+      )}
     </div>
+  )
+}
+
+function SeenTicks({ read }) {
+  return (
+    <svg width="14" height="10" viewBox="0 0 16 11" fill="none" style={{ marginLeft: '3px' }}>
+      <path d="M1 5.5L4.5 9L11 1" stroke={read ? '#4fc3f7' : 'currentColor'} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M5.5 5.5L9 9L15.5 1" stroke={read ? '#4fc3f7' : 'currentColor'} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
   )
 }
 
@@ -176,12 +246,14 @@ function ChatBubble({ msg, isMine, senderInitials, time, onDeleteMessage }) {
         <div>{msg.text}</div>
         <div style={{
           fontSize: '10px',
-          opacity: 0.7,
+          opacity: 0.85,
           marginTop: '3px',
           textAlign: 'right',
-          color: isMine ? 'rgba(255,255,255,0.75)' : 'var(--text-muted)'
+          color: isMine ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)',
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end'
         }}>
           {time}
+          {isMine && <SeenTicks read={msg.read} />}
         </div>
       </div>
     </div>
@@ -197,6 +269,7 @@ function Messages() {
   const [sessions, setSessions] = useState([])
   const [newMsg, setNewMsg] = useState('')
   const [showSchedule, setShowSchedule] = useState(false)
+  const [helperPickSessionId, setHelperPickSessionId] = useState(null)
 
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase()
@@ -222,6 +295,8 @@ function Messages() {
 
   useEffect(() => {
     fetchConversations()
+    const interval = setInterval(fetchConversations, 8000)
+    return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -297,6 +372,27 @@ function Messages() {
       fetchConversations()
     } catch (err) {
       console.error('Failed to delete message:', err)
+    }
+  }
+
+  const handleMarkCompleted = (sessionId) => {
+    setHelperPickSessionId(sessionId)
+  }
+
+  const confirmHelper = async (choice) => {
+    const sessionId = helperPickSessionId
+    setHelperPickSessionId(null)
+    const helperId = choice === 'me' ? user.id : activeChat.otherUserId
+    try {
+      const res = await axios.post(`${API}/sessions/${sessionId}/complete`, { helperId }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!res.data.success) {
+        alert(res.data.message)
+      }
+      openChat(activeChat)
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to mark completed')
     }
   }
 
@@ -424,15 +520,23 @@ function Messages() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <button onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '18px' }}>←</button>
-                <div style={{
-                  width: '34px', height: '34px', borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '12px', fontWeight: 700
-                }}>
+                <div
+                  onClick={() => { window.location.href = '/profile/' + activeChat.otherUserId }}
+                  style={{
+                    width: '34px', height: '34px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '12px', fontWeight: 700, cursor: 'pointer'
+                  }}
+                >
                   {otherInitials}
                 </div>
-                <span style={{ fontWeight: 700, color: 'var(--text)', fontSize: '14.5px', letterSpacing: '-0.2px' }}>{activeChat.name}</span>
+                <span
+                  onClick={() => { window.location.href = '/profile/' + activeChat.otherUserId }}
+                  style={{ fontWeight: 700, color: 'var(--text)', fontSize: '14.5px', letterSpacing: '-0.2px', cursor: 'pointer' }}
+                >
+                  {activeChat.name}
+                </span>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={() => setShowSchedule(true)} style={{
@@ -456,7 +560,15 @@ function Messages() {
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px', background: 'var(--bg2)' }}>
               {timeline.map((item, i) => {
                 if (item._type === 'session') {
-                  return <SessionCard key={`s-${i}`} session={item} currentUserId={user?.id} />
+                  return (
+                    <SessionCard
+                      key={`s-${i}`}
+                      session={item}
+                      currentUserId={user?.id}
+                      activeChat={activeChat}
+                      onMarkCompleted={handleMarkCompleted}
+                    />
+                  )
                 }
                 const isMine = item.sender !== activeChat.otherUserId
                 const time = new Date(item.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -498,6 +610,14 @@ function Messages() {
 
       {showSchedule && (
         <ScheduleModal onClose={() => setShowSchedule(false)} onSchedule={scheduleSession} />
+      )}
+
+      {helperPickSessionId && (
+        <HelperPickModal
+          activeChat={activeChat}
+          onClose={() => setHelperPickSessionId(null)}
+          onPick={confirmHelper}
+        />
       )}
     </div>
   )
