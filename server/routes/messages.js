@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const Message = require('../models/Message')
 const User = require('../models/User')
+const Notification = require('../models/Notification')
 const jwt = require('jsonwebtoken')
 
 const auth = (req, res, next) => {
@@ -96,6 +97,17 @@ router.post('/', auth, async (req, res) => {
     })
 
     await message.save()
+
+    const sender = await User.findById(req.user.id).select('name')
+    await Notification.create({
+      user: receiverId,
+      type: 'message',
+      fromUser: req.user.id,
+      fromName: sender?.name || 'Someone',
+      text: `${sender?.name || 'Someone'} sent you a message`,
+      link: '/messages'
+    })
+
     res.status(201).json({ success: true, message })
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error' })
@@ -119,7 +131,7 @@ router.delete('/:otherUserId', auth, async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' })
   }
 })
-// DELETE a single message
+
 router.delete('/single/:messageId', auth, async (req, res) => {
   try {
     const message = await Message.findById(req.params.messageId)

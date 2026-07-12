@@ -3,6 +3,7 @@ const router = express.Router()
 const Session = require('../models/Session')
 const Transaction = require('../models/Transaction')
 const User = require('../models/User')
+const Notification = require('../models/Notification')
 const jwt = require('jsonwebtoken')
 
 const auth = (req, res, next) => {
@@ -17,7 +18,6 @@ const auth = (req, res, next) => {
   }
 }
 
-// POST create/schedule a session
 router.post('/', auth, async (req, res) => {
   try {
     const { participantId, date, time, meetingLink } = req.body
@@ -34,13 +34,23 @@ router.post('/', auth, async (req, res) => {
     })
 
     await session.save()
+
+    const organizer = await User.findById(req.user.id).select('name')
+    await Notification.create({
+      user: participantId,
+      type: 'session_scheduled',
+      fromUser: req.user.id,
+      fromName: organizer?.name || 'Someone',
+      text: `${organizer?.name || 'Someone'} scheduled a session with you`,
+      link: '/messages'
+    })
+
     res.status(201).json({ success: true, session })
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error' })
   }
 })
 
-// GET sessions between logged in user and another user
 router.get('/:otherUserId', auth, async (req, res) => {
   try {
     const userId = req.user.id
@@ -59,7 +69,6 @@ router.get('/:otherUserId', auth, async (req, res) => {
   }
 })
 
-// POST mark a session as completed (requires both users to confirm the same helper)
 router.post('/:id/complete', auth, async (req, res) => {
   try {
     const { helperId } = req.body
@@ -79,7 +88,6 @@ router.post('/:id/complete', auth, async (req, res) => {
       return res.json({ success: true, session, message: 'Already completed' })
     }
 
-    // Set or verify helper agreement
     if (!session.helper) {
       session.helper = helperId
     } else if (session.helper.toString() !== helperId) {
@@ -89,7 +97,6 @@ router.post('/:id/complete', auth, async (req, res) => {
       })
     }
 
-    // Add this user's confirmation if not already added
     const alreadyConfirmed = session.completionConfirmedBy.some(id => id.toString() === userId)
     if (!alreadyConfirmed) {
       session.completionConfirmedBy.push(userId)
@@ -119,6 +126,23 @@ router.post('/:id/complete', auth, async (req, res) => {
         to: helperUserId,
         session: session._id,
         amount: 1
+      })
+
+      await Notification.create({
+        user: helperUserId,
+        type: 'session_completed',
+        fromUser: otherUserId,
+        fromName: otherUser?.name || 'Someone',
+        text: `Session completed! You earned 1 Time Credit`,
+        link: '/wallet'
+      })
+      await Notification.create({
+        user: otherUserId,
+        type: 'session_completed',
+        fromUser: helperUserId,
+        fromName: helperUser?.name || 'Someone',
+        text: `Session completed with ${helperUser?.name || 'someone'}`,
+        link: '/wallet'
       })
 
       session.status = 'completed'

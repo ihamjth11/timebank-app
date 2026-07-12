@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
+import ConfirmModal from '../components/ConfirmModal'
 import '../styles/dashboard.css'
 import '../styles/messages.css'
 
@@ -165,7 +166,7 @@ function SessionCard({ session, currentUserId, activeChat, onMarkCompleted }) {
       {session.status !== 'completed' && (
         <div style={{ marginTop: '10px' }}>
           {iConfirmed ? (
-            <div style={{ fontSize: '11.5px', color: 'var(--accent3, #00b894)', fontWeight: 600 }}>
+            <div style={{ fontSize: '11.5px', color: '#00b894', fontWeight: 600 }}>
               ✓ Waiting for the other person to confirm...
             </div>
           ) : (
@@ -191,7 +192,7 @@ function SeenTicks({ read }) {
   )
 }
 
-function ChatBubble({ msg, isMine, senderInitials, time, onDeleteMessage }) {
+function ChatBubble({ msg, isMine, senderInitials, time, onRequestDelete }) {
   const [showActions, setShowActions] = useState(false)
 
   return (
@@ -219,7 +220,7 @@ function ChatBubble({ msg, isMine, senderInitials, time, onDeleteMessage }) {
 
       {isMine && showActions && (
         <button
-          onClick={() => onDeleteMessage(msg._id)}
+          onClick={() => onRequestDelete(msg._id)}
           title="Delete message"
           style={{
             background: 'var(--input-bg)', border: '1px solid var(--border)',
@@ -270,6 +271,8 @@ function Messages() {
   const [newMsg, setNewMsg] = useState('')
   const [showSchedule, setShowSchedule] = useState(false)
   const [helperPickSessionId, setHelperPickSessionId] = useState(null)
+  const [deleteMsgId, setDeleteMsgId] = useState(null)
+  const [showDeleteChat, setShowDeleteChat] = useState(false)
 
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase()
@@ -349,8 +352,8 @@ function Messages() {
     }
   }
 
-  const deleteConversation = async () => {
-    if (!window.confirm('Delete this entire conversation? This cannot be undone.')) return
+  const confirmDeleteConversation = async () => {
+    setShowDeleteChat(false)
     try {
       await axios.delete(`${API}/messages/${activeChat.otherUserId}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -362,8 +365,9 @@ function Messages() {
     }
   }
 
-  const deleteSingleMessage = async (messageId) => {
-    if (!window.confirm('Delete this message?')) return
+  const confirmDeleteMessage = async () => {
+    const messageId = deleteMsgId
+    setDeleteMsgId(null)
     try {
       await axios.delete(`${API}/messages/single/${messageId}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -547,7 +551,7 @@ function Messages() {
                 }}>
                   📅 Schedule
                 </button>
-                <button onClick={deleteConversation} style={{
+                <button onClick={() => setShowDeleteChat(true)} style={{
                   background: 'var(--card)', border: '1px solid rgba(255,80,80,0.3)', color: '#ff5050',
                   borderRadius: '10px', padding: '7px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                   whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px'
@@ -579,7 +583,7 @@ function Messages() {
                     isMine={isMine}
                     senderInitials={otherInitials}
                     time={time}
-                    onDeleteMessage={deleteSingleMessage}
+                    onRequestDelete={setDeleteMsgId}
                   />
                 )
               })}
@@ -617,6 +621,26 @@ function Messages() {
           activeChat={activeChat}
           onClose={() => setHelperPickSessionId(null)}
           onPick={confirmHelper}
+        />
+      )}
+
+      {deleteMsgId && (
+        <ConfirmModal
+          title="Delete message?"
+          message="This message will be deleted for you. This action cannot be undone."
+          danger
+          onCancel={() => setDeleteMsgId(null)}
+          onConfirm={confirmDeleteMessage}
+        />
+      )}
+
+      {showDeleteChat && (
+        <ConfirmModal
+          title="Delete this chat?"
+          message={`Your entire conversation with ${activeChat?.name} will be permanently deleted.`}
+          danger
+          onCancel={() => setShowDeleteChat(false)}
+          onConfirm={confirmDeleteConversation}
         />
       )}
     </div>

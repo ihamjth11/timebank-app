@@ -17,6 +17,7 @@ app.use('/api/skills', require('./routes/skills'))
 app.use('/api/messages', require('./routes/messages'))
 app.use('/api/sessions', require('./routes/sessions'))
 app.use('/api/transactions', require('./routes/transactions'))
+app.use('/api/notifications', require('./routes/notifications'))
 app.get('/', (req, res) => {
   res.json({
     success: true,

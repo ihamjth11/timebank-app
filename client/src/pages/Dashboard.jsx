@@ -1,5 +1,6 @@
 import ThemeToggle from '../components/ThemeToggle'
 import OnboardingTour from '../components/OnboardingTour'
+import NotificationBell from '../components/NotificationBell'
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -154,12 +155,8 @@ function Dashboard() {
             <p className="dash__header-sub">Here's what's happening in your TimeBank</p>
           </div>
           <div className="dash__header-right">
-            <ThemeToggle />
-            <button className="dash__notif-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
-            </button>
+          <ThemeToggle />
+          <NotificationBell />
           </div>
         </div>
 
