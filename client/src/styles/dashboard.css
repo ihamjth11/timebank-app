@@ -12,6 +12,7 @@
   40% { transform: rotate(-4deg); }
   50% { transform: rotate(10deg); }
 }
+
 .dash {
   min-height: 100vh;
   background: var(--bg);

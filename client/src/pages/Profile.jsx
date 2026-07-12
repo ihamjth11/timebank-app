@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import '../styles/dashboard.css'
 import '../styles/profile.css'
+
+const API = 'https://timebank-app.onrender.com/api'
 
 function EditProfileModal({ user, onClose, onSave }) {
   const [form, setForm] = useState({
@@ -92,20 +95,38 @@ function EditProfileModal({ user, onClose, onSave }) {
 }
 
 function Profile() {
-  const { user, logout, updateProfile } = useAuth()
+  const { user, token, logout, updateProfile } = useAuth()
   const navigate = useNavigate()
   const [showEdit, setShowEdit] = useState(false)
+  const [mySkills, setMySkills] = useState([])
+  const [loadingSkills, setLoadingSkills] = useState(true)
 
   const initials = user?.name
     ? user.name.split(' ').map(n => n[0]).join('').toUpperCase()
     : 'MH'
 
-  const SKILLS = [
-    { name: 'Coding', color: '#7c6fff', bg: 'rgba(124,111,255,0.1)', border: 'rgba(124,111,255,0.3)' },
-    { name: 'UI/UX Design', color: '#ff6fb0', bg: 'rgba(255,111,176,0.1)', border: 'rgba(255,111,176,0.3)' },
-    { name: 'Python', color: '#6fffd4', bg: 'rgba(111,255,212,0.1)', border: 'rgba(111,255,212,0.3)' },
-    { name: 'JavaScript', color: '#ffd166', bg: 'rgba(255,209,102,0.1)', border: 'rgba(255,209,102,0.3)' },
+  const SKILL_COLORS = [
+    { color: '#7c6fff', bg: 'rgba(124,111,255,0.1)', border: 'rgba(124,111,255,0.3)' },
+    { color: '#ff6fb0', bg: 'rgba(255,111,176,0.1)', border: 'rgba(255,111,176,0.3)' },
+    { color: '#6fffd4', bg: 'rgba(111,255,212,0.1)', border: 'rgba(111,255,212,0.3)' },
+    { color: '#ffd166', bg: 'rgba(255,209,102,0.1)', border: 'rgba(255,209,102,0.3)' },
   ]
+
+  useEffect(() => {
+    const fetchMySkills = async () => {
+      try {
+        const res = await axios.get(`${API}/skills`)
+        const all = res.data.skills || []
+        const mine = all.filter(s => s.user === user?.id)
+        setMySkills(mine)
+      } catch (err) {
+        console.error('Failed to fetch skills:', err)
+      } finally {
+        setLoadingSkills(false)
+      }
+    }
+    if (user?.id) fetchMySkills()
+  }, [user?.id])
 
   return (
     <div className="dash">
@@ -196,9 +217,6 @@ function Profile() {
                 <span className="profile__badge" style={{ background: 'rgba(111,255,212,0.1)', color: '#00b894', border: '1px solid rgba(111,255,212,0.2)' }}>
                   🇱🇰 {user?.location || 'Sri Lanka'}
                 </span>
-                <span className="profile__badge" style={{ background: 'rgba(255,209,102,0.1)', color: '#b8860b', border: '1px solid rgba(255,209,102,0.2)' }}>
-                  ⭐ Top Helper
-                </span>
               </div>
             </div>
             <button className="profile__edit-btn" onClick={() => setShowEdit(true)}>Edit Profile</button>
@@ -211,15 +229,15 @@ function Profile() {
             <div className="profile__stat-label">Time Credits</div>
           </div>
           <div className="profile__stat">
-            <div className="profile__stat-num" style={{ color: '#6fffd4' }}>12</div>
+            <div className="profile__stat-num" style={{ color: '#6fffd4' }}>{mySkills.length}</div>
+            <div className="profile__stat-label">Skills Posted</div>
+          </div>
+          <div className="profile__stat">
+            <div className="profile__stat-num" style={{ color: '#ff6fb0' }}>0</div>
             <div className="profile__stat-label">People Helped</div>
           </div>
           <div className="profile__stat">
-            <div className="profile__stat-num" style={{ color: '#ff6fb0' }}>4.9</div>
-            <div className="profile__stat-label">Rating</div>
-          </div>
-          <div className="profile__stat">
-            <div className="profile__stat-num" style={{ color: '#ffd166' }}>8</div>
+            <div className="profile__stat-num" style={{ color: '#ffd166' }}>0</div>
             <div className="profile__stat-label">Sessions</div>
           </div>
         </div>
@@ -230,18 +248,27 @@ function Profile() {
             <span className="dash__section-link" onClick={() => navigate('/skills')}>+ Add Skill</span>
           </div>
           <div className="dash__skill-tags" style={{ marginTop: '14px' }}>
-            {SKILLS.map((skill, i) => (
-              <div key={i} className="dash__skill-tag" style={{ color: skill.color, background: skill.bg, borderColor: skill.border }}>
-                {skill.name}
-              </div>
-            ))}
+            {loadingSkills ? (
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Loading...</span>
+            ) : mySkills.length === 0 ? (
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>You haven't posted any skills yet</span>
+            ) : (
+              mySkills.map((skill, i) => {
+                const c = SKILL_COLORS[i % SKILL_COLORS.length]
+                return (
+                  <div key={skill._id} className="dash__skill-tag" style={{ color: c.color, background: c.bg, borderColor: c.border }}>
+                    {skill.title}
+                  </div>
+                )
+              })
+            )}
           </div>
         </div>
 
         <div className="dash__txns" style={{ marginTop: '14px' }}>
           <div className="dash__section-title">About Me</div>
           <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.7', marginTop: '12px' }}>
-            {user?.bio || "Full Stack Developer from Sri Lanka 🇱🇰 Passionate about technology, community building, and helping others grow through skill exchange. Creator of TimeBank — Sri Lanka's first time exchange platform."}
+            {user?.bio || "No bio added yet. Click 'Edit Profile' to add one!"}
           </p>
         </div>
 
