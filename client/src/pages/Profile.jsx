@@ -11,9 +11,27 @@ function EditProfileModal({ user, onClose, onSave }) {
   const [form, setForm] = useState({
     name: user?.name || '',
     bio: user?.bio || '',
-    location: user?.location || 'Sri Lanka'
+    location: user?.location || 'Sri Lanka',
+    avatar: user?.avatar || ''
   })
   const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
+
+  const handlePhotoChange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > 1024 * 1024) {
+      alert('Please choose an image smaller than 1MB')
+      return
+    }
+    setUploading(true)
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setForm({ ...form, avatar: reader.result })
+      setUploading(false)
+    }
+    reader.readAsDataURL(file)
+  }
 
   const handleSubmit = async () => {
     setLoading(true)
@@ -30,11 +48,35 @@ function EditProfileModal({ user, onClose, onSave }) {
     }} onClick={onClose}>
       <div style={{
         background: 'var(--card)', border: '1px solid var(--border)',
-        borderRadius: '20px', padding: '28px', width: '100%', maxWidth: '420px'
+        borderRadius: '20px', padding: '28px', width: '100%', maxWidth: '420px',
+        maxHeight: '85vh', overflowY: 'auto'
       }} onClick={e => e.stopPropagation()}>
         <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', marginBottom: '20px' }}>
           Edit Profile
         </h2>
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '20px' }}>
+          <div style={{
+            width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden',
+            background: form.avatar ? 'transparent' : 'linear-gradient(135deg, #7c6fff, #ff6fb0)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            marginBottom: '10px', border: '3px solid var(--border)'
+          }}>
+            {form.avatar ? (
+              <img src={form.avatar} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <span style={{ color: '#fff', fontSize: '24px', fontWeight: 700 }}>
+                {form.name ? form.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?'}
+              </span>
+            )}
+          </div>
+          <label style={{
+            fontSize: '12.5px', color: 'var(--accent)', fontWeight: 600, cursor: 'pointer'
+          }}>
+            {uploading ? 'Uploading...' : 'Change Photo'}
+            <input type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }} />
+          </label>
+        </div>
 
         <div style={{ marginBottom: '14px' }}>
           <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Full Name</label>
@@ -82,7 +124,7 @@ function EditProfileModal({ user, onClose, onSave }) {
           }}>
             Cancel
           </button>
-          <button onClick={handleSubmit} disabled={loading} style={{
+          <button onClick={handleSubmit} disabled={loading || uploading} style={{
             flex: 1, padding: '11px', borderRadius: '10px', border: 'none',
             background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', fontWeight: 600, cursor: 'pointer'
           }}>
@@ -114,10 +156,12 @@ function Profile() {
 
   useEffect(() => {
     const fetchMySkills = async () => {
+      if (!user?.id) return
+      setLoadingSkills(true)
       try {
         const res = await axios.get(`${API}/skills`)
         const all = res.data.skills || []
-        const mine = all.filter(s => s.user === user?.id)
+        const mine = all.filter(s => s.user === user.id)
         setMySkills(mine)
       } catch (err) {
         console.error('Failed to fetch skills:', err)
@@ -125,7 +169,7 @@ function Profile() {
         setLoadingSkills(false)
       }
     }
-    if (user?.id) fetchMySkills()
+    fetchMySkills()
   }, [user?.id])
 
   return (
@@ -184,7 +228,9 @@ function Profile() {
 
         <div className="dash__sidebar-bottom">
           <div className="dash__sidebar-user">
-            <div className="dash__sidebar-avatar">{initials}</div>
+            <div className="dash__sidebar-avatar" style={user?.avatar ? { background: 'transparent', overflow: 'hidden', padding: 0 } : {}}>
+              {user?.avatar ? <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '9px' }} /> : initials}
+            </div>
             <div>
               <div className="dash__sidebar-user-name">{user?.name || 'Mohamed Hamjath'}</div>
               <div className="dash__sidebar-user-credits">{user?.timeCredits ?? 5} Time Credits</div>
@@ -204,8 +250,8 @@ function Profile() {
         <div className="profile__card">
           <div className="profile__cover" />
           <div className="profile__info">
-            <div className="profile__avatar">
-              {initials}
+            <div className="profile__avatar" style={user?.avatar ? { background: 'transparent', overflow: 'hidden' } : {}}>
+              {user?.avatar ? <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
             </div>
             <div className="profile__details">
               <h2 className="profile__name">{user?.name || 'Mohamed Hamjath'}</h2>
