@@ -9,6 +9,7 @@ import SkillFeed from './pages/SkillFeed'
 import Wallet from './pages/Wallet'
 import Messages from './pages/Messages'
 import Profile from './pages/Profile'
+import PublicProfile from './pages/PublicProfile'
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
             <Route path="/wallet" element={<Wallet />} />
             <Route path="/messages" element={<Messages />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/:userId" element={<PublicProfile />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

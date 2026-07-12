@@ -34,7 +34,11 @@ function SkillCard({ skill, onConnect, onDelete, currentUserId }) {
         ))}
       </div>
       <div className="skill-card__bottom">
-        <div className="skill-card__user">
+        <div
+          className="skill-card__user"
+          style={{ cursor: 'pointer' }}
+          onClick={() => { window.location.href = '/profile/' + skill.user }}
+        >
           <div className="skill-card__avatar">{initials}</div>
           <span className="skill-card__username">{skill.userName}</span>
         </div>
@@ -195,33 +199,30 @@ function SkillFeed() {
   }
 
   const handleConnect = async (skill) => {
-  try {
-    // First check if a conversation already exists with this user
-    const convoRes = await axios.get(`${API}/messages/conversations`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    const existing = (convoRes.data.conversations || []).find(
-      c => c.otherUserId === skill.user
-    )
+    try {
+      const convoRes = await axios.get(`${API}/messages/conversations`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const existing = (convoRes.data.conversations || []).find(
+        c => c.otherUserId === skill.user
+      )
 
-    if (existing) {
-      // Already connected — don't send a duplicate message
-      alert(`You're already connected with ${skill.userName}. Check your Messages to chat!`)
-      return
+      if (existing) {
+        alert(`You're already connected with ${skill.userName}. Check your Messages to chat!`)
+        return
+      }
+
+      await axios.post(`${API}/messages`, {
+        receiverId: skill.user,
+        text: `Hi! I'm interested in your skill: "${skill.title}"`
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      alert(`Message sent to ${skill.userName}! Check your Messages page.`)
+    } catch (err) {
+      alert('Failed to send message. Please try again.')
     }
-
-    // No conversation yet — send the first message
-    await axios.post(`${API}/messages`, {
-      receiverId: skill.user,
-      text: `Hi! I'm interested in your skill: "${skill.title}"`
-    }, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    alert(`Message sent to ${skill.userName}! Check your Messages page.`)
-  } catch (err) {
-    alert('Failed to send message. Please try again.')
   }
-}
 
   const handleDelete = async (skillId) => {
     if (!window.confirm('Delete this skill?')) return
