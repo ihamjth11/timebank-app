@@ -258,7 +258,23 @@ router.get('/me', async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET)
     const user = await User.findById(decoded.id).select('-password')
 
-    res.json({ success: true, user })
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' })
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        timeCredits: user.timeCredits,
+        skills: user.skills,
+        avatar: user.avatar,
+        location: user.location,
+        bio: user.bio
+      }
+    })
 
   } catch (error) {
     res.status(401).json({ 

@@ -204,30 +204,18 @@ function SkillFeed() {
   }
 
   const handleConnect = async (skill) => {
-    try {
-      const convoRes = await axios.get(`${API}/messages/conversations`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      const existing = (convoRes.data.conversations || []).find(
-        c => c.otherUserId === skill.user
-      )
-
-      if (existing) {
-        setToast({ message: `You're already connected with ${skill.userName}. Check Messages!`, type: 'info' })
-        return
-      }
-
-      await axios.post(`${API}/messages`, {
-        receiverId: skill.user,
-        text: `Hi! I'm interested in your skill: "${skill.title}"`
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      setToast({ message: `Message sent to ${skill.userName}! Check Messages to chat.`, type: 'success' })
-    } catch (err) {
-      setToast({ message: 'Failed to send message. Please try again.', type: 'error' })
-    }
+  try {
+    await axios.post(`${API}/messages`, {
+      receiverId: skill.user,
+      text: `Hi! I'm interested in your skill: "${skill.title}"`
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    setToast({ message: `Message sent to ${skill.userName}! Check Messages to chat.`, type: 'success' })
+  } catch (err) {
+    setToast({ message: 'Failed to send message. Please try again.', type: 'error' })
   }
+}
 
   const confirmDeleteSkill = async () => {
     const skillId = deleteSkillId

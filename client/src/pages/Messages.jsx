@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import ConfirmModal from '../components/ConfirmModal'
@@ -6,6 +6,7 @@ import '../styles/dashboard.css'
 import '../styles/messages.css'
 
 const API = 'https://timebank-app.onrender.com/api'
+const MAX_FILE_SIZE = 2 * 1024 * 1024 // 2MB
 
 function ScheduleModal({ onClose, onSchedule }) {
   const [date, setDate] = useState('')
@@ -34,63 +35,39 @@ function ScheduleModal({ onClose, onSchedule }) {
         <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', marginBottom: '20px' }}>
           Schedule a Session
         </h2>
-
         <div style={{ marginBottom: '14px' }}>
           <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Date</label>
-          <input
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-            style={{
-              width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)',
-              borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px'
-            }}
-          />
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{
+            width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)',
+            borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px'
+          }}/>
         </div>
-
         <div style={{ marginBottom: '14px' }}>
           <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Time</label>
-          <input
-            type="time"
-            value={time}
-            onChange={e => setTime(e.target.value)}
-            style={{
-              width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)',
-              borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px'
-            }}
-          />
+          <input type="time" value={time} onChange={e => setTime(e.target.value)} style={{
+            width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)',
+            borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px'
+          }}/>
         </div>
-
         <div style={{ marginBottom: '20px' }}>
           <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>
-            Meeting Link (optional — Zoom, Google Meet, etc.)
+            Meeting Link (optional)
           </label>
-          <input
-            type="text"
-            placeholder="https://meet.google.com/..."
-            value={link}
-            onChange={e => setLink(e.target.value)}
-            style={{
-              width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)',
-              borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px'
-            }}
-          />
+          <input type="text" placeholder="https://meet.google.com/..." value={link} onChange={e => setLink(e.target.value)} style={{
+            width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)',
+            borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px'
+          }}/>
         </div>
-
         <div style={{ display: 'flex', gap: '10px' }}>
           <button onClick={onClose} style={{
             flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid var(--border)',
             background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer'
-          }}>
-            Cancel
-          </button>
+          }}>Cancel</button>
           <button onClick={handleSubmit} disabled={loading || !date || !time} style={{
             flex: 1, padding: '11px', borderRadius: '10px', border: 'none',
             background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', fontWeight: 600,
             cursor: 'pointer', opacity: (!date || !time) ? 0.5 : 1
-          }}>
-            {loading ? 'Scheduling...' : 'Schedule'}
-          </button>
+          }}>{loading ? 'Scheduling...' : 'Schedule'}</button>
         </div>
       </div>
     </div>
@@ -118,21 +95,15 @@ function HelperPickModal({ activeChat, onClose, onPick }) {
           <button onClick={() => onPick('me')} style={{
             padding: '13px', borderRadius: '12px', border: '1px solid var(--accent)',
             background: 'var(--input-bg)', color: 'var(--accent)', fontWeight: 700, cursor: 'pointer', fontSize: '14px'
-          }}>
-            I helped them
-          </button>
+          }}>I helped them</button>
           <button onClick={() => onPick('other')} style={{
             padding: '13px', borderRadius: '12px', border: '1px solid var(--border)',
             background: 'transparent', color: 'var(--text)', fontWeight: 700, cursor: 'pointer', fontSize: '14px'
-          }}>
-            {activeChat?.name} helped me
-          </button>
+          }}>{activeChat?.name} helped me</button>
           <button onClick={onClose} style={{
             padding: '10px', borderRadius: '12px', border: 'none',
             background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px'
-          }}>
-            Cancel
-          </button>
+          }}>Cancel</button>
         </div>
       </div>
     </div>
@@ -142,7 +113,6 @@ function HelperPickModal({ activeChat, onClose, onPick }) {
 function SessionCard({ session, currentUserId, activeChat, onMarkCompleted }) {
   const isOrganizer = session.organizer === currentUserId
   const iConfirmed = session.completionConfirmedBy?.includes(currentUserId)
-
   return (
     <div style={{
       alignSelf: 'center', background: 'var(--input-bg)', border: '1px solid var(--accent)',
@@ -157,25 +127,18 @@ function SessionCard({ session, currentUserId, activeChat, onMarkCompleted }) {
       {session.meetingLink && (
         <a href={session.meetingLink} target="_blank" rel="noopener noreferrer" style={{
           display: 'inline-block', marginTop: '8px', fontSize: '12px', color: 'var(--accent)', fontWeight: 600
-        }}>
-          Join Meeting →
-        </a>
+        }}>Join Meeting →</a>
       )}
       {!isOrganizer && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Proposed by the other person</div>}
-
       {session.status !== 'completed' && (
         <div style={{ marginTop: '10px' }}>
           {iConfirmed ? (
-            <div style={{ fontSize: '11.5px', color: '#00b894', fontWeight: 600 }}>
-              ✓ Waiting for the other person to confirm...
-            </div>
+            <div style={{ fontSize: '11.5px', color: '#00b894', fontWeight: 600 }}>✓ Waiting for confirmation...</div>
           ) : (
             <button onClick={() => onMarkCompleted(session._id)} style={{
               background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none',
               borderRadius: '10px', padding: '7px 16px', fontSize: '12px', fontWeight: 600, cursor: 'pointer'
-            }}>
-              Mark as Completed
-            </button>
+            }}>Mark as Completed</button>
           )}
         </div>
       )}
@@ -192,18 +155,31 @@ function SeenTicks({ read }) {
   )
 }
 
+function MessageContent({ msg }) {
+  if (msg.messageType === 'image') {
+    return <img src={msg.fileData} alt="" style={{ maxWidth: '220px', maxHeight: '260px', borderRadius: '10px', display: 'block' }} />
+  }
+  if (msg.messageType === 'voice') {
+    return <audio controls src={msg.fileData} style={{ width: '220px', height: '36px' }} />
+  }
+  if (msg.messageType === 'file') {
+    return (
+      <a href={msg.fileData} download={msg.fileName} style={{
+        display: 'flex', alignItems: 'center', gap: '8px', color: 'inherit', textDecoration: 'none'
+      }}>
+        <span style={{ fontSize: '18px' }}>📄</span>
+        <span style={{ fontSize: '13px', wordBreak: 'break-all' }}>{msg.fileName || 'File'}</span>
+      </a>
+    )
+  }
+  return <div>{msg.text}</div>
+}
+
 function ChatBubble({ msg, isMine, senderInitials, time, onRequestDelete }) {
   const [showActions, setShowActions] = useState(false)
-
   return (
     <div
-      style={{
-        display: 'flex',
-        justifyContent: isMine ? 'flex-end' : 'flex-start',
-        alignItems: 'flex-end',
-        gap: '8px',
-        marginBottom: '2px'
-      }}
+      style={{ display: 'flex', justifyContent: isMine ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: '8px', marginBottom: '2px' }}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
@@ -213,50 +189,56 @@ function ChatBubble({ msg, isMine, senderInitials, time, onRequestDelete }) {
           background: 'rgba(124,111,255,0.15)', color: '#7c6fff',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '10px', fontWeight: 700, flexShrink: 0
-        }}>
-          {senderInitials}
-        </div>
+        }}>{senderInitials}</div>
       )}
-
       {isMine && showActions && (
-        <button
-          onClick={() => onRequestDelete(msg._id)}
-          title="Delete message"
-          style={{
-            background: 'var(--input-bg)', border: '1px solid var(--border)',
-            borderRadius: '50%', width: '22px', height: '22px', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#ff5050', fontSize: '11px', flexShrink: 0
-          }}
-        >
-          🗑
-        </button>
+        <button onClick={() => onRequestDelete(msg._id)} title="Delete message" style={{
+          background: 'var(--input-bg)', border: '1px solid var(--border)',
+          borderRadius: '50%', width: '22px', height: '22px', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#ff5050', fontSize: '11px', flexShrink: 0
+        }}>🗑</button>
       )}
-
       <div style={{
         background: isMine ? 'linear-gradient(135deg, #7c6fff, #9d7cff)' : 'var(--input-bg)',
         color: isMine ? '#fff' : 'var(--text)',
-        padding: '9px 13px',
+        padding: msg.messageType === 'image' ? '5px' : '9px 13px',
         borderRadius: isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-        maxWidth: '65%',
-        fontSize: '13.5px',
-        lineHeight: '1.4',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
-        position: 'relative'
+        maxWidth: '65%', fontSize: '13.5px', lineHeight: '1.4',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.08)', position: 'relative'
       }}>
-        <div>{msg.text}</div>
+        <MessageContent msg={msg} />
         <div style={{
-          fontSize: '10px',
-          opacity: 0.85,
-          marginTop: '3px',
-          textAlign: 'right',
+          fontSize: '10px', opacity: 0.85, marginTop: '3px', textAlign: 'right',
           color: isMine ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)',
-          display: 'flex', alignItems: 'center', justifyContent: 'flex-end'
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+          padding: msg.messageType === 'image' ? '0 6px 4px' : 0
         }}>
           {time}
           {isMine && <SeenTicks read={msg.read} />}
         </div>
       </div>
+    </div>
+  )
+}
+
+function AttachMenu({ onClose, onPickImage, onPickFile }) {
+  return (
+    <div style={{
+      position: 'absolute', bottom: '52px', left: 0,
+      background: 'var(--card)', border: '1px solid var(--border)',
+      borderRadius: '14px', padding: '8px', boxShadow: 'var(--shadow-lg)', zIndex: 100
+    }}>
+      <button onClick={() => { onPickImage(); onClose() }} style={{
+        display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+        padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer',
+        color: 'var(--text)', fontSize: '13px', borderRadius: '10px'
+      }}>🖼️ Photo</button>
+      <button onClick={() => { onPickFile(); onClose() }} style={{
+        display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+        padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer',
+        color: 'var(--text)', fontSize: '13px', borderRadius: '10px'
+      }}>📄 File</button>
     </div>
   )
 }
@@ -273,21 +255,22 @@ function Messages() {
   const [helperPickSessionId, setHelperPickSessionId] = useState(null)
   const [deleteMsgId, setDeleteMsgId] = useState(null)
   const [showDeleteChat, setShowDeleteChat] = useState(false)
+  const [showAttach, setShowAttach] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
-  const initials = user?.name
-    ? user.name.split(' ').map(n => n[0]).join('').toUpperCase()
-    : 'MH'
+  const imageInputRef = useRef(null)
+  const fileInputRef = useRef(null)
+  const mediaRecorderRef = useRef(null)
+  const audioChunksRef = useRef([])
 
-  const otherInitials = activeChat?.name
-    ? activeChat.name.split(' ').map(n => n[0]).join('').toUpperCase()
-    : '?'
+  const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'MH'
+  const otherInitials = activeChat?.name ? activeChat.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?'
 
   const fetchConversations = async () => {
     setLoading(true)
     try {
-      const res = await axios.get(`${API}/messages/conversations`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const res = await axios.get(`${API}/messages/conversations`, { headers: { Authorization: `Bearer ${token}` } })
       setConversations(res.data.conversations || [])
     } catch (err) {
       console.error('Failed to fetch conversations:', err)
@@ -307,12 +290,8 @@ function Messages() {
     setActiveChat(convo)
     try {
       const [msgRes, sessRes] = await Promise.all([
-        axios.get(`${API}/messages/${convo.otherUserId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get(`${API}/sessions/${convo.otherUserId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        axios.get(`${API}/messages/${convo.otherUserId}`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API}/sessions/${convo.otherUserId}`, { headers: { Authorization: `Bearer ${token}` } })
       ])
       setThread(msgRes.data.messages || [])
       setSessions(sessRes.data.sessions || [])
@@ -321,16 +300,13 @@ function Messages() {
     }
   }
 
-  const sendMessage = async () => {
-    if (!newMsg.trim() || !activeChat) return
+  const sendMessage = async (payload) => {
+    if (!activeChat) return
     try {
       await axios.post(`${API}/messages`, {
         receiverId: activeChat.otherUserId,
-        text: newMsg
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      setNewMsg('')
+        ...payload
+      }, { headers: { Authorization: `Bearer ${token}` } })
       openChat(activeChat)
       fetchConversations()
     } catch (err) {
@@ -338,14 +314,89 @@ function Messages() {
     }
   }
 
+  const handleSendText = () => {
+    if (!newMsg.trim()) return
+    sendMessage({ text: newMsg, messageType: 'text' })
+    setNewMsg('')
+  }
+
+  const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+
+  const handlePickImage = () => imageInputRef.current?.click()
+  const handlePickFile = () => fileInputRef.current?.click()
+
+  const handleImageSelected = async (e) => {
+    const file = e.target.files[0]
+    e.target.value = ''
+    if (!file) return
+    if (file.size > MAX_FILE_SIZE) {
+      alert('Image too large. Max 2MB allowed.')
+      return
+    }
+    setUploading(true)
+    const base64 = await fileToBase64(file)
+    await sendMessage({ messageType: 'image', fileData: base64, fileName: file.name })
+    setUploading(false)
+  }
+
+  const handleFileSelected = async (e) => {
+    const file = e.target.files[0]
+    e.target.value = ''
+    if (!file) return
+    if (file.size > MAX_FILE_SIZE) {
+      alert('File too large. Max 2MB allowed.')
+      return
+    }
+    setUploading(true)
+    const base64 = await fileToBase64(file)
+    await sendMessage({ messageType: 'file', fileData: base64, fileName: file.name })
+    setUploading(false)
+  }
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = recorder
+      audioChunksRef.current = []
+
+      recorder.ondataavailable = (e) => audioChunksRef.current.push(e.data)
+      recorder.onstop = async () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        if (blob.size > MAX_FILE_SIZE) {
+          alert('Voice note too long. Please keep it short.')
+          return
+        }
+        setUploading(true)
+        const reader = new FileReader()
+        reader.onloadend = async () => {
+          await sendMessage({ messageType: 'voice', fileData: reader.result, fileName: 'voice-note.webm' })
+          setUploading(false)
+        }
+        reader.readAsDataURL(blob)
+        stream.getTracks().forEach(t => t.stop())
+      }
+
+      recorder.start()
+      setIsRecording(true)
+    } catch (err) {
+      alert('Microphone access denied or unavailable.')
+    }
+  }
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop()
+    setIsRecording(false)
+  }
+
   const scheduleSession = async ({ date, time, meetingLink }) => {
     try {
-      await axios.post(`${API}/sessions`, {
-        participantId: activeChat.otherUserId,
-        date, time, meetingLink
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      await axios.post(`${API}/sessions`, { participantId: activeChat.otherUserId, date, time, meetingLink }, { headers: { Authorization: `Bearer ${token}` } })
       openChat(activeChat)
     } catch (err) {
       console.error('Failed to schedule session:', err)
@@ -355,9 +406,7 @@ function Messages() {
   const confirmDeleteConversation = async () => {
     setShowDeleteChat(false)
     try {
-      await axios.delete(`${API}/messages/${activeChat.otherUserId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      await axios.delete(`${API}/messages/${activeChat.otherUserId}`, { headers: { Authorization: `Bearer ${token}` } })
       setActiveChat(null)
       fetchConversations()
     } catch (err) {
@@ -369,9 +418,7 @@ function Messages() {
     const messageId = deleteMsgId
     setDeleteMsgId(null)
     try {
-      await axios.delete(`${API}/messages/single/${messageId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      await axios.delete(`${API}/messages/single/${messageId}`, { headers: { Authorization: `Bearer ${token}` } })
       setThread(thread.filter(m => m._id !== messageId))
       fetchConversations()
     } catch (err) {
@@ -379,21 +426,15 @@ function Messages() {
     }
   }
 
-  const handleMarkCompleted = (sessionId) => {
-    setHelperPickSessionId(sessionId)
-  }
+  const handleMarkCompleted = (sessionId) => setHelperPickSessionId(sessionId)
 
   const confirmHelper = async (choice) => {
     const sessionId = helperPickSessionId
     setHelperPickSessionId(null)
     const helperId = choice === 'me' ? user.id : activeChat.otherUserId
     try {
-      const res = await axios.post(`${API}/sessions/${sessionId}/complete`, { helperId }, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (!res.data.success) {
-        alert(res.data.message)
-      }
+      const res = await axios.post(`${API}/sessions/${sessionId}/complete`, { helperId }, { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.data.success) alert(res.data.message)
       openChat(activeChat)
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to mark completed')
@@ -417,48 +458,40 @@ function Messages() {
           </div>
           <span className="dash__sidebar-logo-text">TimeBank</span>
         </a>
-
         <nav className="dash__nav">
           <div className="dash__nav-label">Main Menu</div>
           <a href="/dashboard" className="dash__nav-item">
             <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="14" y="3" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="3" y="14" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/><rect x="14" y="14" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.5"/></svg>
-            </div>
-            Dashboard
+            </div>Dashboard
           </a>
           <a href="/wallet" className="dash__nav-item">
             <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/><path d="M12 6v6l4 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-            </div>
-            Time Wallet
+            </div>Time Wallet
           </a>
           <a href="/skills" className="dash__nav-item">
             <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5"/><path d="M16.5 16.5l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-            </div>
-            Find Skills
+            </div>Find Skills
           </a>
           <div className="dash__nav-item active">
             <div className="dash__nav-item-icon" style={{ background: 'rgba(255,209,102,0.15)', color: '#ffd166' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>
-            </div>
-            Messages
+            </div>Messages
           </div>
           <a href="/profile" className="dash__nav-item">
             <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-            </div>
-            Profile
+            </div>Profile
           </a>
           <div className="dash__nav-label">Account</div>
           <div className="dash__nav-item" onClick={logout}>
             <div className="dash__nav-item-icon" style={{ background: 'rgba(255,80,80,0.1)', color: '#ff8080' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-            </div>
-            Logout
+            </div>Logout
           </div>
         </nav>
-
         <div className="dash__sidebar-bottom">
           <div className="dash__sidebar-user">
             <div className="dash__sidebar-avatar">{initials}</div>
@@ -481,18 +514,12 @@ function Messages() {
         {!activeChat ? (
           <div className="msgs__list">
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-                Loading conversations...
-              </div>
+              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>Loading conversations...</div>
             ) : conversations.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
                 <div style={{ fontSize: '40px', marginBottom: '16px', opacity: 0.4 }}>💬</div>
-                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                  No conversations yet
-                </div>
-                <div style={{ fontSize: '13px' }}>
-                  Connect with someone from Find Skills to start chatting!
-                </div>
+                <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>No conversations yet</div>
+                <div style={{ fontSize: '13px' }}>Connect with someone from Find Skills to start chatting!</div>
               </div>
             ) : (
               conversations.map(convo => (
@@ -507,9 +534,7 @@ function Messages() {
                     </div>
                     <div className="msgs__preview">{convo.lastMessage}</div>
                   </div>
-                  {convo.unread > 0 && (
-                    <div className="msgs__unread">{convo.unread}</div>
-                  )}
+                  {convo.unread > 0 && <div className="msgs__unread">{convo.unread}</div>}
                 </div>
               ))
             )}
@@ -517,28 +542,18 @@ function Messages() {
         ) : (
           <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '18px', display: 'flex', flexDirection: 'column', height: '65vh', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
             <div style={{
-              padding: '14px 20px',
-              background: 'linear-gradient(135deg, rgba(124,111,255,0.06), rgba(255,111,176,0.04))',
-              borderBottom: '1px solid var(--border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px'
+              padding: '14px 20px', background: 'linear-gradient(135deg, rgba(124,111,255,0.06), rgba(255,111,176,0.04))',
+              borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <button onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '18px' }}>←</button>
-                <div
-                  onClick={() => { window.location.href = '/profile/' + activeChat.otherUserId }}
-                  style={{
-                    width: '34px', height: '34px', borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '12px', fontWeight: 700, cursor: 'pointer'
-                  }}
-                >
-                  {otherInitials}
-                </div>
-                <span
-                  onClick={() => { window.location.href = '/profile/' + activeChat.otherUserId }}
-                  style={{ fontWeight: 700, color: 'var(--text)', fontSize: '14.5px', letterSpacing: '-0.2px', cursor: 'pointer' }}
-                >
+                <div onClick={() => { window.location.href = '/profile/' + activeChat.otherUserId }} style={{
+                  width: '34px', height: '34px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '12px', fontWeight: 700, cursor: 'pointer'
+                }}>{otherInitials}</div>
+                <span onClick={() => { window.location.href = '/profile/' + activeChat.otherUserId }} style={{ fontWeight: 700, color: 'var(--text)', fontSize: '14.5px', letterSpacing: '-0.2px', cursor: 'pointer' }}>
                   {activeChat.name}
                 </span>
               </div>
@@ -546,102 +561,91 @@ function Messages() {
                 <button onClick={() => setShowSchedule(true)} style={{
                   background: 'linear-gradient(135deg, #7c6fff, #9d7cff)', border: 'none', color: '#fff',
                   borderRadius: '10px', padding: '7px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-                  whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px',
-                  boxShadow: '0 2px 8px rgba(124,111,255,0.3)'
-                }}>
-                  📅 Schedule
-                </button>
+                  whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px', boxShadow: '0 2px 8px rgba(124,111,255,0.3)'
+                }}>📅 Schedule</button>
                 <button onClick={() => setShowDeleteChat(true)} style={{
                   background: 'var(--card)', border: '1px solid rgba(255,80,80,0.3)', color: '#ff5050',
                   borderRadius: '10px', padding: '7px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                   whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px'
-                }}>
-                  🗑 Delete Chat
-                </button>
+                }}>🗑 Delete Chat</button>
               </div>
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px', background: 'var(--bg2)' }}>
               {timeline.map((item, i) => {
                 if (item._type === 'session') {
-                  return (
-                    <SessionCard
-                      key={`s-${i}`}
-                      session={item}
-                      currentUserId={user?.id}
-                      activeChat={activeChat}
-                      onMarkCompleted={handleMarkCompleted}
-                    />
-                  )
+                  return <SessionCard key={`s-${i}`} session={item} currentUserId={user?.id} activeChat={activeChat} onMarkCompleted={handleMarkCompleted} />
                 }
                 const isMine = item.sender !== activeChat.otherUserId
                 const time = new Date(item.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
                 return (
-                  <ChatBubble
-                    key={item._id || `m-${i}`}
-                    msg={item}
-                    isMine={isMine}
-                    senderInitials={otherInitials}
-                    time={time}
-                    onRequestDelete={setDeleteMsgId}
-                  />
+                  <ChatBubble key={item._id || `m-${i}`} msg={item} isMine={isMine} senderInitials={otherInitials} time={time} onRequestDelete={setDeleteMsgId} />
                 )
               })}
+              {uploading && (
+                <div style={{ alignSelf: 'flex-end', fontSize: '11px', color: 'var(--text-muted)' }}>Uploading...</div>
+              )}
             </div>
 
-            <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: '10px', background: 'var(--card)' }}>
+            <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: '10px', background: 'var(--card)', position: 'relative', alignItems: 'center' }}>
+              <input ref={imageInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageSelected} />
+              <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileSelected} />
+
+              <button onClick={() => setShowAttach(!showAttach)} style={{
+                background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-secondary)',
+                borderRadius: '50%', width: '38px', height: '38px', cursor: 'pointer', fontSize: '16px', flexShrink: 0
+              }}>📎</button>
+
+              {showAttach && (
+                <AttachMenu onClose={() => setShowAttach(false)} onPickImage={handlePickImage} onPickFile={handlePickFile} />
+              )}
+
               <input
                 value={newMsg}
                 onChange={e => setNewMsg(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && sendMessage()}
+                onKeyDown={e => e.key === 'Enter' && handleSendText()}
                 placeholder="Type a message..."
                 style={{
                   flex: 1, background: 'var(--input-bg)', border: '1px solid var(--border)',
                   borderRadius: '20px', padding: '10px 16px', color: 'var(--text)', outline: 'none', fontSize: '13.5px'
                 }}
               />
-              <button onClick={sendMessage} style={{
-                background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none',
-                borderRadius: '20px', padding: '10px 22px', cursor: 'pointer', fontWeight: 600, fontSize: '13px',
-                boxShadow: '0 2px 8px rgba(124,111,255,0.3)'
-              }}>
-                Send
-              </button>
+
+              {newMsg.trim() ? (
+                <button onClick={handleSendText} style={{
+                  background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none',
+                  borderRadius: '20px', padding: '10px 22px', cursor: 'pointer', fontWeight: 600, fontSize: '13px',
+                  boxShadow: '0 2px 8px rgba(124,111,255,0.3)'
+                }}>Send</button>
+              ) : (
+                <button
+                  onMouseDown={startRecording}
+                  onMouseUp={stopRecording}
+                  onMouseLeave={() => isRecording && stopRecording()}
+                  onTouchStart={startRecording}
+                  onTouchEnd={stopRecording}
+                  style={{
+                    background: isRecording ? '#ff5050' : 'linear-gradient(135deg, #7c6fff, #ff6fb0)',
+                    color: '#fff', border: 'none', borderRadius: '50%', width: '38px', height: '38px',
+                    cursor: 'pointer', fontSize: '16px', flexShrink: 0
+                  }}
+                  title="Hold to record voice note"
+                >
+                  🎤
+                </button>
+              )}
             </div>
           </div>
         )}
       </main>
 
-      {showSchedule && (
-        <ScheduleModal onClose={() => setShowSchedule(false)} onSchedule={scheduleSession} />
-      )}
-
-      {helperPickSessionId && (
-        <HelperPickModal
-          activeChat={activeChat}
-          onClose={() => setHelperPickSessionId(null)}
-          onPick={confirmHelper}
-        />
-      )}
-
+      {showSchedule && <ScheduleModal onClose={() => setShowSchedule(false)} onSchedule={scheduleSession} />}
+      {helperPickSessionId && <HelperPickModal activeChat={activeChat} onClose={() => setHelperPickSessionId(null)} onPick={confirmHelper} />}
       {deleteMsgId && (
-        <ConfirmModal
-          title="Delete message?"
-          message="This message will be deleted for you. This action cannot be undone."
-          danger
-          onCancel={() => setDeleteMsgId(null)}
-          onConfirm={confirmDeleteMessage}
-        />
+        <ConfirmModal title="Delete message?" message="This message will be deleted for you. This action cannot be undone." danger onCancel={() => setDeleteMsgId(null)} onConfirm={confirmDeleteMessage} />
       )}
-
       {showDeleteChat && (
-        <ConfirmModal
-          title="Delete this chat?"
-          message={`Your entire conversation with ${activeChat?.name} will be permanently deleted.`}
-          danger
-          onCancel={() => setShowDeleteChat(false)}
-          onConfirm={confirmDeleteConversation}
-        />
+        <ConfirmModal title="Delete this chat?" message={`Your entire conversation with ${activeChat?.name} will be permanently deleted.`} danger onCancel={() => setShowDeleteChat(false)} onConfirm={confirmDeleteConversation} />
       )}
     </div>
   )

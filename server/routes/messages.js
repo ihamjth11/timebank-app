@@ -85,26 +85,32 @@ router.get('/:userId', auth, async (req, res) => {
 
 router.post('/', auth, async (req, res) => {
   try {
-    const { receiverId, text } = req.body
-    if (!receiverId || !text) {
+    const { receiverId, text, messageType, fileData, fileName } = req.body
+    if (!receiverId || (!text && !fileData)) {
       return res.status(400).json({ success: false, message: 'Missing fields' })
     }
 
     const message = new Message({
       sender: req.user.id,
       receiver: receiverId,
-      text
+      text: text || '',
+      messageType: messageType || 'text',
+      fileData: fileData || '',
+      fileName: fileName || ''
     })
 
     await message.save()
 
     const sender = await User.findById(req.user.id).select('name')
+    const notifText = messageType === 'text' || !messageType
+      ? `${sender?.name || 'Someone'} sent you a message`
+      : `${sender?.name || 'Someone'} sent a ${messageType}`
     await Notification.create({
       user: receiverId,
       type: 'message',
       fromUser: req.user.id,
       fromName: sender?.name || 'Someone',
-      text: `${sender?.name || 'Someone'} sent you a message`,
+      text: notifText,
       link: '/messages'
     })
 
