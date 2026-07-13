@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
+import Toast from '../components/Toast'
+import ConfirmModal from '../components/ConfirmModal'
 import '../styles/skillfeed.css'
 import '../styles/dashboard.css'
 
@@ -8,9 +10,9 @@ const API = 'https://timebank-app.onrender.com/api'
 
 const CATEGORIES = ['All', 'Technology', 'Design', 'Education', 'Cooking', 'Music', 'Language', 'Business', 'Health', 'Other']
 
-function SkillCard({ skill, onConnect, onDelete, currentUserId }) {
+function SkillCard({ skill, onConnect, onRequestDelete, currentUserId }) {
   const initials = skill.userName ? skill.userName.split(' ').map(n => n[0]).join('').toUpperCase() : '?'
-  const isOwner = skill.user === currentUserId
+  const isOwner = String(skill.user) === String(currentUserId)
 
   return (
     <div className={`skill-card ${skill.type}`}>
@@ -46,7 +48,7 @@ function SkillCard({ skill, onConnect, onDelete, currentUserId }) {
           <button
             className="skill-card__connect"
             style={{ background: 'rgba(255,80,80,0.1)', color: '#ff5050', border: '1px solid rgba(255,80,80,0.2)' }}
-            onClick={() => onDelete(skill._id)}
+            onClick={() => onRequestDelete(skill._id)}
           >
             Delete
           </button>
@@ -155,6 +157,8 @@ function SkillFeed() {
   const [category, setCategory] = useState('All')
   const [typeFilter, setTypeFilter] = useState('all')
   const [showModal, setShowModal] = useState(false)
+  const [toast, setToast] = useState(null)
+  const [deleteSkillId, setDeleteSkillId] = useState(null)
 
   const fetchSkills = async () => {
     setLoading(true)
@@ -191,6 +195,7 @@ function SkillFeed() {
         headers: { Authorization: `Bearer ${token}` }
       })
       setSkills([res.data.skill, ...skills])
+      setToast({ message: 'Skill posted successfully!', type: 'success' })
       return { success: true }
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to post skill'
@@ -208,7 +213,7 @@ function SkillFeed() {
       )
 
       if (existing) {
-        alert(`You're already connected with ${skill.userName}. Check your Messages to chat!`)
+        setToast({ message: `You're already connected with ${skill.userName}. Check Messages!`, type: 'info' })
         return
       }
 
@@ -218,21 +223,23 @@ function SkillFeed() {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      alert(`Message sent to ${skill.userName}! Check your Messages page.`)
+      setToast({ message: `Message sent to ${skill.userName}! Check Messages to chat.`, type: 'success' })
     } catch (err) {
-      alert('Failed to send message. Please try again.')
+      setToast({ message: 'Failed to send message. Please try again.', type: 'error' })
     }
   }
 
-  const handleDelete = async (skillId) => {
-    if (!window.confirm('Delete this skill?')) return
+  const confirmDeleteSkill = async () => {
+    const skillId = deleteSkillId
+    setDeleteSkillId(null)
     try {
       await axios.delete(`${API}/skills/${skillId}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       setSkills(skills.filter(s => s._id !== skillId))
+      setToast({ message: 'Skill deleted', type: 'success' })
     } catch (err) {
-      alert('Failed to delete skill')
+      setToast({ message: 'Failed to delete skill', type: 'error' })
     }
   }
 
@@ -352,7 +359,7 @@ function SkillFeed() {
             </div>
           ) : (
             skills.map(skill => (
-              <SkillCard key={skill._id} skill={skill} onConnect={handleConnect} onDelete={handleDelete} currentUserId={user?.id}/>
+              <SkillCard key={skill._id} skill={skill} onConnect={handleConnect} onRequestDelete={setDeleteSkillId} currentUserId={user?.id}/>
             ))
           )}
         </div>
@@ -360,6 +367,20 @@ function SkillFeed() {
 
       {showModal && (
         <PostModal onClose={() => setShowModal(false)} onPost={handlePost}/>
+      )}
+
+      {deleteSkillId && (
+        <ConfirmModal
+          title="Delete this skill?"
+          message="This skill post will be permanently removed."
+          danger
+          onCancel={() => setDeleteSkillId(null)}
+          onConfirm={confirmDeleteSkill}
+        />
+      )}
+
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
       )}
     </div>
   )
