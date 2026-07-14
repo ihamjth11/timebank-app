@@ -644,3 +644,8 @@
     justify-content: center;
   }
 }
+@media (max-width: 768px) {
+  .msgs__list {
+    padding-bottom: 20px;
+  }
+}

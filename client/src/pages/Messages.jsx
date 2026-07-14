@@ -131,7 +131,7 @@ function VoiceNotePlayer({ src, isMine }) {
   const playedCount = duration ? Math.round((progress / duration) * WAVE_BARS.length) : 0
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '210px' }}>
+   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '206px', maxWidth: '100%' }}>
       <audio
         ref={audioRef}
         src={src}
@@ -157,7 +157,7 @@ function VoiceNotePlayer({ src, isMine }) {
           <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: '2px' }}><path d="M8 5v14l11-7z"/></svg>
         )}
       </button>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flex: 1, height: '24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5px', flex: 1, height: '24px', minWidth: 0, overflow: 'hidden' }}>
         {WAVE_BARS.map((h, i) => (
           <div key={i} style={{
             width: '2.5px', height: `${h}px`, borderRadius: '2px',
@@ -226,11 +226,14 @@ function ChatBubble({ msg, isMine, senderInitials, time, onRequestDelete, select
         }}>🗑</button>
       )}
       <div style={{
-        background: isMine ? 'linear-gradient(135deg, #7c6fff, #9d7cff)' : 'var(--input-bg)',
-        color: isMine ? '#fff' : 'var(--text)', padding: msg.messageType === 'image' ? '5px' : '9px 13px',
-        borderRadius: isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px', maxWidth: '65%', fontSize: '13.5px', lineHeight: '1.4',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.08)', position: 'relative'
-      }}>
+       background: isMine ? 'linear-gradient(135deg, #7c6fff, #9d7cff)' : 'var(--input-bg)',
+       color: isMine ? '#fff' : 'var(--text)', padding: msg.messageType === 'image' ? '5px' : '9px 13px',
+       borderRadius: isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+        maxWidth: msg.messageType === 'voice' ? '78%' : '65%',
+       minWidth: msg.messageType === 'voice' ? '230px' : 'auto',
+       fontSize: '13.5px', lineHeight: '1.4',
+       boxShadow: '0 1px 2px rgba(0,0,0,0.08)', position: 'relative', boxSizing: 'border-box'
+       }}>
         <MessageContent msg={msg} isMine={isMine} />
         <div style={{
           fontSize: '10px', opacity: 0.85, marginTop: '3px', textAlign: 'right',
@@ -656,7 +659,7 @@ function Messages() {
             </div>
 
             {!selectMode && (
-              <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: '10px', background: 'var(--card)', position: 'relative', alignItems: 'center' }}>
+             <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)', display: 'flex', gap: '8px', background: 'var(--card)', position: 'relative', alignItems: 'center' }}>
                 <input ref={imageInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageSelected} />
                 <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileSelected} />
 
