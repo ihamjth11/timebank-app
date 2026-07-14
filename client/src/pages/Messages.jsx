@@ -1,8 +1,8 @@
-import MobileNav from '../components/MobileNav'
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import ConfirmModal from '../components/ConfirmModal'
+import MobileNav from '../components/MobileNav'
 import '../styles/dashboard.css'
 import '../styles/messages.css'
 
@@ -101,7 +101,7 @@ function SeenTicks({ read }) {
   )
 }
 
-const WAVE_BARS = [6, 12, 8, 16, 10, 20, 14, 8, 18, 12, 6, 16, 10, 14, 8, 20, 12, 6, 16, 10, 8, 14, 18, 6, 12]
+const WAVE_BARS = [6, 12, 8, 16, 10, 20, 14, 8, 18, 12, 6, 16, 10, 14, 8, 20, 12, 6, 16, 10]
 
 function VoiceNotePlayer({ src, isMine }) {
   const audioRef = useRef(null)
@@ -112,11 +112,8 @@ function VoiceNotePlayer({ src, isMine }) {
   const togglePlay = () => {
     const audio = audioRef.current
     if (!audio) return
-    if (playing) {
-      audio.pause()
-    } else {
-      audio.play()
-    }
+    if (playing) audio.pause()
+    else audio.play()
   }
 
   const formatTime = (s) => {
@@ -131,7 +128,7 @@ function VoiceNotePlayer({ src, isMine }) {
   const playedCount = duration ? Math.round((progress / duration) * WAVE_BARS.length) : 0
 
   return (
-   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '206px', maxWidth: '100%' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '190px', maxWidth: '100%', boxSizing: 'border-box' }}>
       <audio
         ref={audioRef}
         src={src}
@@ -142,31 +139,24 @@ function VoiceNotePlayer({ src, isMine }) {
         onTimeUpdate={(e) => setProgress(e.target.currentTime)}
         style={{ display: 'none' }}
       />
-      <button
-        onClick={togglePlay}
-        style={{
-          width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
-          background: isMine ? 'rgba(255,255,255,0.25)' : 'var(--accent)',
-          border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: isMine ? '#fff' : '#fff'
-        }}
-      >
+      <button onClick={togglePlay} style={{
+        width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0,
+        background: isMine ? 'rgba(255,255,255,0.25)' : 'var(--accent)',
+        border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: '#fff'
+      }}>
         {playing ? (
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
         ) : (
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: '2px' }}><path d="M8 5v14l11-7z"/></svg>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: '2px' }}><path d="M8 5v14l11-7z"/></svg>
         )}
       </button>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5px', flex: 1, height: '24px', minWidth: 0, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5px', flex: 1, height: '22px', minWidth: 0, overflow: 'hidden' }}>
         {WAVE_BARS.map((h, i) => (
-          <div key={i} style={{
-            width: '2.5px', height: `${h}px`, borderRadius: '2px',
-            background: i < playedCount ? barColor : barBg,
-            transition: 'background 0.1s'
-          }} />
+          <div key={i} style={{ width: '2px', height: `${h}px`, borderRadius: '2px', background: i < playedCount ? barColor : barBg, flexShrink: 0 }} />
         ))}
       </div>
-      <span style={{ fontSize: '10.5px', color: isMine ? 'rgba(255,255,255,0.85)' : 'var(--text-muted)', flexShrink: 0, minWidth: '30px' }}>
+      <span style={{ fontSize: '10px', color: isMine ? 'rgba(255,255,255,0.85)' : 'var(--text-muted)', flexShrink: 0, width: '26px', textAlign: 'right' }}>
         {formatTime(playing || progress > 0 ? progress : duration)}
       </span>
     </div>
@@ -193,10 +183,9 @@ function MessageContent({ msg, isMine }) {
 
 function ChatBubble({ msg, isMine, senderInitials, time, onRequestDelete, selectMode, selected, onToggleSelect }) {
   const [showActions, setShowActions] = useState(false)
+  const isMedia = msg.messageType === 'voice' || msg.messageType === 'image'
 
-  const handleClick = () => {
-    if (selectMode) onToggleSelect(msg._id)
-  }
+  const handleClick = () => { if (selectMode) onToggleSelect(msg._id) }
 
   return (
     <div
@@ -226,24 +215,33 @@ function ChatBubble({ msg, isMine, senderInitials, time, onRequestDelete, select
         }}>🗑</button>
       )}
       <div style={{
-       background: isMine ? 'linear-gradient(135deg, #7c6fff, #9d7cff)' : 'var(--input-bg)',
-       color: isMine ? '#fff' : 'var(--text)', padding: msg.messageType === 'image' ? '5px' : '9px 13px',
-       borderRadius: isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-        maxWidth: msg.messageType === 'voice' ? '78%' : '65%',
-       minWidth: msg.messageType === 'voice' ? '230px' : 'auto',
-       fontSize: '13.5px', lineHeight: '1.4',
-       boxShadow: '0 1px 2px rgba(0,0,0,0.08)', position: 'relative', boxSizing: 'border-box'
-       }}>
+        background: isMine ? 'linear-gradient(135deg, #7c6fff, #9d7cff)' : 'var(--input-bg)',
+        color: isMine ? '#fff' : 'var(--text)',
+        padding: msg.messageType === 'image' ? '5px' : isMedia ? '8px 12px' : '9px 13px',
+        borderRadius: isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+        maxWidth: isMedia ? '85%' : '65%',
+        width: msg.messageType === 'voice' ? 'auto' : undefined,
+        fontSize: '13.5px', lineHeight: '1.4',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.08)', position: 'relative', boxSizing: 'border-box', overflow: 'hidden'
+      }}>
         <MessageContent msg={msg} isMine={isMine} />
-        <div style={{
-          fontSize: '10px', opacity: 0.85, marginTop: '3px', textAlign: 'right',
-          color: isMine ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)',
-          display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-          padding: msg.messageType === 'image' ? '0 6px 4px' : 0
-        }}>
-          {time}
-          {isMine && <SeenTicks read={msg.read} />}
-        </div>
+        {msg.messageType !== 'voice' && (
+          <div style={{
+            fontSize: '10px', opacity: 0.85, marginTop: '3px', textAlign: 'right',
+            color: isMine ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)',
+            display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+            padding: msg.messageType === 'image' ? '0 6px 4px' : 0
+          }}>
+            {time}
+            {isMine && <SeenTicks read={msg.read} />}
+          </div>
+        )}
+        {msg.messageType === 'voice' && (
+          <div style={{ fontSize: '10px', opacity: 0.85, marginTop: '4px', textAlign: 'right', color: isMine ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+            {time}
+            {isMine && <SeenTicks read={msg.read} />}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -328,6 +326,7 @@ function Messages() {
       fetchConversations()
     } catch (err) {
       console.error('Failed to send message:', err)
+      alert(err.response?.data?.message || 'Failed to send. File may be too large.')
     }
   }
 
@@ -378,7 +377,7 @@ function Messages() {
       recorder.ondataavailable = (e) => audioChunksRef.current.push(e.data)
       recorder.onstop = async () => {
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-        if (blob.size > MAX_FILE_SIZE) { alert('Voice note too long.'); return }
+        if (blob.size > MAX_FILE_SIZE) { alert('Voice note too long. Keep under 2MB (~1 min).'); return }
         setUploading(true)
         const reader = new FileReader()
         reader.onloadend = async () => {
@@ -593,9 +592,7 @@ function Messages() {
                       padding: '8px 16px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
                       opacity: selectedIds.length === 0 ? 0.5 : 1, boxShadow: '0 2px 10px rgba(255,80,80,0.35)'
                     }}
-                  >
-                    🗑 Delete ({selectedIds.length})
-                  </button>
+                  >🗑 Delete ({selectedIds.length})</button>
                 </>
               ) : (
                 <>
@@ -636,10 +633,7 @@ function Messages() {
                 const isMine = item.sender !== activeChat.otherUserId
                 const time = new Date(item.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
                 return (
-                  <div
-                    key={item._id || `m-${i}`}
-                    onDoubleClick={() => !selectMode && enterSelectMode(item._id)}
-                  >
+                  <div key={item._id || `m-${i}`} onDoubleClick={() => !selectMode && enterSelectMode(item._id)}>
                     <ChatBubble
                       msg={item}
                       isMine={isMine}
@@ -659,14 +653,14 @@ function Messages() {
             </div>
 
             {!selectMode && (
-             <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)', display: 'flex', gap: '8px', background: 'var(--card)', position: 'relative', alignItems: 'center' }}>
+              <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)', display: 'flex', gap: '8px', background: 'var(--card)', position: 'relative', alignItems: 'center' }}>
                 <input ref={imageInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageSelected} />
                 <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileSelected} />
 
                 <button onClick={() => setShowAttach(!showAttach)} style={{
                   background: 'linear-gradient(135deg, rgba(124,111,255,0.15), rgba(255,111,176,0.1))',
                   border: '1px solid var(--border)', color: 'var(--accent)',
-                  borderRadius: '50%', width: '38px', height: '38px', cursor: 'pointer', fontSize: '16px', flexShrink: 0
+                  borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontSize: '15px', flexShrink: 0
                 }}>📎</button>
 
                 {showAttach && <AttachMenu onClose={() => setShowAttach(false)} onPickImage={handlePickImage} onPickFile={handlePickFile} />}
@@ -676,14 +670,14 @@ function Messages() {
                   onChange={e => setNewMsg(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSendText()}
                   placeholder="Type a message..."
-                  style={{ flex: 1, background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '20px', padding: '10px 16px', color: 'var(--text)', outline: 'none', fontSize: '13.5px' }}
+                  style={{ flex: 1, minWidth: 0, background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '20px', padding: '9px 14px', color: 'var(--text)', outline: 'none', fontSize: '13px' }}
                 />
 
                 {newMsg.trim() ? (
                   <button onClick={handleSendText} style={{
                     background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none',
-                    borderRadius: '20px', padding: '10px 22px', cursor: 'pointer', fontWeight: 700, fontSize: '13px',
-                    boxShadow: '0 3px 10px rgba(124,111,255,0.35)'
+                    borderRadius: '20px', padding: '9px 18px', cursor: 'pointer', fontWeight: 700, fontSize: '12.5px',
+                    boxShadow: '0 3px 10px rgba(124,111,255,0.35)', flexShrink: 0
                   }}>Send</button>
                 ) : (
                   <button
@@ -694,8 +688,8 @@ function Messages() {
                     onTouchEnd={stopRecording}
                     style={{
                       background: isRecording ? '#ff5050' : 'linear-gradient(135deg, #7c6fff, #ff6fb0)',
-                      color: '#fff', border: 'none', borderRadius: '50%', width: '38px', height: '38px',
-                      cursor: 'pointer', fontSize: '16px', flexShrink: 0, boxShadow: '0 3px 10px rgba(124,111,255,0.35)'
+                      color: '#fff', border: 'none', borderRadius: '50%', width: '36px', height: '36px',
+                      cursor: 'pointer', fontSize: '15px', flexShrink: 0, boxShadow: '0 3px 10px rgba(124,111,255,0.35)'
                     }}
                     title="Hold to record voice note"
                   >🎤</button>
