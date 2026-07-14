@@ -1,3 +1,4 @@
+import MobileNav from '../components/MobileNav'
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
@@ -641,6 +642,7 @@ function Messages() {
       {showBulkDelete && (
         <ConfirmModal title={`Delete ${selectedIds.length} message(s)?`} message="Selected messages will be permanently deleted." danger onCancel={() => setShowBulkDelete(false)} onConfirm={confirmBulkDelete} />
       )}
+      <MobileNav />
     </div>
   )
 }

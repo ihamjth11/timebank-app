@@ -1,3 +1,4 @@
+import MobileNav from '../components/MobileNav'
 import ThemeToggle from '../components/ThemeToggle'
 import OnboardingTour from '../components/OnboardingTour'
 import NotificationBell from '../components/NotificationBell'
@@ -301,6 +302,7 @@ function Dashboard() {
 
         </div>
       </main>
+      <MobileNav />
     </div>
   )
 }

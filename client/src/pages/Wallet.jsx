@@ -1,3 +1,4 @@
+import MobileNav from '../components/MobileNav'
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
@@ -226,6 +227,7 @@ function Wallet() {
         </div>
 
       </main>
+      <MobileNav />
     </div>
   )
 }
