@@ -581,6 +581,14 @@
   .dash__stats { grid-template-columns: repeat(2, 1fr); }
   .dash__grid { grid-template-columns: 1fr; }
 }
+@media (max-width: 768px) {
+  .dash__header-right {
+    position: fixed;
+    top: 14px;
+    right: 16px;
+    z-index: 150;
+  }
+}
 
 @media (max-width: 768px) {
   .dash__sidebar { display: none; }

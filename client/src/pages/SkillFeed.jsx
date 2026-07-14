@@ -357,7 +357,7 @@ function SkillFeed() {
       {showModal && (
         <PostModal onClose={() => setShowModal(false)} onPost={handlePost}/>
       )}
-      <MobileNav />
+      
 
       {deleteSkillId && (
         <ConfirmModal
@@ -372,6 +372,7 @@ function SkillFeed() {
       {toast && (
         <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
       )}
+      <MobileNav />
     </div>
   )
 }

@@ -101,12 +101,84 @@ function SeenTicks({ read }) {
   )
 }
 
-function MessageContent({ msg }) {
+const WAVE_BARS = [6, 12, 8, 16, 10, 20, 14, 8, 18, 12, 6, 16, 10, 14, 8, 20, 12, 6, 16, 10, 8, 14, 18, 6, 12]
+
+function VoiceNotePlayer({ src, isMine }) {
+  const audioRef = useRef(null)
+  const [playing, setPlaying] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [duration, setDuration] = useState(0)
+
+  const togglePlay = () => {
+    const audio = audioRef.current
+    if (!audio) return
+    if (playing) {
+      audio.pause()
+    } else {
+      audio.play()
+    }
+  }
+
+  const formatTime = (s) => {
+    if (!s || isNaN(s)) return '0:00'
+    const m = Math.floor(s / 60)
+    const sec = Math.floor(s % 60)
+    return `${m}:${sec.toString().padStart(2, '0')}`
+  }
+
+  const barColor = isMine ? 'rgba(255,255,255,0.9)' : 'var(--accent)'
+  const barBg = isMine ? 'rgba(255,255,255,0.35)' : 'var(--border)'
+  const playedCount = duration ? Math.round((progress / duration) * WAVE_BARS.length) : 0
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '210px' }}>
+      <audio
+        ref={audioRef}
+        src={src}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => { setPlaying(false); setProgress(0) }}
+        onLoadedMetadata={(e) => setDuration(e.target.duration)}
+        onTimeUpdate={(e) => setProgress(e.target.currentTime)}
+        style={{ display: 'none' }}
+      />
+      <button
+        onClick={togglePlay}
+        style={{
+          width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
+          background: isMine ? 'rgba(255,255,255,0.25)' : 'var(--accent)',
+          border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: isMine ? '#fff' : '#fff'
+        }}
+      >
+        {playing ? (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        ) : (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style={{ marginLeft: '2px' }}><path d="M8 5v14l11-7z"/></svg>
+        )}
+      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flex: 1, height: '24px' }}>
+        {WAVE_BARS.map((h, i) => (
+          <div key={i} style={{
+            width: '2.5px', height: `${h}px`, borderRadius: '2px',
+            background: i < playedCount ? barColor : barBg,
+            transition: 'background 0.1s'
+          }} />
+        ))}
+      </div>
+      <span style={{ fontSize: '10.5px', color: isMine ? 'rgba(255,255,255,0.85)' : 'var(--text-muted)', flexShrink: 0, minWidth: '30px' }}>
+        {formatTime(playing || progress > 0 ? progress : duration)}
+      </span>
+    </div>
+  )
+}
+
+function MessageContent({ msg, isMine }) {
   if (msg.messageType === 'image') {
     return <img src={msg.fileData} alt="" style={{ maxWidth: '220px', maxHeight: '260px', borderRadius: '10px', display: 'block' }} />
   }
   if (msg.messageType === 'voice') {
-    return <audio controls src={msg.fileData} style={{ width: '220px', height: '36px' }} />
+    return <VoiceNotePlayer src={msg.fileData} isMine={isMine} />
   }
   if (msg.messageType === 'file') {
     return (
@@ -159,7 +231,7 @@ function ChatBubble({ msg, isMine, senderInitials, time, onRequestDelete, select
         borderRadius: isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px', maxWidth: '65%', fontSize: '13.5px', lineHeight: '1.4',
         boxShadow: '0 1px 2px rgba(0,0,0,0.08)', position: 'relative'
       }}>
-        <MessageContent msg={msg} />
+        <MessageContent msg={msg} isMine={isMine} />
         <div style={{
           fontSize: '10px', opacity: 0.85, marginTop: '3px', textAlign: 'right',
           color: isMine ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)',

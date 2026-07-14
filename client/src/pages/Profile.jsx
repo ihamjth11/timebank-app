@@ -21,19 +21,31 @@ function EditProfileModal({ user, onClose, onSave }) {
   const handlePhotoChange = (e) => {
     const file = e.target.files[0]
     if (!file) return
-    if (file.size > 1024 * 1024) {
-      alert('Please choose an image smaller than 1MB')
-      return
-    }
     setUploading(true)
+
+    const img = new Image()
     const reader = new FileReader()
-    reader.onloadend = () => {
-      setForm({ ...form, avatar: reader.result })
-      setUploading(false)
+    reader.onload = (ev) => {
+      img.onload = () => {
+        const size = 300
+        const canvas = document.createElement('canvas')
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d')
+
+        const minSide = Math.min(img.width, img.height)
+        const sx = (img.width - minSide) / 2
+        const sy = (img.height - minSide) / 2
+
+        ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size)
+        const compressed = canvas.toDataURL('image/jpeg', 0.8)
+        setForm(f => ({ ...f, avatar: compressed }))
+        setUploading(false)
+      }
+      img.src = ev.target.result
     }
     reader.readAsDataURL(file)
   }
-
   const handleSubmit = async () => {
     setLoading(true)
     const result = await onSave(form)
