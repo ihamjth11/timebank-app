@@ -103,11 +103,13 @@ function SeenTicks({ read }) {
 
 const WAVE_BARS = [6, 12, 8, 16, 10, 20, 14, 8, 18, 12, 6, 16, 10, 14, 8, 20, 12, 6, 16, 10]
 
+
 function VoiceNotePlayer({ src, isMine }) {
   const audioRef = useRef(null)
   const [playing, setPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
+  const fixAttempted = useRef(false)
 
   const togglePlay = () => {
     const audio = audioRef.current
@@ -117,10 +119,44 @@ function VoiceNotePlayer({ src, isMine }) {
   }
 
   const formatTime = (s) => {
-    if (!s || isNaN(s)) return '0:00'
+    if (!s || isNaN(s) || !isFinite(s)) return '0:00'
     const m = Math.floor(s / 60)
     const sec = Math.floor(s % 60)
     return `${m}:${sec.toString().padStart(2, '0')}`
+  }
+
+  // Chrome-on-Android reports duration as Infinity for MediaRecorder webm
+  // blobs until you force a seek. This nudges the browser into
+  // recalculating the real duration, then resets playback to 0.
+  const fixInfiniteDuration = () => {
+    const audio = audioRef.current
+    if (!audio || fixAttempted.current) return
+    fixAttempted.current = true
+    audio.currentTime = 1e101
+    const onTimeUpdateOnce = () => {
+      audio.removeEventListener('timeupdate', onTimeUpdateOnce)
+      audio.currentTime = 0
+      if (isFinite(audio.duration) && audio.duration > 0) setDuration(audio.duration)
+    }
+    audio.addEventListener('timeupdate', onTimeUpdateOnce)
+  }
+
+  const handleLoadedMetadata = (e) => {
+    const d = e.target.duration
+    if (isFinite(d) && d > 0) {
+      setDuration(d)
+    } else {
+      fixInfiniteDuration()
+    }
+  }
+
+  const handleDurationChange = (e) => {
+    const d = e.target.duration
+    if (isFinite(d) && d > 0) {
+      setDuration(d)
+    } else if (d === Infinity) {
+      fixInfiniteDuration()
+    }
   }
 
   const barColor = isMine ? 'rgba(255,255,255,0.9)' : 'var(--accent)'
@@ -132,17 +168,12 @@ function VoiceNotePlayer({ src, isMine }) {
       <audio
         ref={audioRef}
         src={src}
+        preload="metadata"
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
         onEnded={() => { setPlaying(false); setProgress(0) }}
-       onLoadedMetadata={(e) => {
-  const d = e.target.duration
-  if (isFinite(d) && d > 0) setDuration(d)
-}}
-onDurationChange={(e) => {
-  const d = e.target.duration
-  if (isFinite(d) && d > 0) setDuration(d)
-}}
+        onLoadedMetadata={handleLoadedMetadata}
+        onDurationChange={handleDurationChange}
         onTimeUpdate={(e) => setProgress(e.target.currentTime)}
         style={{ display: 'none' }}
       />
