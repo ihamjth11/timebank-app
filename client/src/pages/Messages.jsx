@@ -103,7 +103,6 @@ function SeenTicks({ read }) {
 
 const WAVE_BARS = [6, 12, 8, 16, 10, 20, 14, 8, 18, 12, 6, 16, 10, 14, 8, 20, 12, 6, 16, 10]
 
-
 function VoiceNotePlayer({ src, isMine }) {
   const audioRef = useRef(null)
   const [playing, setPlaying] = useState(false)
@@ -228,6 +227,25 @@ function MessageContent({ msg, isMine }) {
   return <div>{msg.text}</div>
 }
 
+function BubbleTail({ isMine }) {
+  return (
+    <div style={{
+      position: 'absolute',
+      bottom: 0,
+      right: isMine ? '-6px' : undefined,
+      left: isMine ? undefined : '-6px',
+      width: 0,
+      height: 0,
+      borderStyle: 'solid',
+      borderWidth: isMine ? '0 0 10px 10px' : '0 10px 10px 0',
+      borderColor: isMine
+        ? 'transparent transparent transparent #9d7cff'
+        : 'transparent var(--input-bg) transparent transparent',
+      pointerEvents: 'none'
+    }} />
+  )
+}
+
 function ChatBubble({ msg, isMine, senderInitials, time, onRequestDelete, selectMode, selected, onToggleSelect }) {
   const [showActions, setShowActions] = useState(false)
   const isMedia = msg.messageType === 'voice' || msg.messageType === 'image'
@@ -261,34 +279,37 @@ function ChatBubble({ msg, isMine, senderInitials, time, onRequestDelete, select
           display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff5050', fontSize: '11px', flexShrink: 0
         }}>🗑</button>
       )}
-      <div style={{
-        background: isMine ? 'linear-gradient(135deg, #7c6fff, #9d7cff)' : 'var(--input-bg)',
-        color: isMine ? '#fff' : 'var(--text)',
-        padding: msg.messageType === 'image' ? '5px' : isMedia ? '8px 12px' : '9px 13px',
-        borderRadius: isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-        maxWidth: isMedia ? '85%' : '65%',
-        width: msg.messageType === 'voice' ? 'auto' : undefined,
-        fontSize: '13.5px', lineHeight: '1.4',
-        boxShadow: '0 1px 2px rgba(0,0,0,0.08)', position: 'relative', boxSizing: 'border-box', overflow: 'hidden'
-      }}>
-        <MessageContent msg={msg} isMine={isMine} />
-        {msg.messageType !== 'voice' && (
-          <div style={{
-            fontSize: '10px', opacity: 0.85, marginTop: '3px', textAlign: 'right',
-            color: isMine ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)',
-            display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-            padding: msg.messageType === 'image' ? '0 6px 4px' : 0
-          }}>
-            {time}
-            {isMine && <SeenTicks read={msg.read} />}
-          </div>
-        )}
-        {msg.messageType === 'voice' && (
-          <div style={{ fontSize: '10px', opacity: 0.85, marginTop: '4px', textAlign: 'right', color: isMine ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-            {time}
-            {isMine && <SeenTicks read={msg.read} />}
-          </div>
-        )}
+      <div style={{ position: 'relative' }}>
+        <div style={{
+          background: isMine ? 'linear-gradient(135deg, #7c6fff, #9d7cff)' : 'var(--input-bg)',
+          color: isMine ? '#fff' : 'var(--text)',
+          padding: msg.messageType === 'image' ? '5px' : isMedia ? '8px 12px' : '9px 13px',
+          borderRadius: isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+          maxWidth: isMedia ? '85%' : '65%',
+          width: msg.messageType === 'voice' ? 'auto' : undefined,
+          fontSize: '13.5px', lineHeight: '1.4',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.08)', position: 'relative', boxSizing: 'border-box', overflow: 'hidden'
+        }}>
+          <MessageContent msg={msg} isMine={isMine} />
+          {msg.messageType !== 'voice' && (
+            <div style={{
+              fontSize: '10px', opacity: 0.85, marginTop: '3px', textAlign: 'right',
+              color: isMine ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)',
+              display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+              padding: msg.messageType === 'image' ? '0 6px 4px' : 0
+            }}>
+              {time}
+              {isMine && <SeenTicks read={msg.read} />}
+            </div>
+          )}
+          {msg.messageType === 'voice' && (
+            <div style={{ fontSize: '10px', opacity: 0.85, marginTop: '4px', textAlign: 'right', color: isMine ? 'rgba(255,255,255,0.8)' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+              {time}
+              {isMine && <SeenTicks read={msg.read} />}
+            </div>
+          )}
+        </div>
+        <BubbleTail isMine={isMine} />
       </div>
     </div>
   )
@@ -317,6 +338,8 @@ function Messages() {
   const [showDeleteChat, setShowDeleteChat] = useState(false)
   const [showAttach, setShowAttach] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
+  const [recordSeconds, setRecordSeconds] = useState(0)
+  const [slideOffset, setSlideOffset] = useState(0)
   const [uploading, setUploading] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState([])
@@ -326,6 +349,9 @@ function Messages() {
   const fileInputRef = useRef(null)
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
+  const recordIntervalRef = useRef(null)
+  const recordStartXRef = useRef(0)
+  const cancelledRef = useRef(false)
 
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'MH'
   const otherInitials = activeChat?.name ? activeChat.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?'
@@ -415,14 +441,20 @@ function Messages() {
     setUploading(false)
   }
 
-  const startRecording = async () => {
+  const startRecording = async (e) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const recorder = new MediaRecorder(stream)
       mediaRecorderRef.current = recorder
       audioChunksRef.current = []
-      recorder.ondataavailable = (e) => audioChunksRef.current.push(e.data)
+      cancelledRef.current = false
+      recorder.ondataavailable = (ev) => audioChunksRef.current.push(ev.data)
       recorder.onstop = async () => {
+        clearInterval(recordIntervalRef.current)
+        stream.getTracks().forEach(t => t.stop())
+        setRecordSeconds(0)
+        setSlideOffset(0)
+        if (cancelledRef.current) return
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
         if (blob.size > MAX_FILE_SIZE) { alert('Voice note too long. Keep under 2MB (~1 min).'); return }
         setUploading(true)
@@ -432,19 +464,51 @@ function Messages() {
           setUploading(false)
         }
         reader.readAsDataURL(blob)
-        stream.getTracks().forEach(t => t.stop())
       }
       recorder.start()
       setIsRecording(true)
+      setRecordSeconds(0)
+      setSlideOffset(0)
+      recordStartXRef.current = e.touches ? e.touches[0].clientX : e.clientX
+      recordIntervalRef.current = setInterval(() => setRecordSeconds(s => s + 1), 1000)
     } catch (err) {
       alert('Microphone access denied or unavailable.')
     }
   }
 
   const stopRecording = () => {
-    mediaRecorderRef.current?.stop()
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop()
+    }
     setIsRecording(false)
   }
+
+  const handleRecordMove = (e) => {
+    if (!isRecording) return
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX
+    const delta = clientX - recordStartXRef.current
+    const offset = Math.min(0, delta)
+    setSlideOffset(offset)
+    if (offset < -80 && !cancelledRef.current) {
+      cancelledRef.current = true
+      stopRecording()
+    }
+  }
+
+  // Mouse move/up need to be tracked on window since the cursor can
+  // leave the mic button while the user is dragging to cancel.
+  useEffect(() => {
+    if (!isRecording) return
+    const onMove = (e) => handleRecordMove(e)
+    const onUp = () => stopRecording()
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRecording])
 
   const scheduleSession = async ({ date, time, meetingLink }) => {
     try {
@@ -525,6 +589,9 @@ function Messages() {
     ...thread.map(m => ({ ...m, _type: 'message' })),
     ...sessions.map(s => ({ ...s, _type: 'session', createdAt: s.createdAt }))
   ].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+
+  const recordMinutes = Math.floor(recordSeconds / 60)
+  const recordSecondsDisplay = (recordSeconds % 60).toString().padStart(2, '0')
 
   return (
     <div className="dash">
@@ -672,7 +739,10 @@ function Messages() {
               )}
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px', background: 'var(--bg2)' }}>
+            <div style={{
+              flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px',
+              background: `var(--bg2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%237c6fff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+            }}>
               {timeline.map((item, i) => {
                 if (item._type === 'session') {
                   return <SessionCard key={`s-${i}`} session={item} currentUserId={user?.id} activeChat={activeChat} onMarkCompleted={handleMarkCompleted} />
@@ -704,23 +774,41 @@ function Messages() {
                 <input ref={imageInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageSelected} />
                 <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileSelected} />
 
-                <button onClick={() => setShowAttach(!showAttach)} style={{
-                  background: 'linear-gradient(135deg, rgba(124,111,255,0.15), rgba(255,111,176,0.1))',
-                  border: '1px solid var(--border)', color: 'var(--accent)',
-                  borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontSize: '15px', flexShrink: 0
-                }}>📎</button>
+                {!isRecording && (
+                  <button onClick={() => setShowAttach(!showAttach)} style={{
+                    background: 'linear-gradient(135deg, rgba(124,111,255,0.15), rgba(255,111,176,0.1))',
+                    border: '1px solid var(--border)', color: 'var(--accent)',
+                    borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontSize: '15px', flexShrink: 0
+                  }}>📎</button>
+                )}
 
-                {showAttach && <AttachMenu onClose={() => setShowAttach(false)} onPickImage={handlePickImage} onPickFile={handlePickFile} />}
+                {showAttach && !isRecording && <AttachMenu onClose={() => setShowAttach(false)} onPickImage={handlePickImage} onPickFile={handlePickFile} />}
 
-                <input
-                  value={newMsg}
-                  onChange={e => setNewMsg(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSendText()}
-                  placeholder="Type a message..."
-                  style={{ flex: 1, minWidth: 0, background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '20px', padding: '9px 14px', color: 'var(--text)', outline: 'none', fontSize: '13px' }}
-                />
+                {isRecording ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, padding: '4px 8px', minWidth: 0, overflow: 'hidden' }}>
+                    <div className="timebank-rec-dot" style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ff5050', flexShrink: 0 }} />
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', flexShrink: 0 }}>
+                      {recordMinutes}:{recordSecondsDisplay}
+                    </span>
+                    <div style={{
+                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                      color: 'var(--text-muted)', fontSize: '12.5px', whiteSpace: 'nowrap',
+                      transform: `translateX(${slideOffset}px)`, opacity: Math.max(0, 1 + slideOffset / 80)
+                    }}>
+                      <span>←</span><span>Slide to cancel</span>
+                    </div>
+                  </div>
+                ) : (
+                  <input
+                    value={newMsg}
+                    onChange={e => setNewMsg(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSendText()}
+                    placeholder="Type a message..."
+                    style={{ flex: 1, minWidth: 0, background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '20px', padding: '9px 14px', color: 'var(--text)', outline: 'none', fontSize: '13px' }}
+                  />
+                )}
 
-                {newMsg.trim() ? (
+                {newMsg.trim() && !isRecording ? (
                   <button onClick={handleSendText} style={{
                     background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none',
                     borderRadius: '20px', padding: '9px 18px', cursor: 'pointer', fontWeight: 700, fontSize: '12.5px',
@@ -729,14 +817,14 @@ function Messages() {
                 ) : (
                   <button
                     onMouseDown={startRecording}
-                    onMouseUp={stopRecording}
-                    onMouseLeave={() => isRecording && stopRecording()}
                     onTouchStart={startRecording}
+                    onTouchMove={handleRecordMove}
                     onTouchEnd={stopRecording}
                     style={{
                       background: isRecording ? '#ff5050' : 'linear-gradient(135deg, #7c6fff, #ff6fb0)',
                       color: '#fff', border: 'none', borderRadius: '50%', width: '36px', height: '36px',
-                      cursor: 'pointer', fontSize: '15px', flexShrink: 0, boxShadow: '0 3px 10px rgba(124,111,255,0.35)'
+                      cursor: 'pointer', fontSize: '15px', flexShrink: 0, boxShadow: '0 3px 10px rgba(124,111,255,0.35)',
+                      transform: isRecording ? 'scale(1.15)' : 'scale(1)', transition: 'transform 0.15s'
                     }}
                     title="Hold to record voice note"
                   >🎤</button>
