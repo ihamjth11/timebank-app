@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 const ITEMS = [
   {
@@ -26,6 +27,7 @@ const ITEMS = [
 function MobileNav() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { logout } = useAuth()
 
   return (
     <nav className="mobile-nav">
@@ -40,6 +42,16 @@ function MobileNav() {
           <span>{item.label}</span>
         </div>
       ))}
+      <div
+        className="mobile-nav__item"
+        onClick={logout}
+        style={{ cursor: 'pointer', color: '#ff5050' }}
+      >
+        <div className="mobile-nav__icon" style={{ color: '#ff5050' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+        </div>
+        <span>Logout</span>
+      </div>
     </nav>
   )
 }

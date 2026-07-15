@@ -109,10 +109,44 @@ function VoiceNotePlayer({ src, isMine }) {
   const [playing, setPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
   const [duration, setDuration] = useState(0)
+  const decodedRef = useRef(false)
+
+  // iOS Safari's fetch() can silently fail on large base64 data URIs.
+  // Decoding the base64 bytes directly via atob() avoids that entirely
+  // and works reliably across all mobile browsers.
+  const decodeDuration = () => {
+    if (decodedRef.current || !src || !src.startsWith('data:')) return
+    decodedRef.current = true
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext
+      if (!AudioCtx) return
+      const base64 = src.split(',')[1]
+      const binary = atob(base64)
+      const bytes = new Uint8Array(binary.length)
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+      const ctx = new AudioCtx()
+      ctx.decodeAudioData(
+        bytes.buffer,
+        (decoded) => {
+          if (isFinite(decoded.duration) && decoded.duration > 0) setDuration(decoded.duration)
+          ctx.close()
+        },
+        () => ctx.close()
+      )
+    } catch (err) {
+      // ignore, falls back to metadata listeners below
+    }
+  }
+
+  useEffect(() => {
+    decodeDuration()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src])
 
   const togglePlay = () => {
     const audio = audioRef.current
     if (!audio) return
+    decodeDuration() // retry on tap, in case the automatic attempt was blocked
     if (playing) audio.pause()
     else audio.play()
   }
@@ -124,44 +158,12 @@ function VoiceNotePlayer({ src, isMine }) {
     return `${m}:${sec.toString().padStart(2, '0')}`
   }
 
-  // Reliable cross-browser duration: decode the actual audio bytes
-  // instead of trusting the <audio> element's metadata, since webm
-  // blobs from MediaRecorder often report Infinity/0 duration,
-  // especially over data URIs on mobile Chrome.
-  useEffect(() => {
-    let cancelled = false
-    let ctx = null
-
-    const computeDuration = async () => {
-      try {
-        const res = await fetch(src)
-        const arrayBuffer = await res.arrayBuffer()
-        const AudioCtx = window.AudioContext || window.webkitAudioContext
-        if (!AudioCtx) return
-        ctx = new AudioCtx()
-        ctx.decodeAudioData(
-          arrayBuffer,
-          (decoded) => {
-            if (!cancelled && isFinite(decoded.duration) && decoded.duration > 0) {
-              setDuration(decoded.duration)
-            }
-            ctx && ctx.close()
-          },
-          () => { ctx && ctx.close() }
-        )
-      } catch (err) {
-        // ignore, fall back to 0:00
-      }
-    }
-
-    computeDuration()
-    return () => {
-      cancelled = true
-      if (ctx && ctx.state !== 'closed') ctx.close()
-    }
-  }, [src])
-
   const handleLoadedMetadata = (e) => {
+    const d = e.target.duration
+    if (isFinite(d) && d > 0) setDuration(d)
+  }
+
+  const handleDurationChange = (e) => {
     const d = e.target.duration
     if (isFinite(d) && d > 0) setDuration(d)
   }
@@ -180,6 +182,7 @@ function VoiceNotePlayer({ src, isMine }) {
         onPause={() => setPlaying(false)}
         onEnded={() => { setPlaying(false); setProgress(0) }}
         onLoadedMetadata={handleLoadedMetadata}
+        onDurationChange={handleDurationChange}
         onTimeUpdate={(e) => setProgress(e.target.currentTime)}
         style={{ display: 'none' }}
       />
