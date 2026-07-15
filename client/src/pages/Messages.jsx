@@ -135,7 +135,14 @@ function VoiceNotePlayer({ src, isMine }) {
         onPlay={() => setPlaying(true)}
         onPause={() => setPlaying(false)}
         onEnded={() => { setPlaying(false); setProgress(0) }}
-        onLoadedMetadata={(e) => setDuration(e.target.duration)}
+       onLoadedMetadata={(e) => {
+  const d = e.target.duration
+  if (isFinite(d) && d > 0) setDuration(d)
+}}
+onDurationChange={(e) => {
+  const d = e.target.duration
+  if (isFinite(d) && d > 0) setDuration(d)
+}}
         onTimeUpdate={(e) => setProgress(e.target.currentTime)}
         style={{ display: 'none' }}
       />
