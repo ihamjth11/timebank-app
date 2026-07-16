@@ -40,6 +40,14 @@ const sessionSchema = new mongoose.Schema({
   creditsTransferred: {
     type: Boolean,
     default: false
+  },
+  reminder15Sent: {
+    type: Boolean,
+    default: false
+  },
+  reminderStartSent: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true })
 
