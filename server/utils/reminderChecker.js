@@ -1,8 +1,16 @@
+const webpush = require('web-push')
 const Session = require('../models/Session')
 const Notification = require('../models/Notification')
+const PushSubscription = require('../models/PushSubscription')
 
 const REMINDER_WINDOW_MS = 15 * 60 * 1000 // 15 minutes
 const CHECK_INTERVAL_MS = 60 * 1000 // check every 1 minute
+
+webpush.setVapidDetails(
+  'mailto:hamjath11@gmail.com',
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
+)
 
 // session.date is a "YYYY-MM-DD" string and session.time is "HH:MM",
 // both entered as the user's local Sri Lanka time (UTC+5:30). The server
@@ -10,6 +18,25 @@ const CHECK_INTERVAL_MS = 60 * 1000 // check every 1 minute
 // offset here to get the correct absolute moment in time.
 function getSessionDateTime(session) {
   return new Date(`${session.date}T${session.time}:00+05:30`)
+}
+
+async function sendPushToUser(userId, payload) {
+  const subs = await PushSubscription.find({ user: userId })
+  for (const sub of subs) {
+    try {
+      await webpush.sendNotification(
+        { endpoint: sub.endpoint, keys: sub.keys },
+        JSON.stringify(payload)
+      )
+    } catch (err) {
+      // Subscription expired or the user revoked permission — clean it up
+      if (err.statusCode === 410 || err.statusCode === 404) {
+        await PushSubscription.deleteOne({ _id: sub._id })
+      } else {
+        console.error('Push send error:', err.message)
+      }
+    }
+  }
 }
 
 async function notifyBoth(session, { type, text, link }) {
@@ -31,6 +58,10 @@ async function notifyBoth(session, { type, text, link }) {
     link,
     read: false
   })
+
+  const pushPayload = { title: 'TimeBank', body: text, link }
+  await sendPushToUser(session.organizer, pushPayload)
+  await sendPushToUser(session.participant, pushPayload)
 }
 
 async function checkSessionReminders() {

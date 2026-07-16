@@ -1,5 +1,6 @@
-import { createContext, useState, useContext, useEffect } from 'react'
+import { createContext, useState, useContext, useEffect, useRef } from 'react'
 import axios from 'axios'
+import { subscribeToPush } from '../utils/pushNotifications'
 
 const AuthContext = createContext()
 
@@ -9,6 +10,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(false)
   const [initializing, setInitializing] = useState(true)
   const [error, setError] = useState(null)
+  const pushSubscribedRef = useRef(false)
 
   const API = 'https://timebank-app.onrender.com/api'
 
@@ -33,6 +35,15 @@ export function AuthProvider({ children }) {
     loadUser()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Once we have both a valid token and a loaded user, register for
+  // browser push notifications (only once per app session).
+  useEffect(() => {
+    if (token && user && !pushSubscribedRef.current) {
+      pushSubscribedRef.current = true
+      subscribeToPush(token)
+    }
+  }, [token, user])
 
   const register = async (name, email, password) => {
     setLoading(true)
@@ -113,6 +124,7 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setUser(null)
     setToken(null)
+    pushSubscribedRef.current = false
     localStorage.removeItem('token')
   }
 
