@@ -82,3 +82,10 @@
   justify-content: center;
   flex-shrink: 0;
 }
+@keyframes timebank-rec-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.timebank-rec-dot {
+  animation: timebank-rec-pulse 1s infinite;
+}
