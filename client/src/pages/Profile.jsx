@@ -1,12 +1,100 @@
 import MobileNav from '../components/MobileNav'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
+import Cropper from 'react-easy-crop'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import '../styles/dashboard.css'
 import '../styles/profile.css'
 
 const API = 'https://timebank-app.onrender.com/api'
+
+function createImage(url) {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.addEventListener('load', () => resolve(image))
+    image.addEventListener('error', (err) => reject(err))
+    image.setAttribute('crossOrigin', 'anonymous')
+    image.src = url
+  })
+}
+
+async function getCroppedImage(imageSrc, pixelCrop) {
+  const image = await createImage(imageSrc)
+  const size = 300
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(
+    image,
+    pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height,
+    0, 0, size, size
+  )
+  return canvas.toDataURL('image/jpeg', 0.85)
+}
+
+function CropModal({ imageSrc, onCancel, onConfirm }) {
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
+  const [saving, setSaving] = useState(false)
+
+  const onCropComplete = useCallback((_, pixels) => {
+    setCroppedAreaPixels(pixels)
+  }, [])
+
+  const handleConfirm = async () => {
+    if (!croppedAreaPixels) return
+    setSaving(true)
+    const cropped = await getCroppedImage(imageSrc, croppedAreaPixels)
+    setSaving(false)
+    onConfirm(cropped)
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)',
+      zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+    }}>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '420px' }}>
+        <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px' }}>Adjust your photo</h2>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '14px' }}>Drag to reposition, use the slider to zoom</p>
+
+        <div style={{ position: 'relative', width: '100%', height: '300px', background: '#000', borderRadius: '14px', overflow: 'hidden' }}>
+          <Cropper
+            image={imageSrc}
+            crop={crop}
+            zoom={zoom}
+            aspect={1}
+            cropShape="round"
+            showGrid={false}
+            onCropChange={setCrop}
+            onZoomChange={setZoom}
+            onCropComplete={onCropComplete}
+          />
+        </div>
+
+        <input
+          type="range"
+          min={1}
+          max={3}
+          step={0.01}
+          value={zoom}
+          onChange={(e) => setZoom(Number(e.target.value))}
+          style={{ width: '100%', marginTop: '16px', accentColor: '#7c6fff' }}
+        />
+
+        <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
+          <button onClick={onCancel} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleConfirm} disabled={saving} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>
+            {saving ? 'Applying...' : 'Apply Crop'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function EditProfileModal({ user, onClose, onSave }) {
   const [form, setForm] = useState({
@@ -16,36 +104,22 @@ function EditProfileModal({ user, onClose, onSave }) {
     avatar: user?.avatar || ''
   })
   const [loading, setLoading] = useState(false)
-  const [uploading, setUploading] = useState(false)
+  const [rawImage, setRawImage] = useState(null)
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0]
+    e.target.value = ''
     if (!file) return
-    setUploading(true)
-
-    const img = new Image()
     const reader = new FileReader()
-    reader.onload = (ev) => {
-      img.onload = () => {
-        const size = 300
-        const canvas = document.createElement('canvas')
-        canvas.width = size
-        canvas.height = size
-        const ctx = canvas.getContext('2d')
-
-        const minSide = Math.min(img.width, img.height)
-        const sx = (img.width - minSide) / 2
-        const sy = (img.height - minSide) / 2
-
-        ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size)
-        const compressed = canvas.toDataURL('image/jpeg', 0.8)
-        setForm(f => ({ ...f, avatar: compressed }))
-        setUploading(false)
-      }
-      img.src = ev.target.result
-    }
+    reader.onload = (ev) => setRawImage(ev.target.result)
     reader.readAsDataURL(file)
   }
+
+  const handleCropConfirm = (croppedDataUrl) => {
+    setForm(f => ({ ...f, avatar: croppedDataUrl }))
+    setRawImage(null)
+  }
+
   const handleSubmit = async () => {
     setLoading(true)
     const result = await onSave(form)
@@ -86,7 +160,7 @@ function EditProfileModal({ user, onClose, onSave }) {
           <label style={{
             fontSize: '12.5px', color: 'var(--accent)', fontWeight: 600, cursor: 'pointer'
           }}>
-            {uploading ? 'Uploading...' : 'Change Photo'}
+            Change Photo
             <input type="file" accept="image/*" onChange={handlePhotoChange} style={{ display: 'none' }} />
           </label>
         </div>
@@ -137,7 +211,7 @@ function EditProfileModal({ user, onClose, onSave }) {
           }}>
             Cancel
           </button>
-          <button onClick={handleSubmit} disabled={loading || uploading} style={{
+          <button onClick={handleSubmit} disabled={loading} style={{
             flex: 1, padding: '11px', borderRadius: '10px', border: 'none',
             background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', fontWeight: 600, cursor: 'pointer'
           }}>
@@ -145,6 +219,14 @@ function EditProfileModal({ user, onClose, onSave }) {
           </button>
         </div>
       </div>
+
+      {rawImage && (
+        <CropModal
+          imageSrc={rawImage}
+          onCancel={() => setRawImage(null)}
+          onConfirm={handleCropConfirm}
+        />
+      )}
     </div>
   )
 }

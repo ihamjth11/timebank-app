@@ -64,6 +64,44 @@ function HelperPickModal({ activeChat, onClose, onPick }) {
   )
 }
 
+function EditSessionModal({ session, onClose, onSave }) {
+  const [date, setDate] = useState(session.date)
+  const [time, setTime] = useState(session.time)
+  const [link, setLink] = useState(session.meetingLink || '')
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async () => {
+    if (!date || !time) return
+    setLoading(true)
+    await onSave({ date, time, meetingLink: link })
+    setLoading(false)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={onClose}>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', padding: '28px', width: '100%', maxWidth: '380px' }} onClick={e => e.stopPropagation()}>
+        <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', marginBottom: '20px' }}>Edit Session</h2>
+        <div style={{ marginBottom: '14px' }}>
+          <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Date</label>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}/>
+        </div>
+        <div style={{ marginBottom: '14px' }}>
+          <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Time</label>
+          <input type="time" value={time} onChange={e => setTime(e.target.value)} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}/>
+        </div>
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Meeting Link (optional)</label>
+          <input type="text" placeholder="https://meet.google.com/..." value={link} onChange={e => setLink(e.target.value)} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}/>
+        </div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSubmit} disabled={loading || !date || !time} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', fontWeight: 600, cursor: 'pointer', opacity: (!date || !time) ? 0.5 : 1 }}>{loading ? 'Saving...' : 'Save Changes'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function StarPicker({ value, onChange, size = 28 }) {
   return (
     <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
@@ -135,7 +173,7 @@ function buildCalendarLink(session, otherName) {
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${dates}&details=${details}`
 }
 
-function SessionCard({ session, currentUserId, activeChat, onMarkCompleted, onRate, alreadyRated }) {
+function SessionCard({ session, currentUserId, activeChat, onMarkCompleted, onRate, alreadyRated, onEdit, onDelete }) {
   const isOrganizer = session.organizer === currentUserId
   const iConfirmed = session.completionConfirmedBy?.includes(currentUserId)
   return (
@@ -163,6 +201,12 @@ function SessionCard({ session, currentUserId, activeChat, onMarkCompleted, onRa
         </div>
       )}
       {!isOrganizer && session.status !== 'completed' && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Proposed by the other person</div>}
+      {session.status !== 'completed' && (
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '8px' }}>
+          <button onClick={() => onEdit(session)} style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '8px', padding: '5px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>✏️ Edit</button>
+          <button onClick={() => onDelete(session._id)} style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.3)', color: '#ff5050', borderRadius: '8px', padding: '5px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>🗑 Cancel</button>
+        </div>
+      )}
       {session.status !== 'completed' && (
         <div style={{ marginTop: '10px' }}>
           {iConfirmed ? (
@@ -423,6 +467,7 @@ function Messages() {
   const [sessions, setSessions] = useState([])
   const [ratedSessionIds, setRatedSessionIds] = useState({})
   const [ratingSessionId, setRatingSessionId] = useState(null)
+  const [editingSession, setEditingSession] = useState(null)
   const [newMsg, setNewMsg] = useState('')
   const [showSchedule, setShowSchedule] = useState(false)
   const [helperPickSessionId, setHelperPickSessionId] = useState(null)
@@ -698,6 +743,28 @@ function Messages() {
 
   const handleRate = (sessionId) => setRatingSessionId(sessionId)
 
+  const handleEditSession = (session) => setEditingSession(session)
+
+  const submitEditSession = async ({ date, time, meetingLink }) => {
+    const sessionId = editingSession._id
+    try {
+      await axios.put(`${API}/sessions/${sessionId}`, { date, time, meetingLink }, { headers: { Authorization: `Bearer ${token}` } })
+      setEditingSession(null)
+      openChat(activeChat)
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update session')
+    }
+  }
+
+  const handleDeleteSession = async (sessionId) => {
+    try {
+      await axios.delete(`${API}/sessions/${sessionId}`, { headers: { Authorization: `Bearer ${token}` } })
+      openChat(activeChat)
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to cancel session')
+    }
+  }
+
   const submitRating = async ({ rating, comment }) => {
     const sessionId = ratingSessionId
     try {
@@ -878,6 +945,8 @@ function Messages() {
                       onMarkCompleted={handleMarkCompleted}
                       onRate={handleRate}
                       alreadyRated={!!ratedSessionIds[item._id]}
+                      onEdit={handleEditSession}
+                      onDelete={handleDeleteSession}
                     />
                   )
                 }
@@ -972,6 +1041,7 @@ function Messages() {
       {showSchedule && <ScheduleModal onClose={() => setShowSchedule(false)} onSchedule={scheduleSession} />}
       {helperPickSessionId && <HelperPickModal activeChat={activeChat} onClose={() => setHelperPickSessionId(null)} onPick={confirmHelper} />}
       {ratingSessionId && <RatingModal activeChat={activeChat} onClose={() => setRatingSessionId(null)} onSubmit={submitRating} />}
+      {editingSession && <EditSessionModal session={editingSession} onClose={() => setEditingSession(null)} onSave={submitEditSession} />}
       {deleteMsgId && (
         <ConfirmModal title="Delete message?" message="This message will be deleted for you. This action cannot be undone." danger onCancel={() => setDeleteMsgId(null)} onConfirm={confirmDeleteMessage} />
       )}

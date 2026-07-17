@@ -202,8 +202,19 @@ function PublicProfile() {
             <div className="profile__card">
               <div className="profile__cover" />
               <div className="profile__info">
-                <div className="profile__avatar" style={profileUser.avatar ? { background: 'transparent', overflow: 'hidden' } : {}}>
+                <div className="profile__avatar" style={profileUser.avatar ? { background: 'transparent', overflow: 'hidden', position: 'relative' } : { position: 'relative' }}>
                   {profileUser.avatar ? <img src={profileUser.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : profileInitials}
+                  {reviewCount > 0 && (
+                    <div style={{
+                      position: 'absolute', bottom: '-4px', right: '-4px',
+                      background: '#ffd166', color: '#5c3d00', borderRadius: '20px',
+                      padding: '3px 8px', fontSize: '11px', fontWeight: 800,
+                      display: 'flex', alignItems: 'center', gap: '3px',
+                      border: '2px solid var(--card)', boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+                    }}>
+                      ⭐ {avgRating}
+                    </div>
+                  )}
                 </div>
                 <div className="profile__details">
                   <h2 className="profile__name">{profileUser.name}</h2>

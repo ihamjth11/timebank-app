@@ -6,11 +6,7 @@ const PushSubscription = require('../models/PushSubscription')
 const REMINDER_WINDOW_MS = 15 * 60 * 1000 // 15 minutes
 const CHECK_INTERVAL_MS = 60 * 1000 // check every 1 minute
 
-webpush.setVapidDetails(
-  'mailto:hamjath11@gmail.com',
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
-)
+let pushEnabled = false
 
 // session.date is a "YYYY-MM-DD" string and session.time is "HH:MM",
 // both entered as the user's local Sri Lanka time (UTC+5:30). The server
@@ -21,6 +17,7 @@ function getSessionDateTime(session) {
 }
 
 async function sendPushToUser(userId, payload) {
+  if (!pushEnabled) return
   const subs = await PushSubscription.find({ user: userId })
   for (const sub of subs) {
     try {
@@ -101,6 +98,25 @@ async function checkSessionReminders() {
 }
 
 function startReminderChecker() {
+  // Configure web-push only now (after dotenv has definitely loaded),
+  // and never let a missing/misconfigured key crash the whole server.
+  if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    try {
+      webpush.setVapidDetails(
+        'mailto:hamjath11@gmail.com',
+        process.env.VAPID_PUBLIC_KEY,
+        process.env.VAPID_PRIVATE_KEY
+      )
+      pushEnabled = true
+    } catch (err) {
+      console.error('⚠️  Failed to configure web-push, push notifications disabled:', err.message)
+      pushEnabled = false
+    }
+  } else {
+    console.warn('⚠️  VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY not set — browser push notifications disabled, in-app reminders still work.')
+    pushEnabled = false
+  }
+
   checkSessionReminders() // run once immediately on server startup
   setInterval(checkSessionReminders, CHECK_INTERVAL_MS)
   console.log('✅ Session reminder checker started (runs every 1 minute)')

@@ -69,6 +69,95 @@ router.get('/:otherUserId', auth, async (req, res) => {
   }
 })
 
+// UPDATE (edit) a scheduled session — date, time, meeting link
+router.put('/:id', auth, async (req, res) => {
+  try {
+    const { date, time, meetingLink } = req.body
+    const userId = req.user.id
+    const session = await Session.findById(req.params.id)
+
+    if (!session) {
+      return res.status(404).json({ success: false, message: 'Session not found' })
+    }
+
+    const isParty = session.organizer.toString() === userId || session.participant.toString() === userId
+    if (!isParty) {
+      return res.status(401).json({ success: false, message: 'Not part of this session' })
+    }
+
+    if (session.status === 'completed') {
+      return res.status(400).json({ success: false, message: 'Cannot edit a completed session' })
+    }
+
+    if (date) session.date = date
+    if (time) session.time = time
+    if (meetingLink !== undefined) session.meetingLink = meetingLink
+
+    // Editing the time re-arms both reminder flags so the new time
+    // gets its own 15-minute-before and start notifications.
+    session.reminder15Sent = false
+    session.reminderStartSent = false
+
+    await session.save()
+
+    const otherUserId = session.organizer.toString() === userId ? session.participant : session.organizer
+    const editor = await User.findById(userId).select('name')
+    await Notification.create({
+      user: otherUserId,
+      type: 'session_scheduled',
+      fromUser: userId,
+      fromName: editor?.name || 'Someone',
+      text: `${editor?.name || 'Someone'} updated your scheduled session`,
+      link: '/messages'
+    })
+
+    res.json({ success: true, session })
+  } catch (error) {
+    console.error('Update session error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+// DELETE (cancel) a scheduled session — instant, notifies the other person
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const userId = req.user.id
+    const session = await Session.findById(req.params.id)
+
+    if (!session) {
+      return res.status(404).json({ success: false, message: 'Session not found' })
+    }
+
+    const isParty = session.organizer.toString() === userId || session.participant.toString() === userId
+    if (!isParty) {
+      return res.status(401).json({ success: false, message: 'Not part of this session' })
+    }
+
+    if (session.status === 'completed') {
+      return res.status(400).json({ success: false, message: 'Cannot cancel a completed session' })
+    }
+
+    const otherUserId = session.organizer.toString() === userId ? session.participant : session.organizer
+    const canceller = await User.findById(userId).select('name')
+
+    await Session.findByIdAndDelete(req.params.id)
+
+    await Notification.create({
+      user: otherUserId,
+      type: 'session_cancelled',
+      fromUser: userId,
+      fromName: canceller?.name || 'Someone',
+      text: `${canceller?.name || 'Someone'} cancelled the scheduled session`,
+      link: '/messages'
+    })
+
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Delete session error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
 router.post('/:id/complete', auth, async (req, res) => {
   try {
     const { helperId } = req.body
