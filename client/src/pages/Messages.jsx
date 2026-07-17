@@ -121,6 +121,20 @@ function RatingModal({ activeChat, onClose, onSubmit }) {
   )
 }
 
+function buildCalendarLink(session, otherName) {
+  const start = new Date(`${session.date}T${session.time}:00+05:30`)
+  const end = new Date(start.getTime() + 60 * 60 * 1000) // default 1-hour session
+  const fmt = (d) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+  const text = encodeURIComponent(`TimeBank Session with ${otherName}`)
+  const dates = `${fmt(start)}/${fmt(end)}`
+  const details = encodeURIComponent(
+    session.meetingLink
+      ? `Skill exchange session via TimeBank.\nMeeting link: ${session.meetingLink}`
+      : `Skill exchange session via TimeBank.`
+  )
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${dates}&details=${details}`
+}
+
 function SessionCard({ session, currentUserId, activeChat, onMarkCompleted, onRate, alreadyRated }) {
   const isOrganizer = session.organizer === currentUserId
   const iConfirmed = session.completionConfirmedBy?.includes(currentUserId)
@@ -134,6 +148,19 @@ function SessionCard({ session, currentUserId, activeChat, onMarkCompleted, onRa
       </div>
       {session.meetingLink && (
         <a href={session.meetingLink} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '8px', fontSize: '12px', color: 'var(--accent)', fontWeight: 600 }}>Join Meeting →</a>
+      )}
+      {session.status !== 'completed' && (
+        <div style={{ marginTop: '6px' }}>
+          <a
+            href={buildCalendarLink(session, activeChat?.name || 'someone')}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11.5px',
+              color: 'var(--text-secondary)', fontWeight: 600, textDecoration: 'none'
+            }}
+          >📅 Add to Google Calendar</a>
+        </div>
       )}
       {!isOrganizer && session.status !== 'completed' && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Proposed by the other person</div>}
       {session.status !== 'completed' && (
