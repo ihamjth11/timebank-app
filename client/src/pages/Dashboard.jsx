@@ -33,12 +33,35 @@ const NAV_ITEMS = [
   },
 ]
 
+// Waving hand as a clean stroke-based SVG (replaces the 👋 emoji) with a
+// gentle CSS wave animation defined via inline keyframes below.
+function WaveIcon() {
+  return (
+    <span style={{ display: 'inline-flex', transformOrigin: '70% 70%', animation: 'tb-wave 2.2s ease-in-out infinite' }}>
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+        <path d="M8 12.5V6a1.5 1.5 0 013 0v5M11 11V4.5a1.5 1.5 0 013 0V11M14 11.2V6a1.5 1.5 0 013 0v7M17 13V9.5a1.5 1.5 0 013 0V15c0 3.5-2.5 6.5-6 6.5h-2c-2 0-3.5-.7-4.7-2.2L4 15.5c-.6-.8-.4-1.9.4-2.4.7-.4 1.6-.3 2.2.3L8 15" stroke="#ffd166" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+      <style>{`
+        @keyframes tb-wave {
+          0%, 60%, 100% { transform: rotate(0deg); }
+          10% { transform: rotate(14deg); }
+          20% { transform: rotate(-8deg); }
+          30% { transform: rotate(14deg); }
+          40% { transform: rotate(-4deg); }
+          50% { transform: rotate(10deg); }
+        }
+      `}</style>
+    </span>
+  )
+}
+
 function Dashboard() {
   const { user, token, logout } = useAuth()
   const navigate = useNavigate()
   const [activeNav, setActiveNav] = useState(0)
   const [mySkills, setMySkills] = useState([])
   const [loadingSkills, setLoadingSkills] = useState(true)
+  const [badgeData, setBadgeData] = useState(null)
   const [showOnboarding, setShowOnboarding] = useState(
     !localStorage.getItem('tb_onboarding_seen')
   )
@@ -57,10 +80,11 @@ function Dashboard() {
 
   useEffect(() => {
     const fetchMySkills = async () => {
+      if (!user?.id) return
       try {
         const res = await axios.get(`${API}/skills`)
         const all = res.data.skills || []
-        const mine = all.filter(s => s.userName === user?.name)
+        const mine = all.filter(s => s.user === user.id)
         setMySkills(mine)
       } catch (err) {
         console.error('Failed to fetch skills:', err)
@@ -70,7 +94,26 @@ function Dashboard() {
     }
     fetchMySkills()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [user?.id])
+
+  useEffect(() => {
+    const fetchBadges = async () => {
+      if (!user?.id) return
+      try {
+        const res = await axios.get(`${API}/badges/${user.id}`)
+        setBadgeData(res.data)
+      } catch (err) {
+        console.error('Failed to fetch badges:', err)
+      }
+    }
+    fetchBadges()
+  }, [user?.id])
+
+  const sessionCount = badgeData?.sessionCount ?? 0
+  const memberStatus =
+    sessionCount >= 15 ? 'Champion' :
+    sessionCount >= 5 ? 'Regular' :
+    sessionCount >= 1 ? 'Active' : 'New'
 
   const SKILL_COLORS = [
     { color: '#7c6fff', bg: 'rgba(124,111,255,0.1)', border: 'rgba(124,111,255,0.3)' },
@@ -150,8 +193,8 @@ function Dashboard() {
         {/* Header */}
         <div className="dash__header">
           <div>
-            <h1 className="dash__header-title">
-              Good day, {user?.name?.split(' ')[0] || 'Hamjath'} <span className="wave-icon">👋</span>
+            <h1 className="dash__header-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              Good day, {user?.name?.split(' ')[0] || 'Hamjath'} <WaveIcon />
             </h1>
             <p className="dash__header-sub">Here's what's happening in your TimeBank</p>
           </div>
@@ -192,7 +235,7 @@ function Dashboard() {
                 <path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1 3-6z" stroke="#ff6fb0" strokeWidth="1.5" strokeLinejoin="round"/>
               </svg>
             </div>
-            <div className="dash__stat-num">New</div>
+            <div className="dash__stat-num">{memberStatus}</div>
             <div className="dash__stat-label">Member Status</div>
           </div>
 
@@ -203,7 +246,7 @@ function Dashboard() {
                 <path d="M2 10h20" stroke="#ffd166" strokeWidth="1.5"/>
               </svg>
             </div>
-            <div className="dash__stat-num">0</div>
+            <div className="dash__stat-num">{sessionCount}</div>
             <div className="dash__stat-label">Sessions Done</div>
           </div>
         </div>
