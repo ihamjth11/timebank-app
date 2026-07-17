@@ -468,6 +468,7 @@ function Messages() {
   const [ratedSessionIds, setRatedSessionIds] = useState({})
   const [ratingSessionId, setRatingSessionId] = useState(null)
   const [editingSession, setEditingSession] = useState(null)
+  const [cancelSessionId, setCancelSessionId] = useState(null)
   const [newMsg, setNewMsg] = useState('')
   const [showSchedule, setShowSchedule] = useState(false)
   const [helperPickSessionId, setHelperPickSessionId] = useState(null)
@@ -756,7 +757,11 @@ function Messages() {
     }
   }
 
-  const handleDeleteSession = async (sessionId) => {
+  const handleDeleteSession = (sessionId) => setCancelSessionId(sessionId)
+
+  const confirmCancelSession = async () => {
+    const sessionId = cancelSessionId
+    setCancelSessionId(null)
     try {
       await axios.delete(`${API}/sessions/${sessionId}`, { headers: { Authorization: `Bearer ${token}` } })
       openChat(activeChat)
@@ -1042,6 +1047,9 @@ function Messages() {
       {helperPickSessionId && <HelperPickModal activeChat={activeChat} onClose={() => setHelperPickSessionId(null)} onPick={confirmHelper} />}
       {ratingSessionId && <RatingModal activeChat={activeChat} onClose={() => setRatingSessionId(null)} onSubmit={submitRating} />}
       {editingSession && <EditSessionModal session={editingSession} onClose={() => setEditingSession(null)} onSave={submitEditSession} />}
+      {cancelSessionId && (
+        <ConfirmModal title="Cancel this session?" message="This will cancel the scheduled session and notify the other person. This action cannot be undone." danger onCancel={() => setCancelSessionId(null)} onConfirm={confirmCancelSession} />
+      )}
       {deleteMsgId && (
         <ConfirmModal title="Delete message?" message="This message will be deleted for you. This action cannot be undone." danger onCancel={() => setDeleteMsgId(null)} onConfirm={confirmDeleteMessage} />
       )}

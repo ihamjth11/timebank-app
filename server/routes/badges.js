@@ -32,6 +32,10 @@ router.get('/:userId', async (req, res) => {
     const user = await User.findById(userId).select('referralCount')
 
     const sessionCount = completedSessions.length
+    const helpedSessions = completedSessions.filter(s => s.helper && s.helper.toString() === userId)
+    const peopleHelped = new Set(
+      helpedSessions.map(s => (s.organizer.toString() === userId ? s.participant.toString() : s.organizer.toString()))
+    ).size
     const badges = []
 
     if (sessionCount >= 1) badges.push({ id: 'first_steps', name: 'First Steps', icon: '🌱', desc: 'Completed your first session' })
@@ -55,6 +59,7 @@ router.get('/:userId', async (req, res) => {
       badges,
       streak,
       sessionCount,
+      peopleHelped,
       avgRating: Math.round(avgRating * 10) / 10
     })
   } catch (error) {

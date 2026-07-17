@@ -56,7 +56,7 @@ function CropModal({ imageSrc, onCancel, onConfirm }) {
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)',
       zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
-    }}>
+    }} onClick={(e) => e.stopPropagation()}>
       <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '420px' }}>
         <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px' }}>Adjust your photo</h2>
         <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '14px' }}>Drag to reposition, use the slider to zoom</p>
@@ -305,6 +305,29 @@ function ReferralCard({ user }) {
   )
 }
 
+const BADGE_META = {
+  first_steps: {
+    color: '#00b894', bg: 'rgba(0,184,148,0.1)', border: 'rgba(0,184,148,0.25)',
+    icon: (<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 3C8.5 3 6 6 6 9.5 6 11.5 7 12.5 7 14.5c0 2.5-1.5 3.5-1.5 6.5h13c0-3-1.5-4-1.5-6.5 0-2 1-3 1-5C18 6 15.5 3 12 3z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/></svg>)
+  },
+  getting_started: {
+    color: '#ff9f43', bg: 'rgba(255,159,67,0.1)', border: 'rgba(255,159,67,0.25)',
+    icon: (<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 2c-1.5 3.5-5 5.5-5 10a5 5 0 0010 0c0-1.5-.7-2.5-1.5-3.2 0 1.7-.8 2.7-1.7 2.7-1.5 0-1.7-1.7-.8-3.3.8-1.7-.2-3.5-1-6.2z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/></svg>)
+  },
+  timebank_champion: {
+    color: '#ffd166', bg: 'rgba(255,209,102,0.12)', border: 'rgba(255,209,102,0.3)',
+    icon: (<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M7 4h10v4a5 5 0 01-10 0V4z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M7 5H4a2 2 0 002 4M17 5h3a2 2 0 01-2 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/><path d="M12 13v4M9 21h6M10 17h4v4h-4z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/></svg>)
+  },
+  highly_rated: {
+    color: '#ff6fb0', bg: 'rgba(255,111,176,0.1)', border: 'rgba(255,111,176,0.25)',
+    icon: (<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>)
+  },
+  community_builder: {
+    color: '#7c6fff', bg: 'rgba(124,111,255,0.1)', border: 'rgba(124,111,255,0.25)',
+    icon: (<svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M20 12v9H4v-9M2 7h20v5H2V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 000-5C9 2 12 7 12 7z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round"/></svg>)
+  }
+}
+
 function BadgesCard({ badges, streak, sessionCount }) {
   if (!badges) return null
   return (
@@ -323,15 +346,23 @@ function BadgesCard({ badges, streak, sessionCount }) {
         </p>
       ) : (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '14px' }}>
-          {badges.map(b => (
-            <div key={b.id} title={b.desc} style={{
-              display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px',
-              background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '30px'
-            }}>
-              <span style={{ fontSize: '18px' }}>{b.icon}</span>
-              <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text)' }}>{b.name}</span>
-            </div>
-          ))}
+          {badges.map(b => {
+            const meta = BADGE_META[b.id] || BADGE_META.first_steps
+            return (
+              <div key={b.id} title={b.desc} style={{
+                display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 14px 7px 8px',
+                background: meta.bg, border: `1px solid ${meta.border}`, borderRadius: '30px'
+              }}>
+                <div style={{
+                  width: '26px', height: '26px', borderRadius: '50%', background: meta.color,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0
+                }}>
+                  {meta.icon}
+                </div>
+                <span style={{ fontSize: '12.5px', fontWeight: 700, color: meta.color }}>{b.name}</span>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
@@ -495,11 +526,11 @@ function Profile() {
             <div className="profile__stat-label">Skills Posted</div>
           </div>
           <div className="profile__stat">
-            <div className="profile__stat-num" style={{ color: '#ff6fb0' }}>0</div>
+            <div className="profile__stat-num" style={{ color: '#ff6fb0' }}>{badgeData?.peopleHelped ?? 0}</div>
             <div className="profile__stat-label">People Helped</div>
           </div>
           <div className="profile__stat">
-            <div className="profile__stat-num" style={{ color: '#ffd166' }}>0</div>
+            <div className="profile__stat-num" style={{ color: '#ffd166' }}>{badgeData?.sessionCount ?? 0}</div>
             <div className="profile__stat-label">Sessions</div>
           </div>
         </div>
