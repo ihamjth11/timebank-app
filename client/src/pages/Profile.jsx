@@ -149,6 +149,80 @@ function EditProfileModal({ user, onClose, onSave }) {
   )
 }
 
+function ReferralCard({ user }) {
+  const [copied, setCopied] = useState(false)
+
+  if (!user?.referralCode) return null
+
+  const referralLink = `https://timebank-app.vercel.app/register?ref=${user.referralCode}`
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(referralLink)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Copy failed:', err)
+    }
+  }
+
+  return (
+    <div style={{
+      marginTop: '20px', borderRadius: '20px', padding: '24px',
+      background: 'linear-gradient(135deg, #7c6fff 0%, #a06fff 50%, #ff6fb0 100%)',
+      position: 'relative', overflow: 'hidden', color: '#fff',
+      boxShadow: '0 10px 30px rgba(124,111,255,0.3)'
+    }}>
+      <div style={{
+        position: 'absolute', top: '-40px', right: '-30px', width: '150px', height: '150px',
+        borderRadius: '50%', background: 'rgba(255,255,255,0.1)'
+      }} />
+      <div style={{
+        position: 'absolute', bottom: '-50px', right: '60px', width: '110px', height: '110px',
+        borderRadius: '50%', background: 'rgba(255,255,255,0.08)'
+      }} />
+
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M20 12v9H4v-9M2 7h20v5H2V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 000-5C9 2 12 7 12 7z" stroke="#fff" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round"/>
+          </svg>
+          <span style={{ fontSize: '15px', fontWeight: 700 }}>Invite Friends, Earn Credits</span>
+        </div>
+        <p style={{ fontSize: '12.5px', opacity: 0.92, marginBottom: '18px', lineHeight: '1.5', maxWidth: '340px' }}>
+          Share your link — you and your friend both get <strong>+2 Time Credits</strong> when they join TimeBank.
+        </p>
+
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.16)',
+          borderRadius: '12px', padding: '10px 12px', backdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.2)'
+        }}>
+          <span style={{ flex: 1, fontSize: '12px', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+            {referralLink}
+          </span>
+          <button onClick={handleCopy} style={{
+            background: '#fff', color: '#7c6fff', border: 'none', borderRadius: '8px',
+            padding: '7px 14px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', flexShrink: 0
+          }}>
+            {copied ? '✓ Copied' : 'Copy'}
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: '24px', marginTop: '18px' }}>
+          <div>
+            <div style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '0.5px' }}>{user.referralCode}</div>
+            <div style={{ fontSize: '10.5px', opacity: 0.85 }}>Your code</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '20px', fontWeight: 800 }}>{user.referralCount || 0}</div>
+            <div style={{ fontSize: '10.5px', opacity: 0.85 }}>Friends invited</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function Profile() {
   const { user, token, logout, updateProfile } = useAuth()
   const navigate = useNavigate()
@@ -300,6 +374,8 @@ function Profile() {
             <div className="profile__stat-label">Sessions</div>
           </div>
         </div>
+
+        <ReferralCard user={user} />
 
         <div className="dash__txns" style={{ marginTop: '20px' }}>
           <div className="dash__section-title">

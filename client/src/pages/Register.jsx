@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { GoogleLogin } from '@react-oauth/google'
 import { useAuth } from '../context/AuthContext'
 import '../styles/auth.css'
@@ -14,6 +14,8 @@ function Register() {
   const [err, setErr] = useState('')
   const { register, googleLogin, loading } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const refCode = searchParams.get('ref') || ''
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -31,7 +33,7 @@ function Register() {
     if (form.password.length < 6) {
       return setErr('Password must be at least 6 characters')
     }
-    const result = await register(form.name, form.email, form.password)
+    const result = await register(form.name, form.email, form.password, refCode)
     if (result.success) {
       navigate('/dashboard')
     } else {
@@ -41,7 +43,7 @@ function Register() {
 
   const handleGoogleSuccess = async (credentialResponse) => {
     setErr('')
-    const result = await googleLogin(credentialResponse.credential)
+    const result = await googleLogin(credentialResponse.credential, refCode)
     if (result.success) {
       navigate('/dashboard')
     } else {
@@ -66,12 +68,21 @@ function Register() {
         </Link>
 
         {/* Badge */}
-        <div className="auth__badge">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1 3-6z" stroke="#6fffd4" strokeWidth="1.5" strokeLinejoin="round"/>
-          </svg>
-          <span>Get 5 free Time Credits when you join!</span>
-        </div>
+        {refCode ? (
+          <div className="auth__badge" style={{ background: 'rgba(255,209,102,0.12)', borderColor: 'rgba(255,209,102,0.3)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <path d="M20 12v9H4v-9M2 7h20v5H2V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 000-5C9 2 12 7 12 7z" stroke="#ffd166" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round"/>
+            </svg>
+            <span>You were invited! Sign up to get bonus Time Credits 🎉</span>
+          </div>
+        ) : (
+          <div className="auth__badge">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1 3-6z" stroke="#6fffd4" strokeWidth="1.5" strokeLinejoin="round"/>
+            </svg>
+            <span>Get 5 free Time Credits when you join!</span>
+          </div>
+        )}
 
         <h1 className="auth__title">Create Account</h1>
         <p className="auth__sub">Join Sri Lanka's first time exchange community</p>

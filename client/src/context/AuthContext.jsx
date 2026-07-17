@@ -45,12 +45,12 @@ export function AuthProvider({ children }) {
     }
   }, [token, user])
 
-  const register = async (name, email, password) => {
+  const register = async (name, email, password, refCode) => {
     setLoading(true)
     setError(null)
     try {
       const res = await axios.post(`${API}/auth/register`, {
-        name, email, password
+        name, email, password, refCode
       })
       setToken(res.data.token)
       setUser(res.data.user)
@@ -85,11 +85,11 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const googleLogin = async (credential) => {
+  const googleLogin = async (credential, refCode) => {
     setLoading(true)
     setError(null)
     try {
-      const res = await axios.post(`${API}/auth/google`, { credential })
+      const res = await axios.post(`${API}/auth/google`, { credential, refCode })
       setToken(res.data.token)
       setUser(res.data.user)
       localStorage.setItem('token', res.data.token)
