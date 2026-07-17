@@ -11,12 +11,24 @@ const User = require('../models/User')
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
+const REFERRAL_BONUS = 2 // credits given to both the new user and the referrer
+
+async function generateUniqueReferralCode() {
+  let code
+  let exists = true
+  while (exists) {
+    code = Math.random().toString(36).substring(2, 8).toUpperCase()
+    exists = await User.findOne({ referralCode: code })
+  }
+  return code
+}
+
 // ===================================
 // REGISTER — POST /api/auth/register
 // ===================================
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body
+    const { name, email, password, refCode } = req.body
 
     if (!name || !email || !password) {
       return res.status(400).json({ 
@@ -35,14 +47,34 @@ router.post('/register', async (req, res) => {
 
     const salt = await bcrypt.genSalt(10)
     const hashedPassword = await bcrypt.hash(password, salt)
+    const referralCode = await generateUniqueReferralCode()
 
     const user = new User({
       name,
       email,
-      password: hashedPassword
+      password: hashedPassword,
+      referralCode
     })
 
+    // If a valid referral code was supplied, link the accounts and
+    // award a signup bonus to the new user.
+    let referrer = null
+    if (refCode) {
+      referrer = await User.findOne({ referralCode: refCode.toUpperCase() })
+      if (referrer) {
+        user.referredBy = referrer._id
+        user.timeCredits = (user.timeCredits ?? 5) + REFERRAL_BONUS
+      }
+    }
+
     await user.save()
+
+    // Reward the referrer separately, after the new user is saved.
+    if (referrer) {
+      referrer.timeCredits = (referrer.timeCredits || 0) + REFERRAL_BONUS
+      referrer.referralCount = (referrer.referralCount || 0) + 1
+      await referrer.save()
+    }
 
     const token = jwt.sign(
       { id: user._id },
@@ -58,7 +90,9 @@ router.post('/register', async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        timeCredits: user.timeCredits
+        timeCredits: user.timeCredits,
+        referralCode: user.referralCode,
+        referralCount: user.referralCount
       }
     })
 
@@ -119,7 +153,9 @@ router.post('/login', async (req, res) => {
         skills: user.skills,
         avatar: user.avatar,
         location: user.location,
-        bio: user.bio
+        bio: user.bio,
+        referralCode: user.referralCode,
+        referralCount: user.referralCount
       }
     })
 
@@ -137,7 +173,7 @@ router.post('/login', async (req, res) => {
 // ===================================
 router.post('/google', async (req, res) => {
   try {
-    const { credential } = req.body
+    const { credential, refCode } = req.body
     if (!credential) {
       return res.status(400).json({ success: false, message: 'No credential provided' })
     }
@@ -151,6 +187,7 @@ router.post('/google', async (req, res) => {
     const { sub: googleId, email, name, picture } = payload
 
     let user = await User.findOne({ email })
+    let referrer = null
 
     if (user) {
       if (!user.googleId) {
@@ -159,13 +196,30 @@ router.post('/google', async (req, res) => {
         await user.save()
       }
     } else {
+      const referralCode = await generateUniqueReferralCode()
       user = new User({
         name,
         email,
         googleId,
-        avatar: picture
+        avatar: picture,
+        referralCode
       })
+
+      if (refCode) {
+        referrer = await User.findOne({ referralCode: refCode.toUpperCase() })
+        if (referrer) {
+          user.referredBy = referrer._id
+          user.timeCredits = (user.timeCredits ?? 5) + REFERRAL_BONUS
+        }
+      }
+
       await user.save()
+
+      if (referrer) {
+        referrer.timeCredits = (referrer.timeCredits || 0) + REFERRAL_BONUS
+        referrer.referralCount = (referrer.referralCount || 0) + 1
+        await referrer.save()
+      }
     }
 
     const token = jwt.sign(
@@ -186,7 +240,9 @@ router.post('/google', async (req, res) => {
         skills: user.skills,
         avatar: user.avatar,
         location: user.location,
-        bio: user.bio
+        bio: user.bio,
+        referralCode: user.referralCode,
+        referralCount: user.referralCount
       }
     })
 
@@ -232,7 +288,9 @@ router.put('/profile', async (req, res) => {
         skills: user.skills,
         avatar: user.avatar,
         location: user.location,
-        bio: user.bio
+        bio: user.bio,
+        referralCode: user.referralCode,
+        referralCount: user.referralCount
       }
     })
 
@@ -272,7 +330,9 @@ router.get('/me', async (req, res) => {
         skills: user.skills,
         avatar: user.avatar,
         location: user.location,
-        bio: user.bio
+        bio: user.bio,
+        referralCode: user.referralCode,
+        referralCount: user.referralCount
       }
     })
 

@@ -74,6 +74,26 @@ const UserSchema = new mongoose.Schema({
     default: true
   },
 
+  // Unique code this user can share to invite friends
+  referralCode: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+
+  // Which user (if any) referred this user during signup
+  referredBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+
+  // How many people this user has successfully referred
+  referralCount: {
+    type: Number,
+    default: 0
+  },
+
   // Created date
   createdAt: {
     type: Date,
