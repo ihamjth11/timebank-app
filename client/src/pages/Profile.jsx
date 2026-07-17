@@ -223,7 +223,41 @@ function ReferralCard({ user }) {
   )
 }
 
+function BadgesCard({ badges, streak, sessionCount }) {
+  if (!badges) return null
+  return (
+    <div className="dash__txns" style={{ marginTop: '20px' }}>
+      <div className="dash__section-title">
+        Badges & Streak
+        {streak > 0 && (
+          <span style={{ fontSize: '12px', color: '#ff9f43', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            🔥 {streak} week{streak > 1 ? 's' : ''} streak
+          </span>
+        )}
+      </div>
+      {badges.length === 0 ? (
+        <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '12px' }}>
+          Complete your first session to start earning badges!
+        </p>
+      ) : (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '14px' }}>
+          {badges.map(b => (
+            <div key={b.id} title={b.desc} style={{
+              display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px',
+              background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '30px'
+            }}>
+              <span style={{ fontSize: '18px' }}>{b.icon}</span>
+              <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text)' }}>{b.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function Profile() {
+  const [badgeData, setBadgeData] = useState(null)
   const { user, token, logout, updateProfile } = useAuth()
   const navigate = useNavigate()
   const [showEdit, setShowEdit] = useState(false)
@@ -257,6 +291,19 @@ function Profile() {
       }
     }
     fetchMySkills()
+  }, [user?.id])
+
+  useEffect(() => {
+    const fetchBadges = async () => {
+      if (!user?.id) return
+      try {
+        const res = await axios.get(`${API}/badges/${user.id}`)
+        setBadgeData(res.data)
+      } catch (err) {
+        console.error('Failed to fetch badges:', err)
+      }
+    }
+    fetchBadges()
   }, [user?.id])
 
   return (
@@ -376,6 +423,8 @@ function Profile() {
         </div>
 
         <ReferralCard user={user} />
+
+        <BadgesCard badges={badgeData?.badges} streak={badgeData?.streak || 0} sessionCount={badgeData?.sessionCount || 0} />
 
         <div className="dash__txns" style={{ marginTop: '20px' }}>
           <div className="dash__section-title">

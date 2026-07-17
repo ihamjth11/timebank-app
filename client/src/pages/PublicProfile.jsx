@@ -19,6 +19,33 @@ function StarRow({ rating, size = 14 }) {
   )
 }
 
+function BadgesCard({ badges, streak }) {
+  if (!badges || badges.length === 0) return null
+  return (
+    <div className="dash__txns" style={{ marginTop: '14px' }}>
+      <div className="dash__section-title">
+        Badges & Streak
+        {streak > 0 && (
+          <span style={{ fontSize: '12px', color: '#ff9f43', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            🔥 {streak} week{streak > 1 ? 's' : ''} streak
+          </span>
+        )}
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '14px' }}>
+        {badges.map(b => (
+          <div key={b.id} title={b.desc} style={{
+            display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 14px',
+            background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '30px'
+          }}>
+            <span style={{ fontSize: '18px' }}>{b.icon}</span>
+            <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--text)' }}>{b.name}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function PublicProfile() {
   const { userId } = useParams()
   const navigate = useNavigate()
@@ -28,6 +55,7 @@ function PublicProfile() {
   const [reviews, setReviews] = useState([])
   const [avgRating, setAvgRating] = useState(0)
   const [reviewCount, setReviewCount] = useState(0)
+  const [badgeData, setBadgeData] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const initials = currentUser?.name
@@ -38,10 +66,11 @@ function PublicProfile() {
     const fetchProfile = async () => {
       setLoading(true)
       try {
-        const [userRes, skillsRes, reviewsRes] = await Promise.all([
+        const [userRes, skillsRes, reviewsRes, badgesRes] = await Promise.all([
           axios.get(`${API}/auth/user/${userId}`),
           axios.get(`${API}/skills`),
-          axios.get(`${API}/reviews/user/${userId}`)
+          axios.get(`${API}/reviews/user/${userId}`),
+          axios.get(`${API}/badges/${userId}`)
         ])
         setProfileUser(userRes.data.user)
         const allSkills = skillsRes.data.skills || []
@@ -49,6 +78,7 @@ function PublicProfile() {
         setReviews(reviewsRes.data.reviews || [])
         setAvgRating(reviewsRes.data.avgRating || 0)
         setReviewCount(reviewsRes.data.reviewCount || 0)
+        setBadgeData(badgesRes.data)
       } catch (err) {
         console.error('Failed to fetch profile:', err)
       } finally {
@@ -231,6 +261,8 @@ function PublicProfile() {
                 {profileUser.bio || 'No bio added yet.'}
               </p>
             </div>
+
+            <BadgesCard badges={badgeData?.badges} streak={badgeData?.streak || 0} />
 
             <div className="dash__txns" style={{ marginTop: '14px' }}>
               <div className="dash__section-title">Reviews {reviewCount > 0 && `(${reviewCount})`}</div>
