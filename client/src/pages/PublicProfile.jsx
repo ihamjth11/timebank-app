@@ -50,7 +50,10 @@ function BadgesCard({ badges, streak }) {
         Badges & Streak
         {streak > 0 && (
           <span style={{ fontSize: '12px', color: '#ff9f43', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-            🔥 {streak} week{streak > 1 ? 's' : ''} streak
+           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ marginRight: '2px' }}>
+  <path d="M12 2c-1.5 3.5-5 5.5-5 10a5 5 0 0010 0c0-1.5-.7-2.5-1.5-3.2 0 1.7-.8 2.7-1.7 2.7-1.5 0-1.7-1.7-.8-3.3.8-1.7-.2-3.5-1-6.2z" stroke="#ff9f43" strokeWidth="1.6" strokeLinejoin="round" fill="#ff9f43"/>
+</svg>
+{streak} week{streak > 1 ? 's' : ''} streak
           </span>
         )}
       </div>
