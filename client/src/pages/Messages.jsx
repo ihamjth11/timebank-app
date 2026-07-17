@@ -64,7 +64,64 @@ function HelperPickModal({ activeChat, onClose, onPick }) {
   )
 }
 
-function SessionCard({ session, currentUserId, activeChat, onMarkCompleted }) {
+function StarPicker({ value, onChange, size = 28 }) {
+  return (
+    <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+      {[1, 2, 3, 4, 5].map(n => (
+        <svg
+          key={n}
+          width={size} height={size} viewBox="0 0 24 24"
+          fill={n <= value ? '#ffd166' : 'none'}
+          stroke="#ffd166" strokeWidth="1.5"
+          onClick={() => onChange(n)}
+          style={{ cursor: 'pointer' }}
+        >
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeLinejoin="round" />
+        </svg>
+      ))}
+    </div>
+  )
+}
+
+function RatingModal({ activeChat, onClose, onSubmit }) {
+  const [rating, setRating] = useState(0)
+  const [comment, setComment] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async () => {
+    if (rating === 0) return
+    setLoading(true)
+    await onSubmit({ rating, comment })
+    setLoading(false)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={onClose}>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', padding: '28px', width: '100%', maxWidth: '380px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+        <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>Rate your session</h2>
+        <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '18px' }}>How was your time with {activeChat?.name}?</p>
+        <StarPicker value={rating} onChange={setRating} />
+        <textarea
+          value={comment}
+          onChange={e => setComment(e.target.value)}
+          placeholder="Leave a comment (optional)"
+          rows={3}
+          style={{
+            width: '100%', marginTop: '18px', background: 'var(--input-bg)', border: '1px solid var(--border)',
+            borderRadius: '12px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '13px',
+            resize: 'none', boxSizing: 'border-box', fontFamily: 'inherit'
+          }}
+        />
+        <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSubmit} disabled={loading || rating === 0} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', fontWeight: 600, cursor: 'pointer', opacity: rating === 0 ? 0.5 : 1 }}>{loading ? 'Submitting...' : 'Submit'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SessionCard({ session, currentUserId, activeChat, onMarkCompleted, onRate, alreadyRated }) {
   const isOrganizer = session.organizer === currentUserId
   const iConfirmed = session.completionConfirmedBy?.includes(currentUserId)
   return (
@@ -78,13 +135,22 @@ function SessionCard({ session, currentUserId, activeChat, onMarkCompleted }) {
       {session.meetingLink && (
         <a href={session.meetingLink} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '8px', fontSize: '12px', color: 'var(--accent)', fontWeight: 600 }}>Join Meeting →</a>
       )}
-      {!isOrganizer && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Proposed by the other person</div>}
+      {!isOrganizer && session.status !== 'completed' && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Proposed by the other person</div>}
       {session.status !== 'completed' && (
         <div style={{ marginTop: '10px' }}>
           {iConfirmed ? (
             <div style={{ fontSize: '11.5px', color: '#00b894', fontWeight: 600 }}>✓ Waiting for confirmation...</div>
           ) : (
             <button onClick={() => onMarkCompleted(session._id)} style={{ background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none', borderRadius: '10px', padding: '7px 16px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Mark as Completed</button>
+          )}
+        </div>
+      )}
+      {session.status === 'completed' && (
+        <div style={{ marginTop: '10px' }}>
+          {alreadyRated ? (
+            <div style={{ fontSize: '11.5px', color: '#00b894', fontWeight: 600 }}>✓ You rated this session</div>
+          ) : (
+            <button onClick={() => onRate(session._id)} style={{ background: 'linear-gradient(135deg, #ffd166, #ff9f43)', color: '#fff', border: 'none', borderRadius: '10px', padding: '7px 16px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>⭐ Rate this session</button>
           )}
         </div>
       )}
@@ -110,9 +176,6 @@ function VoiceNotePlayer({ src, isMine }) {
   const [duration, setDuration] = useState(0)
   const decodedRef = useRef(false)
 
-  // iOS Safari's fetch() can silently fail on large base64 data URIs.
-  // Decoding the base64 bytes directly via atob() avoids that entirely
-  // and works reliably across all mobile browsers.
   const decodeDuration = () => {
     if (decodedRef.current || !src || !src.startsWith('data:')) return
     decodedRef.current = true
@@ -145,7 +208,7 @@ function VoiceNotePlayer({ src, isMine }) {
   const togglePlay = () => {
     const audio = audioRef.current
     if (!audio) return
-    decodeDuration() // retry on tap, in case the automatic attempt was blocked
+    decodeDuration()
     if (playing) audio.pause()
     else audio.play()
   }
@@ -331,6 +394,8 @@ function Messages() {
   const [activeChat, setActiveChat] = useState(null)
   const [thread, setThread] = useState([])
   const [sessions, setSessions] = useState([])
+  const [ratedSessionIds, setRatedSessionIds] = useState({})
+  const [ratingSessionId, setRatingSessionId] = useState(null)
   const [newMsg, setNewMsg] = useState('')
   const [showSchedule, setShowSchedule] = useState(false)
   const [helperPickSessionId, setHelperPickSessionId] = useState(null)
@@ -375,6 +440,25 @@ function Messages() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const checkRatedSessions = async (sessionList) => {
+    const completed = sessionList.filter(s => s.status === 'completed')
+    if (completed.length === 0) return
+    try {
+      const results = await Promise.all(
+        completed.map(s =>
+          axios.get(`${API}/reviews/session/${s._id}/mine`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => ({ id: s._id, reviewed: res.data.reviewed }))
+            .catch(() => ({ id: s._id, reviewed: false }))
+        )
+      )
+      const map = {}
+      results.forEach(r => { map[r.id] = r.reviewed })
+      setRatedSessionIds(prev => ({ ...prev, ...map }))
+    } catch (err) {
+      console.error('Failed to check rated sessions:', err)
+    }
+  }
+
   const openChat = async (convo) => {
     setActiveChat(convo)
     setSelectMode(false)
@@ -385,7 +469,9 @@ function Messages() {
         axios.get(`${API}/sessions/${convo.otherUserId}`, { headers: { Authorization: `Bearer ${token}` } })
       ])
       setThread(msgRes.data.messages || [])
-      setSessions(sessRes.data.sessions || [])
+      const fetchedSessions = sessRes.data.sessions || []
+      setSessions(fetchedSessions)
+      checkRatedSessions(fetchedSessions)
     } catch (err) {
       console.error('Failed to fetch thread:', err)
     }
@@ -495,8 +581,6 @@ function Messages() {
     }
   }
 
-  // Mouse move/up need to be tracked on window since the cursor can
-  // leave the mic button while the user is dragging to cancel.
   useEffect(() => {
     if (!isRecording) return
     const onMove = (e) => handleRecordMove(e)
@@ -582,6 +666,19 @@ function Messages() {
       openChat(activeChat)
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to mark completed')
+    }
+  }
+
+  const handleRate = (sessionId) => setRatingSessionId(sessionId)
+
+  const submitRating = async ({ rating, comment }) => {
+    const sessionId = ratingSessionId
+    try {
+      await axios.post(`${API}/reviews`, { sessionId, rating, comment }, { headers: { Authorization: `Bearer ${token}` } })
+      setRatedSessionIds(prev => ({ ...prev, [sessionId]: true }))
+      setRatingSessionId(null)
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to submit rating')
     }
   }
 
@@ -745,7 +842,17 @@ function Messages() {
             }}>
               {timeline.map((item, i) => {
                 if (item._type === 'session') {
-                  return <SessionCard key={`s-${i}`} session={item} currentUserId={user?.id} activeChat={activeChat} onMarkCompleted={handleMarkCompleted} />
+                  return (
+                    <SessionCard
+                      key={`s-${i}`}
+                      session={item}
+                      currentUserId={user?.id}
+                      activeChat={activeChat}
+                      onMarkCompleted={handleMarkCompleted}
+                      onRate={handleRate}
+                      alreadyRated={!!ratedSessionIds[item._id]}
+                    />
+                  )
                 }
                 const isMine = item.sender !== activeChat.otherUserId
                 const time = new Date(item.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -837,6 +944,7 @@ function Messages() {
 
       {showSchedule && <ScheduleModal onClose={() => setShowSchedule(false)} onSchedule={scheduleSession} />}
       {helperPickSessionId && <HelperPickModal activeChat={activeChat} onClose={() => setHelperPickSessionId(null)} onPick={confirmHelper} />}
+      {ratingSessionId && <RatingModal activeChat={activeChat} onClose={() => setRatingSessionId(null)} onSubmit={submitRating} />}
       {deleteMsgId && (
         <ConfirmModal title="Delete message?" message="This message will be deleted for you. This action cannot be undone." danger onCancel={() => setDeleteMsgId(null)} onConfirm={confirmDeleteMessage} />
       )}

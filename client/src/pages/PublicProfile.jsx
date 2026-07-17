@@ -7,12 +7,27 @@ import '../styles/profile.css'
 
 const API = 'https://timebank-app.onrender.com/api'
 
+function StarRow({ rating, size = 14 }) {
+  return (
+    <div style={{ display: 'flex', gap: '2px' }}>
+      {[1, 2, 3, 4, 5].map(n => (
+        <svg key={n} width={size} height={size} viewBox="0 0 24 24" fill={n <= Math.round(rating) ? '#ffd166' : 'none'} stroke="#ffd166" strokeWidth="1.5">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeLinejoin="round" />
+        </svg>
+      ))}
+    </div>
+  )
+}
+
 function PublicProfile() {
   const { userId } = useParams()
   const navigate = useNavigate()
   const { user: currentUser, token, logout } = useAuth()
   const [profileUser, setProfileUser] = useState(null)
   const [userSkills, setUserSkills] = useState([])
+  const [reviews, setReviews] = useState([])
+  const [avgRating, setAvgRating] = useState(0)
+  const [reviewCount, setReviewCount] = useState(0)
   const [loading, setLoading] = useState(true)
 
   const initials = currentUser?.name
@@ -23,13 +38,17 @@ function PublicProfile() {
     const fetchProfile = async () => {
       setLoading(true)
       try {
-        const [userRes, skillsRes] = await Promise.all([
+        const [userRes, skillsRes, reviewsRes] = await Promise.all([
           axios.get(`${API}/auth/user/${userId}`),
-          axios.get(`${API}/skills`)
+          axios.get(`${API}/skills`),
+          axios.get(`${API}/reviews/user/${userId}`)
         ])
         setProfileUser(userRes.data.user)
         const allSkills = skillsRes.data.skills || []
         setUserSkills(allSkills.filter(s => s.user === userId))
+        setReviews(reviewsRes.data.reviews || [])
+        setAvgRating(reviewsRes.data.avgRating || 0)
+        setReviewCount(reviewsRes.data.reviewCount || 0)
       } catch (err) {
         console.error('Failed to fetch profile:', err)
       } finally {
@@ -162,6 +181,12 @@ function PublicProfile() {
                     <span className="profile__badge" style={{ background: 'rgba(111,255,212,0.1)', color: '#00b894', border: '1px solid rgba(111,255,212,0.2)' }}>
                       🇱🇰 {profileUser.location || 'Sri Lanka'}
                     </span>
+                    {reviewCount > 0 && (
+                      <span className="profile__badge" style={{ background: 'rgba(255,209,102,0.1)', color: '#ffb020', border: '1px solid rgba(255,209,102,0.25)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <StarRow rating={avgRating} size={12} />
+                        {avgRating} ({reviewCount})
+                      </span>
+                    )}
                   </div>
                 </div>
                 {profileUser._id !== currentUser?.id && (
@@ -176,12 +201,12 @@ function PublicProfile() {
                 <div className="profile__stat-label">Skills Posted</div>
               </div>
               <div className="profile__stat">
-                <div className="profile__stat-num" style={{ color: '#ff6fb0' }}>0</div>
-                <div className="profile__stat-label">People Helped</div>
+                <div className="profile__stat-num" style={{ color: '#ff6fb0' }}>{reviewCount}</div>
+                <div className="profile__stat-label">Reviews</div>
               </div>
               <div className="profile__stat">
-                <div className="profile__stat-num" style={{ color: '#ffd166' }}>0</div>
-                <div className="profile__stat-label">Sessions</div>
+                <div className="profile__stat-num" style={{ color: '#ffd166' }}>{avgRating || '—'}</div>
+                <div className="profile__stat-label">Avg Rating</div>
               </div>
             </div>
 
@@ -205,6 +230,30 @@ function PublicProfile() {
               <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.7', marginTop: '12px' }}>
                 {profileUser.bio || 'No bio added yet.'}
               </p>
+            </div>
+
+            <div className="dash__txns" style={{ marginTop: '14px' }}>
+              <div className="dash__section-title">Reviews {reviewCount > 0 && `(${reviewCount})`}</div>
+              {reviews.length === 0 ? (
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '12px' }}>No reviews yet.</p>
+              ) : (
+                <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {reviews.map(r => (
+                    <div key={r._id} style={{ padding: '12px 14px', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)' }}>{r.from?.name || 'Someone'}</span>
+                        <StarRow rating={r.rating} size={13} />
+                      </div>
+                      {r.comment && (
+                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5', margin: 0 }}>{r.comment}</p>
+                      )}
+                      <div style={{ fontSize: '10.5px', color: 'var(--text-muted)', marginTop: '6px' }}>
+                        {new Date(r.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </>
         )}

@@ -20,6 +20,7 @@ app.use('/api/sessions', require('./routes/sessions'))
 app.use('/api/transactions', require('./routes/transactions'))
 app.use('/api/notifications', require('./routes/notifications'))
 app.use('/api/push', require('./routes/push'))
+app.use('/api/reviews', require('./routes/reviews'))
 app.get('/', (req, res) => {
   res.json({
     success: true,
