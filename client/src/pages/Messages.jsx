@@ -477,7 +477,8 @@ function Messages() {
   const [showAttach, setShowAttach] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [recordSeconds, setRecordSeconds] = useState(0)
-  const [slideOffset, setSlideOffset] = useState(0)
+  const [pendingAttachment, setPendingAttachment] = useState(null)
+  const [pendingVoice, setPendingVoice] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState([])
@@ -488,8 +489,6 @@ function Messages() {
   const mediaRecorderRef = useRef(null)
   const audioChunksRef = useRef([])
   const recordIntervalRef = useRef(null)
-  const recordStartXRef = useRef(0)
-  const cancelledRef = useRef(false)
 
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'MH'
   const otherInitials = activeChat?.name ? activeChat.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?'
@@ -578,57 +577,61 @@ function Messages() {
   const handlePickImage = () => imageInputRef.current?.click()
   const handlePickFile = () => fileInputRef.current?.click()
 
-  const handleImageSelected = async (e) => {
+  // Selecting a photo/file no longer sends immediately — it shows a
+  // preview with explicit Send/Cancel, same as WhatsApp.
+  const handleImageSelected = (e) => {
     const file = e.target.files[0]
     e.target.value = ''
     if (!file) return
     if (file.size > MAX_FILE_SIZE) { alert('Image too large. Max 2MB allowed.'); return }
-    setUploading(true)
-    const base64 = await fileToBase64(file)
-    await sendMessage({ messageType: 'image', fileData: base64, fileName: file.name })
-    setUploading(false)
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setPendingAttachment({ messageType: 'image', fileData: reader.result, fileName: file.name })
+    }
+    reader.readAsDataURL(file)
   }
 
-  const handleFileSelected = async (e) => {
+  const handleFileSelected = (e) => {
     const file = e.target.files[0]
     e.target.value = ''
     if (!file) return
     if (file.size > MAX_FILE_SIZE) { alert('File too large. Max 2MB allowed.'); return }
-    setUploading(true)
-    const base64 = await fileToBase64(file)
-    await sendMessage({ messageType: 'file', fileData: base64, fileName: file.name })
-    setUploading(false)
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setPendingAttachment({ messageType: 'file', fileData: reader.result, fileName: file.name })
+    }
+    reader.readAsDataURL(file)
   }
 
-  const startRecording = async (e) => {
+  const sendPendingAttachment = async () => {
+    if (!pendingAttachment) return
+    setUploading(true)
+    await sendMessage(pendingAttachment)
+    setUploading(false)
+    setPendingAttachment(null)
+  }
+
+  // Tap to start recording, tap again to stop — then preview the
+  // recording with Play/Discard/Send, matching a standard voice-note flow.
+  const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       const recorder = new MediaRecorder(stream)
       mediaRecorderRef.current = recorder
       audioChunksRef.current = []
-      cancelledRef.current = false
       recorder.ondataavailable = (ev) => audioChunksRef.current.push(ev.data)
-      recorder.onstop = async () => {
+      recorder.onstop = () => {
         clearInterval(recordIntervalRef.current)
         stream.getTracks().forEach(t => t.stop())
         setRecordSeconds(0)
-        setSlideOffset(0)
-        if (cancelledRef.current) return
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
         if (blob.size > MAX_FILE_SIZE) { alert('Voice note too long. Keep under 2MB (~1 min).'); return }
-        setUploading(true)
-        const reader = new FileReader()
-        reader.onloadend = async () => {
-          await sendMessage({ messageType: 'voice', fileData: reader.result, fileName: 'voice-note.webm' })
-          setUploading(false)
-        }
-        reader.readAsDataURL(blob)
+        const url = URL.createObjectURL(blob)
+        setPendingVoice({ blob, url })
       }
       recorder.start()
       setIsRecording(true)
       setRecordSeconds(0)
-      setSlideOffset(0)
-      recordStartXRef.current = e.touches ? e.touches[0].clientX : e.clientX
       recordIntervalRef.current = setInterval(() => setRecordSeconds(s => s + 1), 1000)
     } catch (err) {
       alert('Microphone access denied or unavailable.')
@@ -642,30 +645,23 @@ function Messages() {
     setIsRecording(false)
   }
 
-  const handleRecordMove = (e) => {
-    if (!isRecording) return
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX
-    const delta = clientX - recordStartXRef.current
-    const offset = Math.min(0, delta)
-    setSlideOffset(offset)
-    if (offset < -80 && !cancelledRef.current) {
-      cancelledRef.current = true
-      stopRecording()
-    }
+  const discardPendingVoice = () => {
+    if (pendingVoice?.url) URL.revokeObjectURL(pendingVoice.url)
+    setPendingVoice(null)
   }
 
-  useEffect(() => {
-    if (!isRecording) return
-    const onMove = (e) => handleRecordMove(e)
-    const onUp = () => stopRecording()
-    window.addEventListener('mousemove', onMove)
-    window.addEventListener('mouseup', onUp)
-    return () => {
-      window.removeEventListener('mousemove', onMove)
-      window.removeEventListener('mouseup', onUp)
+  const sendPendingVoice = async () => {
+    if (!pendingVoice) return
+    setUploading(true)
+    const reader = new FileReader()
+    reader.onloadend = async () => {
+      await sendMessage({ messageType: 'voice', fileData: reader.result, fileName: 'voice-note.webm' })
+      setUploading(false)
+      if (pendingVoice?.url) URL.revokeObjectURL(pendingVoice.url)
+      setPendingVoice(null)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRecording])
+    reader.readAsDataURL(pendingVoice.blob)
+  }
 
   const scheduleSession = async ({ date, time, meetingLink }) => {
     try {
@@ -883,7 +879,7 @@ function Messages() {
             )}
           </div>
         ) : (
-          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '18px', display: 'flex', flexDirection: 'column', height: '65vh', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '18px', display: 'flex', flexDirection: 'column', height: '65vh', overflow: 'hidden', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
             <div style={{
               padding: '14px 20px', background: selectMode ? 'rgba(124,111,255,0.1)' : 'linear-gradient(135deg, rgba(124,111,255,0.06), rgba(255,111,176,0.04))',
               borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px'
@@ -936,7 +932,7 @@ function Messages() {
             </div>
 
             <div style={{
-              flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px',
+              flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px', boxSizing: 'border-box', width: '100%',
               background: `var(--bg2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%237c6fff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
             }}>
               {timeline.map((item, i) => {
@@ -978,66 +974,92 @@ function Messages() {
             </div>
 
             {!selectMode && (
-              <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)', display: 'flex', gap: '8px', background: 'var(--card)', position: 'relative', alignItems: 'center' }}>
-                <input ref={imageInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageSelected} />
-                <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileSelected} />
-
-                {!isRecording && (
-                  <button onClick={() => setShowAttach(!showAttach)} style={{
-                    background: 'linear-gradient(135deg, rgba(124,111,255,0.15), rgba(255,111,176,0.1))',
-                    border: '1px solid var(--border)', color: 'var(--accent)',
-                    borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontSize: '15px', flexShrink: 0
-                  }}>📎</button>
-                )}
-
-                {showAttach && !isRecording && <AttachMenu onClose={() => setShowAttach(false)} onPickImage={handlePickImage} onPickFile={handlePickFile} />}
-
-                {isRecording ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, padding: '4px 8px', minWidth: 0, overflow: 'hidden' }}>
-                    <div className="timebank-rec-dot" style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ff5050', flexShrink: 0 }} />
-                    <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', flexShrink: 0 }}>
-                      {recordMinutes}:{recordSecondsDisplay}
-                    </span>
-                    <div style={{
-                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                      color: 'var(--text-muted)', fontSize: '12.5px', whiteSpace: 'nowrap',
-                      transform: `translateX(${slideOffset}px)`, opacity: Math.max(0, 1 + slideOffset / 80)
-                    }}>
-                      <span>←</span><span>Slide to cancel</span>
+              <>
+                {pendingAttachment && (
+                  <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)', background: 'var(--card)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {pendingAttachment.messageType === 'image' ? (
+                      <img src={pendingAttachment.fileData} alt="" style={{ width: '52px', height: '52px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }} />
+                    ) : (
+                      <div style={{ width: '52px', height: '52px', borderRadius: '10px', background: 'var(--input-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 }}>📄</div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0, fontSize: '12.5px', color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {pendingAttachment.fileName}
                     </div>
+                    <button onClick={() => setPendingAttachment(null)} style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', flexShrink: 0 }}>✕</button>
+                    <button onClick={sendPendingAttachment} disabled={uploading} style={{
+                      background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none',
+                      borderRadius: '50%', width: '38px', height: '38px', cursor: 'pointer', fontSize: '15px', flexShrink: 0,
+                      boxShadow: '0 3px 10px rgba(124,111,255,0.35)'
+                    }}>{uploading ? '…' : '➤'}</button>
                   </div>
-                ) : (
-                  <input
-                    value={newMsg}
-                    onChange={e => setNewMsg(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleSendText()}
-                    placeholder="Type a message..."
-                    style={{ flex: 1, minWidth: 0, background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '20px', padding: '9px 14px', color: 'var(--text)', outline: 'none', fontSize: '13px' }}
-                  />
                 )}
 
-                {newMsg.trim() && !isRecording ? (
-                  <button onClick={handleSendText} style={{
-                    background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none',
-                    borderRadius: '20px', padding: '9px 18px', cursor: 'pointer', fontWeight: 700, fontSize: '12.5px',
-                    boxShadow: '0 3px 10px rgba(124,111,255,0.35)', flexShrink: 0
-                  }}>Send</button>
-                ) : (
-                  <button
-                    onMouseDown={startRecording}
-                    onTouchStart={startRecording}
-                    onTouchMove={handleRecordMove}
-                    onTouchEnd={stopRecording}
-                    style={{
-                      background: isRecording ? '#ff5050' : 'linear-gradient(135deg, #7c6fff, #ff6fb0)',
-                      color: '#fff', border: 'none', borderRadius: '50%', width: '36px', height: '36px',
-                      cursor: 'pointer', fontSize: '15px', flexShrink: 0, boxShadow: '0 3px 10px rgba(124,111,255,0.35)',
-                      transform: isRecording ? 'scale(1.15)' : 'scale(1)', transition: 'transform 0.15s'
-                    }}
-                    title="Hold to record voice note"
-                  >🎤</button>
+                {pendingVoice && (
+                  <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)', background: 'var(--card)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <audio src={pendingVoice.url} controls style={{ flex: 1, height: '38px', minWidth: 0 }} />
+                    <button onClick={discardPendingVoice} style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: '#ff5050', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', flexShrink: 0 }}>🗑</button>
+                    <button onClick={sendPendingVoice} disabled={uploading} style={{
+                      background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none',
+                      borderRadius: '50%', width: '38px', height: '38px', cursor: 'pointer', fontSize: '15px', flexShrink: 0,
+                      boxShadow: '0 3px 10px rgba(124,111,255,0.35)'
+                    }}>{uploading ? '…' : '➤'}</button>
+                  </div>
                 )}
-              </div>
+
+                {!pendingAttachment && !pendingVoice && (
+                  <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)', display: 'flex', gap: '8px', background: 'var(--card)', position: 'relative', alignItems: 'center', width: '100%', boxSizing: 'border-box' }}>
+                    <input ref={imageInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageSelected} />
+                    <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileSelected} />
+
+                    {!isRecording && (
+                      <button onClick={() => setShowAttach(!showAttach)} style={{
+                        background: 'linear-gradient(135deg, rgba(124,111,255,0.15), rgba(255,111,176,0.1))',
+                        border: '1px solid var(--border)', color: 'var(--accent)',
+                        borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontSize: '15px', flexShrink: 0
+                      }}>📎</button>
+                    )}
+
+                    {showAttach && !isRecording && <AttachMenu onClose={() => setShowAttach(false)} onPickImage={handlePickImage} onPickFile={handlePickFile} />}
+
+                    {isRecording ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, padding: '4px 8px', minWidth: 0, overflow: 'hidden' }}>
+                        <div className="timebank-rec-dot" style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ff5050', flexShrink: 0 }} />
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', flexShrink: 0 }}>
+                          {recordMinutes}:{recordSecondsDisplay}
+                        </span>
+                        <span style={{ flex: 1, fontSize: '12.5px', color: 'var(--text-muted)' }}>Recording...</span>
+                      </div>
+                    ) : (
+                      <input
+                        value={newMsg}
+                        onChange={e => setNewMsg(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleSendText()}
+                        placeholder="Type a message..."
+                        style={{ flex: 1, minWidth: 0, background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '20px', padding: '9px 14px', color: 'var(--text)', outline: 'none', fontSize: '13px' }}
+                      />
+                    )}
+
+                    {newMsg.trim() && !isRecording ? (
+                      <button onClick={handleSendText} style={{
+                        background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none',
+                        borderRadius: '20px', padding: '9px 18px', cursor: 'pointer', fontWeight: 700, fontSize: '12.5px',
+                        boxShadow: '0 3px 10px rgba(124,111,255,0.35)', flexShrink: 0
+                      }}>Send</button>
+                    ) : (
+                      <button
+                        onClick={isRecording ? stopRecording : startRecording}
+                        style={{
+                          background: isRecording ? '#ff5050' : 'linear-gradient(135deg, #7c6fff, #ff6fb0)',
+                          color: '#fff', border: 'none', borderRadius: '50%', width: '36px', height: '36px',
+                          cursor: 'pointer', fontSize: '15px', flexShrink: 0, boxShadow: '0 3px 10px rgba(124,111,255,0.35)',
+                          transform: isRecording ? 'scale(1.15)' : 'scale(1)', transition: 'transform 0.15s'
+                        }}
+                        title={isRecording ? 'Tap to stop' : 'Tap to record voice note'}
+                      >{isRecording ? '■' : '🎤'}</button>
+                    )}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
