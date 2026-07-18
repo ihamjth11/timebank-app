@@ -343,18 +343,66 @@ function VoiceNotePlayer({ src, isMine }) {
   )
 }
 
-function MessageContent({ msg, isMine }) {
+function ImageLightbox({ src, fileName, onClose }) {
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 1200,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px'
+      }}
+      onClick={onClose}
+    >
+      <button onClick={onClose} style={{
+        position: 'absolute', top: '18px', right: '18px', background: 'rgba(255,255,255,0.15)',
+        border: 'none', color: '#fff', borderRadius: '50%', width: '38px', height: '38px',
+        fontSize: '18px', cursor: 'pointer', zIndex: 1
+      }}>✕</button>
+      <img
+        src={src}
+        alt=""
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: '92%', maxHeight: '82%', borderRadius: '12px', objectFit: 'contain', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}
+      />
+      <a
+        href={src}
+        download={fileName || 'photo.jpg'}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: 'absolute', bottom: '28px', left: '50%', transform: 'translateX(-50%)',
+          background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', textDecoration: 'none',
+          borderRadius: '24px', padding: '10px 22px', fontSize: '13px', fontWeight: 700,
+          display: 'flex', alignItems: 'center', gap: '7px', boxShadow: '0 4px 16px rgba(124,111,255,0.4)'
+        }}
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        Download
+      </a>
+    </div>
+  )
+}
+
+function MessageContent({ msg, isMine, onPreviewImage }) {
   if (msg.messageType === 'image') {
-    return <img src={msg.fileData} alt="" style={{ maxWidth: '220px', maxHeight: '260px', borderRadius: '10px', display: 'block' }} />
+    return (
+      <img
+        src={msg.fileData}
+        alt=""
+        onClick={() => onPreviewImage(msg.fileData, msg.fileName)}
+        style={{ maxWidth: 'min(220px, 60vw)', maxHeight: '260px', width: '100%', height: 'auto', borderRadius: '10px', display: 'block', cursor: 'pointer' }}
+      />
+    )
   }
   if (msg.messageType === 'voice') {
     return <VoiceNotePlayer src={msg.fileData} isMine={isMine} />
   }
   if (msg.messageType === 'file') {
     return (
-      <a href={msg.fileData} download={msg.fileName} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'inherit', textDecoration: 'none' }}>
-        <span style={{ fontSize: '18px' }}>📄</span>
-        <span style={{ fontSize: '13px', wordBreak: 'break-all' }}>{msg.fileName || 'File'}</span>
+      <a href={msg.fileData} download={msg.fileName} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'inherit', textDecoration: 'none', minWidth: 0 }}>
+        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <span style={{ fontSize: '16px' }}>📄</span>
+        </div>
+        <span style={{ fontSize: '13px', wordBreak: 'break-word', flex: 1, minWidth: 0 }}>{msg.fileName || 'File'}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, opacity: 0.85 }}><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
       </a>
     )
   }
@@ -380,7 +428,7 @@ function BubbleTail({ isMine }) {
   )
 }
 
-function ChatBubble({ msg, isMine, senderInitials, time, onRequestDelete, selectMode, selected, onToggleSelect }) {
+function ChatBubble({ msg, isMine, senderInitials, time, onRequestDelete, selectMode, selected, onToggleSelect, onPreviewImage }) {
   const [showActions, setShowActions] = useState(false)
   const isMedia = msg.messageType === 'voice' || msg.messageType === 'image'
 
@@ -424,7 +472,7 @@ function ChatBubble({ msg, isMine, senderInitials, time, onRequestDelete, select
           fontSize: '13.5px', lineHeight: '1.4',
           boxShadow: '0 1px 2px rgba(0,0,0,0.08)', position: 'relative', boxSizing: 'border-box', overflow: 'hidden'
         }}>
-          <MessageContent msg={msg} isMine={isMine} />
+          <MessageContent msg={msg} isMine={isMine} onPreviewImage={onPreviewImage} />
           {msg.messageType !== 'voice' && (
             <div style={{
               fontSize: '10px', opacity: 0.85, marginTop: '3px', textAlign: 'right',
@@ -473,6 +521,7 @@ function Messages() {
   const [showSchedule, setShowSchedule] = useState(false)
   const [helperPickSessionId, setHelperPickSessionId] = useState(null)
   const [deleteMsgId, setDeleteMsgId] = useState(null)
+  const [previewImage, setPreviewImage] = useState(null)
   const [showDeleteChat, setShowDeleteChat] = useState(false)
   const [showAttach, setShowAttach] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
@@ -961,6 +1010,7 @@ function Messages() {
                       senderInitials={otherInitials}
                       time={time}
                       onRequestDelete={setDeleteMsgId}
+                      onPreviewImage={(src, fileName) => setPreviewImage({ src, fileName })}
                       selectMode={selectMode}
                       selected={selectedIds.includes(item._id)}
                       onToggleSelect={toggleSelect}
@@ -1069,6 +1119,7 @@ function Messages() {
       {helperPickSessionId && <HelperPickModal activeChat={activeChat} onClose={() => setHelperPickSessionId(null)} onPick={confirmHelper} />}
       {ratingSessionId && <RatingModal activeChat={activeChat} onClose={() => setRatingSessionId(null)} onSubmit={submitRating} />}
       {editingSession && <EditSessionModal session={editingSession} onClose={() => setEditingSession(null)} onSave={submitEditSession} />}
+      {previewImage && <ImageLightbox src={previewImage.src} fileName={previewImage.fileName} onClose={() => setPreviewImage(null)} />}
       {cancelSessionId && (
         <ConfirmModal title="Cancel this session?" message="This will cancel the scheduled session and notify the other person. This action cannot be undone." danger onCancel={() => setCancelSessionId(null)} onConfirm={confirmCancelSession} />
       )}
