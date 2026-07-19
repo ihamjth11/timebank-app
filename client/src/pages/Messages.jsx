@@ -948,8 +948,15 @@ function Messages() {
         </div>
       </aside>
 
-      <main className="dash__main">
-        <div className="dash__header">
+      <main className="dash__main tb-messages-main" style={activeChat ? { display: 'flex', flexDirection: 'column', height: '100vh', boxSizing: 'border-box', overflow: 'hidden' } : undefined}>
+        {activeChat && (
+          <style>{`
+            @media (max-width: 768px) {
+              .tb-messages-main { padding-bottom: 78px !important; }
+            }
+          `}</style>
+        )}
+        <div className="dash__header" style={activeChat ? { flexShrink: 0 } : undefined}>
           <div>
             <h1 className="dash__header-title">Messages</h1>
             <p className="dash__header-sub">Your skill exchange conversations</p>
@@ -985,13 +992,7 @@ function Messages() {
             )}
           </div>
         ) : (
-          <div className="tb-chat-card" style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '18px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-            <style>{`
-              .tb-chat-card { height: calc(100vh - 200px); min-height: 420px; }
-              @media (max-width: 768px) {
-                .tb-chat-card { height: calc(100vh - 275px); }
-              }
-            `}</style>
+          <div className="tb-chat-card" style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '18px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: '100%', boxSizing: 'border-box', flex: 1, minHeight: 0 }}>
             <div style={{
               padding: '14px 20px', background: selectMode ? 'rgba(124,111,255,0.1)' : 'linear-gradient(135deg, rgba(124,111,255,0.06), rgba(255,111,176,0.04))',
               borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px'
