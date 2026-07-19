@@ -9,6 +9,40 @@ import '../styles/messages.css'
 const API = 'https://timebank-app.onrender.com/api'
 const MAX_FILE_SIZE = 2 * 1024 * 1024
 
+const IconClose = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+)
+const IconTrash = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m2 0v13a2 2 0 01-2 2H9a2 2 0 01-2-2V7h10z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/><path d="M10 11v6M14 11v6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>
+)
+const IconFile = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M7 2h7l5 5v13a2 2 0 01-2 2H7a2 2 0 01-2-2V4a2 2 0 012-2z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M14 2v5h5" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/></svg>
+)
+const IconSend = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+)
+const IconAttach = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M21.44 11.05l-9.19 9.19a5.5 5.5 0 01-7.78-7.78l9.19-9.19a3.5 3.5 0 014.95 4.95l-9.2 9.19a1.5 1.5 0 01-2.12-2.12l8.49-8.48" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+)
+const IconMic = ({ size = 16 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 003-3V6a3 3 0 00-6 0v6a3 3 0 003 3z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/><path d="M19 11a7 7 0 01-14 0M12 18v3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>
+)
+const IconStop = ({ size = 13 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+)
+const IconCalendar = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.6"/><path d="M16 3v4M8 3v4M3 10h18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+)
+const IconCheckCircle = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6"/><path d="M8 12l3 3 5-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+)
+const IconEdit = ({ size = 12 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+)
+const IconChatBubble = ({ size = 32 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>
+)
+
 function ScheduleModal({ onClose, onSchedule }) {
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
@@ -178,8 +212,9 @@ function SessionCard({ session, currentUserId, activeChat, onMarkCompleted, onRa
   const iConfirmed = session.completionConfirmedBy?.includes(currentUserId)
   return (
     <div style={{ alignSelf: 'center', background: 'var(--input-bg)', border: '1px solid var(--accent)', borderRadius: '14px', padding: '14px 18px', maxWidth: '85%', textAlign: 'center', margin: '8px 0' }}>
-      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent)', marginBottom: '6px' }}>
-        {session.status === 'completed' ? '✅ Session Completed' : '📅 Session Scheduled'}
+      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent)', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+        {session.status === 'completed' ? <IconCheckCircle size={13} /> : <IconCalendar size={13} />}
+        {session.status === 'completed' ? 'Session Completed' : 'Session Scheduled'}
       </div>
       <div style={{ fontSize: '13px', color: 'var(--text)', fontWeight: 600 }}>
         {new Date(session.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} at {session.time}
@@ -197,14 +232,14 @@ function SessionCard({ session, currentUserId, activeChat, onMarkCompleted, onRa
               display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '11.5px',
               color: 'var(--text-secondary)', fontWeight: 600, textDecoration: 'none'
             }}
-          >📅 Add to Google Calendar</a>
+          ><IconCalendar size={12} /> Add to Google Calendar</a>
         </div>
       )}
       {!isOrganizer && session.status !== 'completed' && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Proposed by the other person</div>}
       {session.status !== 'completed' && (
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '8px' }}>
-          <button onClick={() => onEdit(session)} style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '8px', padding: '5px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>✏️ Edit</button>
-          <button onClick={() => onDelete(session._id)} style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.3)', color: '#ff5050', borderRadius: '8px', padding: '5px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>🗑 Cancel</button>
+          <button onClick={() => onEdit(session)} style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '8px', padding: '5px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}><IconEdit size={12} /> Edit</button>
+          <button onClick={() => onDelete(session._id)} style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.3)', color: '#ff5050', borderRadius: '8px', padding: '5px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}><IconTrash size={12} /> Cancel</button>
         </div>
       )}
       {session.status !== 'completed' && (
@@ -355,8 +390,8 @@ function ImageLightbox({ src, fileName, onClose }) {
       <button onClick={onClose} style={{
         position: 'absolute', top: '18px', right: '18px', background: 'rgba(255,255,255,0.15)',
         border: 'none', color: '#fff', borderRadius: '50%', width: '38px', height: '38px',
-        fontSize: '18px', cursor: 'pointer', zIndex: 1
-      }}>✕</button>
+        cursor: 'pointer', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center'
+      }}><IconClose size={16} /></button>
       <img
         src={src}
         alt=""
@@ -399,7 +434,7 @@ function MessageContent({ msg, isMine, onPreviewImage }) {
     return (
       <a href={msg.fileData} download={msg.fileName} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'inherit', textDecoration: 'none', minWidth: 0 }}>
         <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <span style={{ fontSize: '16px' }}>📄</span>
+          <IconFile size={16} />
         </div>
         <span style={{ fontSize: '13px', wordBreak: 'break-word', flex: 1, minWidth: 0 }}>{msg.fileName || 'File'}</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, opacity: 0.85 }}><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -458,8 +493,8 @@ function ChatBubble({ msg, isMine, senderInitials, time, onRequestDelete, select
       {isMine && showActions && !selectMode && (
         <button onClick={(e) => { e.stopPropagation(); onRequestDelete(msg._id) }} title="Delete message" style={{
           background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '50%', width: '22px', height: '22px', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff5050', fontSize: '11px', flexShrink: 0
-        }}>🗑</button>
+          display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff5050', flexShrink: 0
+        }}><IconTrash size={11} /></button>
       )}
       <div style={{ position: 'relative' }}>
         <div style={{
@@ -497,11 +532,23 @@ function ChatBubble({ msg, isMine, senderInitials, time, onRequestDelete, select
   )
 }
 
+const IconArrowLeft = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+)
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" strokeWidth="1.6"/><circle cx="8.5" cy="8.5" r="1.5" stroke="currentColor" strokeWidth="1.6"/><path d="M21 15l-5-5L5 21" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+)
+
 function AttachMenu({ onClose, onPickImage, onPickFile }) {
   return (
-    <div style={{ position: 'absolute', bottom: '56px', left: 0, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '14px', padding: '8px', boxShadow: 'var(--shadow-lg)', zIndex: 100 }}>
-      <button onClick={() => { onPickImage(); onClose() }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', fontSize: '13px', borderRadius: '10px' }}>🖼️ Photo</button>
-      <button onClick={() => { onPickFile(); onClose() }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', fontSize: '13px', borderRadius: '10px' }}>📄 File</button>
+    <div style={{ position: 'absolute', bottom: '56px', left: 0, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '14px', padding: '8px', boxShadow: 'var(--shadow-lg)', zIndex: 100, minWidth: '150px' }}>
+      <button onClick={() => { onPickImage(); onClose() }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '9px 12px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', fontSize: '13px', fontWeight: 600, borderRadius: '10px' }}>
+        <div style={{ width: '30px', height: '30px', borderRadius: '9px', background: 'rgba(255,111,176,0.12)', color: '#ff6fb0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconImage /></div>
+        Photo
+      </button>
+      <button onClick={() => { onPickFile(); onClose() }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '9px 12px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', fontSize: '13px', fontWeight: 600, borderRadius: '10px' }}>
+        <div style={{ width: '30px', height: '30px', borderRadius: '9px', background: 'rgba(124,111,255,0.12)', color: '#7c6fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconFile size={15} /></div>
+        File
+      </button>
     </div>
   )
 }
@@ -914,7 +961,7 @@ function Messages() {
               <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>Loading conversations...</div>
             ) : conversations.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-                <div style={{ fontSize: '40px', marginBottom: '16px', opacity: 0.4 }}>💬</div>
+                <div style={{ marginBottom: '16px', opacity: 0.4, color: 'var(--text-muted)', display: 'flex', justifyContent: 'center' }}><IconChatBubble size={40} /></div>
                 <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>No conversations yet</div>
                 <div style={{ fontSize: '13px' }}>Connect with someone from Find Skills to start chatting!</div>
               </div>
@@ -941,7 +988,7 @@ function Messages() {
             <style>{`
               .tb-chat-card { height: calc(100vh - 200px); min-height: 420px; }
               @media (max-width: 768px) {
-                .tb-chat-card { height: calc(100vh - 250px); }
+                .tb-chat-card { height: calc(100vh - 275px); }
               }
             `}</style>
             <div style={{
@@ -951,7 +998,7 @@ function Messages() {
               {selectMode ? (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <button onClick={exitSelectMode} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '18px' }}>✕</button>
+                    <button onClick={exitSelectMode} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><IconClose size={16} /></button>
                     <span style={{ fontWeight: 700, color: 'var(--text)', fontSize: '14px' }}>{selectedIds.length} selected</span>
                   </div>
                   <button
@@ -960,14 +1007,15 @@ function Messages() {
                     style={{
                       background: '#ff5050', border: 'none', color: '#fff', borderRadius: '10px',
                       padding: '8px 16px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
-                      opacity: selectedIds.length === 0 ? 0.5 : 1, boxShadow: '0 2px 10px rgba(255,80,80,0.35)'
+                      opacity: selectedIds.length === 0 ? 0.5 : 1, boxShadow: '0 2px 10px rgba(255,80,80,0.35)',
+                      display: 'flex', alignItems: 'center', gap: '6px'
                     }}
-                  >🗑 Delete ({selectedIds.length})</button>
+                  ><IconTrash size={13} /> Delete ({selectedIds.length})</button>
                 </>
               ) : (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <button onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '18px' }}>←</button>
+                    <button onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><IconArrowLeft size={18} /></button>
                     <div onClick={() => { window.location.href = '/profile/' + activeChat.otherUserId }} style={{
                       width: '36px', height: '36px', borderRadius: '50%',
                       background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff',
@@ -984,12 +1032,12 @@ function Messages() {
                       borderRadius: '20px', padding: '8px 16px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
                       whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px',
                       boxShadow: '0 3px 10px rgba(124,111,255,0.35)', letterSpacing: '0.1px'
-                    }}>📅 Schedule</button>
+                    }}><IconCalendar size={13} /> Schedule</button>
                     <button onClick={() => setShowDeleteChat(true)} style={{
                       background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.3)', color: '#ff5050',
                       borderRadius: '20px', padding: '8px 16px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
                       whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px'
-                    }}>🗑 Delete Chat</button>
+                    }}><IconTrash size={13} /> Delete Chat</button>
                   </div>
                 </>
               )}
@@ -1045,29 +1093,29 @@ function Messages() {
                     {pendingAttachment.messageType === 'image' ? (
                       <img src={pendingAttachment.fileData} alt="" style={{ width: '52px', height: '52px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }} />
                     ) : (
-                      <div style={{ width: '52px', height: '52px', borderRadius: '10px', background: 'var(--input-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 }}>📄</div>
+                      <div style={{ width: '52px', height: '52px', borderRadius: '10px', background: 'var(--input-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)', flexShrink: 0 }}><IconFile size={22} /></div>
                     )}
                     <div style={{ flex: 1, minWidth: 0, fontSize: '12.5px', color: 'var(--text)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {pendingAttachment.fileName}
                     </div>
-                    <button onClick={() => setPendingAttachment(null)} style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', flexShrink: 0 }}>✕</button>
+                    <button onClick={() => setPendingAttachment(null)} style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><IconClose size={13} /></button>
                     <button onClick={sendPendingAttachment} disabled={uploading} style={{
                       background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none',
-                      borderRadius: '50%', width: '38px', height: '38px', cursor: 'pointer', fontSize: '15px', flexShrink: 0,
-                      boxShadow: '0 3px 10px rgba(124,111,255,0.35)'
-                    }}>{uploading ? '…' : '➤'}</button>
+                      borderRadius: '50%', width: '38px', height: '38px', cursor: 'pointer', flexShrink: 0,
+                      boxShadow: '0 3px 10px rgba(124,111,255,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>{uploading ? '…' : <IconSend size={15} />}</button>
                   </div>
                 )}
 
                 {pendingVoice && (
                   <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border)', background: 'var(--card)', display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <audio src={pendingVoice.url} controls style={{ flex: 1, height: '38px', minWidth: 0 }} />
-                    <button onClick={discardPendingVoice} style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: '#ff5050', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', flexShrink: 0 }}>🗑</button>
+                    <button onClick={discardPendingVoice} style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', color: '#ff5050', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><IconTrash size={13} /></button>
                     <button onClick={sendPendingVoice} disabled={uploading} style={{
                       background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none',
-                      borderRadius: '50%', width: '38px', height: '38px', cursor: 'pointer', fontSize: '15px', flexShrink: 0,
-                      boxShadow: '0 3px 10px rgba(124,111,255,0.35)'
-                    }}>{uploading ? '…' : '➤'}</button>
+                      borderRadius: '50%', width: '38px', height: '38px', cursor: 'pointer', flexShrink: 0,
+                      boxShadow: '0 3px 10px rgba(124,111,255,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}>{uploading ? '…' : <IconSend size={15} />}</button>
                   </div>
                 )}
 
@@ -1080,8 +1128,9 @@ function Messages() {
                       <button onClick={() => setShowAttach(!showAttach)} style={{
                         background: 'linear-gradient(135deg, rgba(124,111,255,0.15), rgba(255,111,176,0.1))',
                         border: '1px solid var(--border)', color: 'var(--accent)',
-                        borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', fontSize: '15px', flexShrink: 0
-                      }}>📎</button>
+                        borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}><IconAttach size={16} /></button>
                     )}
 
                     {showAttach && !isRecording && <AttachMenu onClose={() => setShowAttach(false)} onPickImage={handlePickImage} onPickFile={handlePickFile} />}
@@ -1108,19 +1157,20 @@ function Messages() {
                       <button onClick={handleSendText} style={{
                         background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none',
                         borderRadius: '20px', padding: '9px 18px', cursor: 'pointer', fontWeight: 700, fontSize: '12.5px',
-                        boxShadow: '0 3px 10px rgba(124,111,255,0.35)', flexShrink: 0
-                      }}>Send</button>
+                        boxShadow: '0 3px 10px rgba(124,111,255,0.35)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '6px'
+                      }}>Send <IconSend size={13} /></button>
                     ) : (
                       <button
                         onClick={isRecording ? stopRecording : startRecording}
                         style={{
                           background: isRecording ? '#ff5050' : 'linear-gradient(135deg, #7c6fff, #ff6fb0)',
                           color: '#fff', border: 'none', borderRadius: '50%', width: '36px', height: '36px',
-                          cursor: 'pointer', fontSize: '15px', flexShrink: 0, boxShadow: '0 3px 10px rgba(124,111,255,0.35)',
-                          transform: isRecording ? 'scale(1.15)' : 'scale(1)', transition: 'transform 0.15s'
+                          cursor: 'pointer', flexShrink: 0, boxShadow: '0 3px 10px rgba(124,111,255,0.35)',
+                          transform: isRecording ? 'scale(1.15)' : 'scale(1)', transition: 'transform 0.15s',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center'
                         }}
                         title={isRecording ? 'Tap to stop' : 'Tap to record voice note'}
-                      >{isRecording ? '■' : '🎤'}</button>
+                      >{isRecording ? <IconStop size={13} /> : <IconMic size={16} />}</button>
                     )}
                   </div>
                 )}
