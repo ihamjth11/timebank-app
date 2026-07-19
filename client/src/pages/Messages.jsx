@@ -948,11 +948,13 @@ function Messages() {
         </div>
       </aside>
 
-      <main className="dash__main tb-messages-main" style={activeChat ? { display: 'flex', flexDirection: 'column', height: '100vh', boxSizing: 'border-box', overflow: 'hidden' } : undefined}>
+      <main className="dash__main tb-messages-main" style={activeChat ? { display: 'flex', flexDirection: 'column', boxSizing: 'border-box', overflow: 'hidden' } : undefined}>
         {activeChat && (
           <style>{`
+            .tb-messages-main { height: 100vh; height: 100dvh; }
             @media (max-width: 768px) {
               .tb-messages-main { padding-bottom: 78px !important; }
+              .tb-msg-input { font-size: 16px !important; }
             }
           `}</style>
         )}
@@ -1147,6 +1149,7 @@ function Messages() {
                       </div>
                     ) : (
                       <input
+                        className="tb-msg-input"
                         value={newMsg}
                         onChange={e => setNewMsg(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && handleSendText()}
