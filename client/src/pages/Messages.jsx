@@ -571,6 +571,7 @@ function Messages() {
   const [deleteMsgId, setDeleteMsgId] = useState(null)
   const [previewImage, setPreviewImage] = useState(null)
   const [showDeleteChat, setShowDeleteChat] = useState(false)
+  const [viewportHeight, setViewportHeight] = useState(null)
   const [showAttach, setShowAttach] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [recordSeconds, setRecordSeconds] = useState(0)
@@ -608,6 +609,40 @@ function Messages() {
     return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Track the real visible viewport height (accounts for the on-screen
+  // keyboard) so the chat panel resizes exactly like a native app instead
+  // of the whole page shifting/zooming when an input is focused.
+  useEffect(() => {
+    if (!activeChat) return
+    const vv = window.visualViewport
+    if (!vv) return
+
+    const originalBodyPosition = document.body.style.position
+    const originalBodyWidth = document.body.style.width
+
+    const handleViewportChange = () => {
+      setViewportHeight(vv.height)
+      window.scrollTo(0, 0)
+    }
+
+    // Lock body scroll while a chat is open so the browser can't drag the
+    // whole page up when the keyboard opens — only our flex layout resizes.
+    document.body.style.position = 'fixed'
+    document.body.style.width = '100%'
+
+    vv.addEventListener('resize', handleViewportChange)
+    vv.addEventListener('scroll', handleViewportChange)
+    handleViewportChange()
+
+    return () => {
+      vv.removeEventListener('resize', handleViewportChange)
+      vv.removeEventListener('scroll', handleViewportChange)
+      document.body.style.position = originalBodyPosition
+      document.body.style.width = originalBodyWidth
+      setViewportHeight(null)
+    }
+  }, [activeChat])
 
   const checkRatedSessions = async (sessionList) => {
     const completed = sessionList.filter(s => s.status === 'completed')
@@ -948,7 +983,7 @@ function Messages() {
         </div>
       </aside>
 
-      <main className="dash__main tb-messages-main" style={activeChat ? { display: 'flex', flexDirection: 'column', boxSizing: 'border-box', overflow: 'hidden' } : undefined}>
+      <main className="dash__main tb-messages-main" style={activeChat ? { display: 'flex', flexDirection: 'column', boxSizing: 'border-box', overflow: 'hidden', ...(viewportHeight ? { height: `${viewportHeight}px` } : {}) } : undefined}>
         {activeChat && (
           <style>{`
             .tb-messages-main { height: 100vh; height: 100dvh; }
