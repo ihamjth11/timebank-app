@@ -12,7 +12,19 @@ const PERIODS = [
   { key: 'all', label: 'All Time' }
 ]
 
-const MEDAL = ['🥇', '🥈', '🥉']
+const RANK_STYLES = [
+  { gradient: 'linear-gradient(135deg, #FFD700, #FFA500)', glow: '0 4px 14px rgba(255,193,7,0.5)', ring: '#FFD700' },
+  { gradient: 'linear-gradient(135deg, #E0E0E0, #A8A8B3)', glow: '0 4px 14px rgba(160,160,170,0.4)', ring: '#C0C0C0' },
+  { gradient: 'linear-gradient(135deg, #E0A972, #B87333)', glow: '0 4px 14px rgba(184,115,51,0.4)', ring: '#CD7F32' }
+]
+
+const TrophyIcon = ({ size = 15 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <path d="M7 4h10v4a5 5 0 01-10 0V4z" stroke="#fff" strokeWidth="1.7" strokeLinejoin="round"/>
+    <path d="M7 5H4a2 2 0 002 4M17 5h3a2 2 0 01-2 4" stroke="#fff" strokeWidth="1.7" strokeLinecap="round"/>
+    <path d="M12 13v4M9 21h6M10 17h4v4h-4z" stroke="#fff" strokeWidth="1.7" strokeLinejoin="round"/>
+  </svg>
+)
 
 function RankSkeleton() {
   return (
@@ -158,37 +170,58 @@ function Leaderboard() {
           ) : (
             leaderboard.map((entry, i) => {
               const isMe = user?.id === String(entry.userId)
+              const rankStyle = i < 3 ? RANK_STYLES[i] : null
               return (
-                <div key={entry.userId} style={{
-                  display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 12px',
-                  borderRadius: '14px', marginBottom: '4px',
-                  background: isMe ? 'rgba(124,111,255,0.08)' : 'transparent',
-                  border: isMe ? '1px solid rgba(124,111,255,0.25)' : '1px solid transparent',
-                  transition: 'background 0.2s'
-                }}>
-                  <div style={{ width: '30px', textAlign: 'center', fontSize: i < 3 ? '20px' : '14px', fontWeight: 800, color: i < 3 ? undefined : 'var(--text-muted)' }}>
-                    {i < 3 ? MEDAL[i] : `#${i + 1}`}
+                <div
+                  key={entry.userId}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '16px', padding: i < 3 ? '18px 16px' : '13px 12px',
+                    borderRadius: '16px', marginBottom: '6px',
+                    background: isMe ? 'rgba(124,111,255,0.08)' : rankStyle ? 'var(--card)' : 'transparent',
+                    border: isMe ? '1px solid rgba(124,111,255,0.25)' : rankStyle ? '1px solid var(--border2)' : '1px solid transparent',
+                    boxShadow: rankStyle && !isMe ? 'var(--shadow)' : 'none',
+                    transition: 'transform 0.2s, box-shadow 0.2s'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)' }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)' }}
+                >
+                  <div style={{ width: '38px', textAlign: 'center', flexShrink: 0 }}>
+                    {rankStyle ? (
+                      <div style={{
+                        width: '34px', height: '34px', borderRadius: '50%', background: rankStyle.gradient,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto',
+                        boxShadow: rankStyle.glow
+                      }}>
+                        <TrophyIcon size={15} />
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-muted)' }}>#{i + 1}</span>
+                    )}
                   </div>
                   <div
                     onClick={() => { window.location.href = '/profile/' + entry.userId }}
                     style={{
-                      width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', cursor: 'pointer',
+                      width: rankStyle ? '48px' : '40px', height: rankStyle ? '48px' : '40px', borderRadius: '50%', overflow: 'hidden', cursor: 'pointer',
                       background: entry.avatar ? 'transparent' : 'linear-gradient(135deg, #7c6fff, #ff6fb0)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                      color: '#fff', fontWeight: 700, fontSize: '13px'
+                      color: '#fff', fontWeight: 700, fontSize: '13px',
+                      border: rankStyle ? `2.5px solid ${rankStyle.ring}` : 'none',
+                      transition: 'width 0.2s, height 0.2s'
                     }}
                   >
                     {entry.avatar ? <img src={entry.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials(entry.name)}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <div style={{ fontSize: rankStyle ? '15px' : '14px', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {entry.name} {isMe && <span style={{ color: 'var(--accent)', fontWeight: 600 }}>(You)</span>}
                     </div>
                     <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{entry.location}</div>
                   </div>
                   <div style={{
-                    padding: '5px 14px', borderRadius: '20px', fontSize: '12.5px', fontWeight: 700,
-                    background: 'rgba(124,111,255,0.1)', color: '#7c6fff', whiteSpace: 'nowrap'
+                    padding: '6px 15px', borderRadius: '20px', fontSize: '12.5px', fontWeight: 700,
+                    background: rankStyle ? rankStyle.gradient : 'rgba(124,111,255,0.1)',
+                    color: rankStyle ? '#fff' : '#7c6fff', whiteSpace: 'nowrap',
+                    boxShadow: rankStyle ? rankStyle.glow : 'none'
                   }}>
                     {entry.sessionsHelped} helped
                   </div>
