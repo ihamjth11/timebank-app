@@ -13,6 +13,11 @@
   50% { transform: rotate(10deg); }
 }
 
+/* ===== SMOOTH THEME TRANSITION ===== */
+* {
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+
 .dash {
   min-height: 100vh;
   background: var(--bg);
@@ -107,6 +112,11 @@
 .dash__nav-item:hover {
   background: var(--nav-hover);
   color: var(--text);
+  transform: translateX(2px);
+}
+
+.dash__nav-item:active {
+  transform: scale(0.97);
 }
 
 .dash__nav-item.active {
@@ -230,6 +240,11 @@
 .dash__notif-btn:hover {
   background: var(--nav-hover);
   color: var(--text);
+  transform: translateY(-1px);
+}
+
+.dash__notif-btn:active {
+  transform: scale(0.94);
 }
 
 /* ===== STATS ===== */
@@ -267,7 +282,7 @@
 
 .dash__stat-card:hover {
   border-color: var(--border);
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   box-shadow: var(--shadow-lg);
 }
 
@@ -279,6 +294,11 @@
   align-items: center;
   justify-content: center;
   margin-bottom: 14px;
+  transition: transform 0.2s;
+}
+
+.dash__stat-card:hover .dash__stat-icon {
+  transform: scale(1.08);
 }
 
 .dash__stat-num {
@@ -396,6 +416,11 @@
 .dash__wallet-btn.primary:hover {
   background: rgba(255,255,255,0.3);
   transform: translateY(-1px);
+}
+
+.dash__wallet-btn.primary:active,
+.dash__wallet-btn.secondary:active {
+  transform: scale(0.96);
 }
 
 .dash__wallet-btn.secondary {
@@ -519,8 +544,12 @@
   background: var(--nav-hover);
   border-color: var(--border);
   color: var(--text);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   box-shadow: var(--shadow);
+}
+
+.dash__action-btn:active {
+  transform: scale(0.96);
 }
 
 .dash__action-icon {
@@ -530,6 +559,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.2s;
+}
+
+.dash__action-btn:hover .dash__action-icon {
+  transform: scale(1.1);
 }
 
 /* Skills */
@@ -560,6 +594,10 @@
   transition: all 0.2s;
 }
 
+.dash__skill-tag:hover {
+  transform: translateY(-1px);
+}
+
 .dash__skill-add {
   padding: 5px 14px;
   border-radius: 20px;
@@ -575,6 +613,55 @@
 .dash__skill-add:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* ===== SKELETON LOADERS ===== */
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--input-bg) 25%, var(--border2) 50%, var(--input-bg) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+.skeleton-stat-card {
+  background: var(--card);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.skeleton-stat-card .skeleton-icon {
+  width: 36px; height: 36px; border-radius: 10px; margin-bottom: 14px;
+}
+
+.skeleton-stat-card .skeleton-num {
+  width: 50px; height: 24px; margin-bottom: 8px;
+}
+
+.skeleton-stat-card .skeleton-label {
+  width: 80px; height: 12px;
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.skeleton-avatar {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+}
+
+.skeleton-line {
+  height: 12px;
+  border-radius: 6px;
 }
 
 @media (max-width: 1024px) {
@@ -632,6 +719,10 @@
     font-size: 10px;
     font-weight: 500;
     flex: 1;
+    transition: transform 0.15s;
+  }
+  .mobile-nav__item:active {
+    transform: scale(0.92);
   }
   .mobile-nav__item.active {
     color: var(--accent);

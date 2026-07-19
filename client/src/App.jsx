@@ -10,6 +10,8 @@ import Wallet from './pages/Wallet'
 import Messages from './pages/Messages'
 import Profile from './pages/Profile'
 import PublicProfile from './pages/PublicProfile'
+import Terms from './pages/Terms'
+import Privacy from './pages/Privacy'
 
 function App() {
   return (
@@ -26,6 +28,8 @@ function App() {
             <Route path="/messages" element={<Messages />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/:userId" element={<PublicProfile />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

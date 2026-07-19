@@ -1,5 +1,5 @@
 import MobileNav from '../components/MobileNav'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import Toast from '../components/Toast'
@@ -58,6 +58,31 @@ function SkillCard({ skill, onConnect, onRequestDelete, currentUserId }) {
             {skill.type === 'offer' ? 'Connect' : 'Help'}
           </button>
         )}
+      </div>
+    </div>
+  )
+}
+
+function SkillCardSkeleton() {
+  return (
+    <div className="skill-card" style={{ pointerEvents: 'none' }}>
+      <div className="skill-card__top">
+        <span className="skeleton" style={{ width: '64px', height: '18px', borderRadius: '20px' }} />
+        <span className="skeleton" style={{ width: '36px', height: '18px', borderRadius: '10px' }} />
+      </div>
+      <div className="skeleton" style={{ width: '70%', height: '18px', margin: '10px 0 8px' }} />
+      <div className="skeleton" style={{ width: '100%', height: '13px', marginBottom: '6px' }} />
+      <div className="skeleton" style={{ width: '85%', height: '13px', marginBottom: '14px' }} />
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '16px' }}>
+        <span className="skeleton" style={{ width: '48px', height: '20px', borderRadius: '20px' }} />
+        <span className="skeleton" style={{ width: '60px', height: '20px', borderRadius: '20px' }} />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="skeleton" style={{ width: '30px', height: '30px', borderRadius: '50%' }} />
+          <span className="skeleton" style={{ width: '70px', height: '12px' }} />
+        </div>
+        <span className="skeleton" style={{ width: '72px', height: '30px', borderRadius: '10px' }} />
       </div>
     </div>
   )
@@ -153,6 +178,7 @@ function PostModal({ onClose, onPost }) {
 function SkillFeed() {
   const { user, token } = useAuth()
   const [skills, setSkills] = useState([])
+  const [allSkills, setAllSkills] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('All')
@@ -160,6 +186,8 @@ function SkillFeed() {
   const [showModal, setShowModal] = useState(false)
   const [toast, setToast] = useState(null)
   const [deleteSkillId, setDeleteSkillId] = useState(null)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const searchBoxRef = useRef(null)
 
   const fetchSkills = async () => {
     setLoading(true)
@@ -179,6 +207,17 @@ function SkillFeed() {
     }
   }
 
+  // Fetch the full unfiltered skill list once, used only to power the
+  // lightweight client-side search autocomplete dropdown.
+  const fetchAllSkillsForSuggestions = async () => {
+    try {
+      const res = await axios.get(`${API}/skills`)
+      setAllSkills(res.data.skills || [])
+    } catch (err) {
+      console.error('Failed to fetch skills for suggestions:', err)
+    }
+  }
+
   useEffect(() => {
     fetchSkills()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -190,12 +229,38 @@ function SkillFeed() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search])
 
+  useEffect(() => {
+    fetchAllSkillsForSuggestions()
+  }, [])
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const suggestions = search.trim().length > 0
+    ? [...new Set(
+        allSkills
+          .filter(s =>
+            s.title.toLowerCase().includes(search.toLowerCase()) ||
+            s.tags?.some(t => t.toLowerCase().includes(search.toLowerCase()))
+          )
+          .map(s => s.title)
+      )].slice(0, 5)
+    : []
+
   const handlePost = async (newSkill) => {
     try {
       const res = await axios.post(`${API}/skills`, newSkill, {
         headers: { Authorization: `Bearer ${token}` }
       })
       setSkills([res.data.skill, ...skills])
+      setAllSkills([res.data.skill, ...allSkills])
       setToast({ message: 'Skill posted successfully!', type: 'success' })
       return { success: true }
     } catch (err) {
@@ -226,6 +291,7 @@ function SkillFeed() {
         headers: { Authorization: `Bearer ${token}` }
       })
       setSkills(skills.filter(s => s._id !== skillId))
+      setAllSkills(allSkills.filter(s => s._id !== skillId))
       setToast({ message: 'Skill deleted', type: 'success' })
     } catch (err) {
       setToast({ message: 'Failed to delete skill', type: 'error' })
@@ -312,12 +378,39 @@ function SkillFeed() {
         </div>
 
         <div className="feed__controls">
-          <div className="feed__search">
+          <div className="feed__search" ref={searchBoxRef} style={{ position: 'relative' }}>
             <svg className="feed__search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none">
               <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5"/>
               <path d="M16.5 16.5l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
-            <input className="feed__search-input" placeholder="Search skills..." value={search} onChange={e => setSearch(e.target.value)}/>
+            <input
+              className="feed__search-input"
+              placeholder="Search skills..."
+              value={search}
+              onChange={e => { setSearch(e.target.value); setShowSuggestions(true) }}
+              onFocus={() => setShowSuggestions(true)}
+            />
+            {showSuggestions && suggestions.length > 0 && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0,
+                background: 'var(--card)', border: '1px solid var(--border2)', borderRadius: '12px',
+                boxShadow: 'var(--shadow-lg)', zIndex: 50, overflow: 'hidden'
+              }}>
+                {suggestions.map((title, i) => (
+                  <div
+                    key={i}
+                    onClick={() => { setSearch(title); setShowSuggestions(false) }}
+                    style={{
+                      padding: '10px 14px', fontSize: '13px', color: 'var(--text)', cursor: 'pointer',
+                      borderBottom: i < suggestions.length - 1 ? '1px solid var(--border2)' : 'none'
+                    }}
+                    onMouseDown={e => e.preventDefault()}
+                  >
+                    {title}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -337,9 +430,9 @@ function SkillFeed() {
 
         <div className="feed__grid">
           {loading ? (
-            <div className="feed__loading">
-              <div className="feed__spinner" />
-            </div>
+            <>
+              {[...Array(6)].map((_, i) => <SkillCardSkeleton key={i} />)}
+            </>
           ) : skills.length === 0 ? (
             <div className="feed__empty">
               <div className="feed__empty-icon">🔍</div>
