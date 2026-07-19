@@ -12,7 +12,7 @@ import Profile from './pages/Profile'
 import PublicProfile from './pages/PublicProfile'
 import Terms from './pages/Terms'
 import Privacy from './pages/Privacy'
-
+import Leaderboard from './pages/Leaderboard'
 function App() {
   return (
     <ThemeProvider>
@@ -30,6 +30,7 @@ function App() {
             <Route path="/profile/:userId" element={<PublicProfile />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>
