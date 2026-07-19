@@ -29,6 +29,13 @@ function MobileNav() {
   const navigate = useNavigate()
   const { logout } = useAuth()
 
+  const handleLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      logout()
+      window.location.href = '/'
+    }
+  }
+
   return (
     <nav className="mobile-nav">
       {ITEMS.map(item => (
@@ -43,12 +50,14 @@ function MobileNav() {
         </div>
       ))}
       <div
-        className="mobile-nav__item"
-        onClick={logout}
-        style={{ cursor: 'pointer', color: '#ff5050' }}
+        className="mobile-nav__item mobile-nav__item--logout"
+        onClick={handleLogout}
+        style={{ cursor: 'pointer' }}
       >
-        <div className="mobile-nav__icon" style={{ color: '#ff5050' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+        <div className="mobile-nav__icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+          </svg>
         </div>
         <span>Logout</span>
       </div>

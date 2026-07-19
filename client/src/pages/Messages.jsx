@@ -663,21 +663,30 @@ function Messages() {
   // Tap to start recording, tap again to stop — then preview the
   // recording with Play/Discard/Send, matching a standard voice-note flow.
   const startRecording = async () => {
+    if (!navigator.mediaDevices || !window.MediaRecorder) {
+      alert('Voice recording is not supported in this browser.')
+      return
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const recorder = new MediaRecorder(stream)
+      const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus']
+      const supportedType = candidates.find(t => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t))
+      const recorder = supportedType ? new MediaRecorder(stream, { mimeType: supportedType }) : new MediaRecorder(stream)
       mediaRecorderRef.current = recorder
       audioChunksRef.current = []
-      recorder.ondataavailable = (ev) => audioChunksRef.current.push(ev.data)
+      recorder.ondataavailable = (ev) => { if (ev.data && ev.data.size > 0) audioChunksRef.current.push(ev.data) }
       recorder.onstop = () => {
         clearInterval(recordIntervalRef.current)
         stream.getTracks().forEach(t => t.stop())
         setRecordSeconds(0)
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        const actualType = recorder.mimeType || 'audio/webm'
+        const blob = new Blob(audioChunksRef.current, { type: actualType })
+        if (blob.size === 0) { alert('Recording was too short. Please try again.'); return }
         if (blob.size > MAX_FILE_SIZE) { alert('Voice note too long. Keep under 2MB (~1 min).'); return }
         const url = URL.createObjectURL(blob)
         setPendingVoice({ blob, url })
       }
+      recorder.onerror = () => alert('Recording failed. Please try again.')
       recorder.start()
       setIsRecording(true)
       setRecordSeconds(0)
@@ -874,7 +883,7 @@ function Messages() {
             </div>Profile
           </a>
           <div className="dash__nav-label">Account</div>
-          <div className="dash__nav-item" onClick={logout}>
+          <div className="dash__nav-item" onClick={() => { logout(); window.location.href = '/' }}>
             <div className="dash__nav-item-icon" style={{ background: 'rgba(255,80,80,0.1)', color: '#ff8080' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             </div>Logout
@@ -928,7 +937,13 @@ function Messages() {
             )}
           </div>
         ) : (
-          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '18px', display: 'flex', flexDirection: 'column', height: '65vh', overflow: 'hidden', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+          <div className="tb-chat-card" style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '18px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+            <style>{`
+              .tb-chat-card { height: calc(100vh - 200px); min-height: 420px; }
+              @media (max-width: 768px) {
+                .tb-chat-card { height: calc(100vh - 250px); }
+              }
+            `}</style>
             <div style={{
               padding: '14px 20px', background: selectMode ? 'rgba(124,111,255,0.1)' : 'linear-gradient(135deg, rgba(124,111,255,0.06), rgba(255,111,176,0.04))',
               borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px'

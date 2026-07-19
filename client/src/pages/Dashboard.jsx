@@ -68,7 +68,7 @@ function Dashboard() {
 
   const handleLogout = () => {
     logout()
-    navigate('/')
+    window.location.href = '/'
   }
   const handleNavClick = (path) => {
     navigate(path)
@@ -176,9 +176,7 @@ function Dashboard() {
 
         <div className="dash__sidebar-bottom">
           <div className="dash__sidebar-user">
-            <div className="dash__sidebar-avatar" style={user?.avatar ? { background: 'transparent', overflow: 'hidden', padding: 0 } : {}}>
-  {user?.avatar ? <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '9px' }} /> : initials}
-</div>
+            <div className="dash__sidebar-avatar">{initials}</div>
             <div>
               <div className="dash__sidebar-user-name">{user?.name || 'Mohamed Hamjath'}</div>
               <div className="dash__sidebar-user-credits">
