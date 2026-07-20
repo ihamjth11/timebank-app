@@ -94,6 +94,18 @@ const UserSchema = new mongoose.Schema({
     default: 0
   },
 
+  // Users this account has blocked — hides them from feeds/messages
+  blockedUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+
+  // Grants access to the moderation/admin dashboard
+  isAdmin: {
+    type: Boolean,
+    default: false
+  },
+
   // Created date
   createdAt: {
     type: Date,

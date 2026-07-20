@@ -92,7 +92,9 @@ router.post('/register', async (req, res) => {
         email: user.email,
         timeCredits: user.timeCredits,
         referralCode: user.referralCode,
-        referralCount: user.referralCount
+        referralCount: user.referralCount,
+        isAdmin: user.isAdmin || false,
+        blockedUsers: user.blockedUsers || []
       }
     })
 
@@ -155,7 +157,9 @@ router.post('/login', async (req, res) => {
         location: user.location,
         bio: user.bio,
         referralCode: user.referralCode,
-        referralCount: user.referralCount
+        referralCount: user.referralCount,
+        isAdmin: user.isAdmin || false,
+        blockedUsers: user.blockedUsers || []
       }
     })
 
@@ -242,7 +246,9 @@ router.post('/google', async (req, res) => {
         location: user.location,
         bio: user.bio,
         referralCode: user.referralCode,
-        referralCount: user.referralCount
+        referralCount: user.referralCount,
+        isAdmin: user.isAdmin || false,
+        blockedUsers: user.blockedUsers || []
       }
     })
 
@@ -290,7 +296,9 @@ router.put('/profile', async (req, res) => {
         location: user.location,
         bio: user.bio,
         referralCode: user.referralCode,
-        referralCount: user.referralCount
+        referralCount: user.referralCount,
+        isAdmin: user.isAdmin || false,
+        blockedUsers: user.blockedUsers || []
       }
     })
 
@@ -332,7 +340,9 @@ router.get('/me', async (req, res) => {
         location: user.location,
         bio: user.bio,
         referralCode: user.referralCode,
-        referralCount: user.referralCount
+        referralCount: user.referralCount,
+        isAdmin: user.isAdmin || false,
+        blockedUsers: user.blockedUsers || []
       }
     })
 

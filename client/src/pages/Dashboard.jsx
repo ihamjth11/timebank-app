@@ -28,6 +28,10 @@ const NAV_ITEMS = [
     label: 'Classes', bg: 'rgba(111,255,212,0.15)', color: '#6fffd4', path: '/workshops'
   },
   {
+    icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>),
+    label: 'Calendar', bg: 'rgba(255,111,176,0.15)', color: '#ff6fb0', path: '/calendar'
+  },
+  {
     icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M7 4h10v4a5 5 0 01-10 0V4z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M7 5H4a2 2 0 002 4M17 5h3a2 2 0 01-2 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><path d="M12 13v4M9 21h6M10 17h4v4h-4z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>),
     label: 'Leaderboard', bg: 'rgba(255,209,102,0.15)', color: '#ffd166', path: '/leaderboard'
   },
@@ -310,6 +314,15 @@ function Dashboard() {
                   </svg>
                 </div>
                 Profile
+              </div>
+              <div className="dash__action-btn" onClick={() => navigate('/calendar')}>
+                <div className="dash__action-icon" style={{ background: 'rgba(124,111,255,0.1)', color: '#7c6fff' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+                    <path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                Calendar
               </div>
             </div>
           </div>

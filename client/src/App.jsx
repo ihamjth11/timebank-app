@@ -14,6 +14,8 @@ import Terms from './pages/Terms'
 import Privacy from './pages/Privacy'
 import Leaderboard from './pages/Leaderboard'
 import Workshops from './pages/Workshops'
+import Calendar from './pages/Calendar'
+import AdminModeration from './pages/AdminModeration'
 function App() {
   return (
     <ThemeProvider>
@@ -33,6 +35,8 @@ function App() {
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/workshops" element={<Workshops />} />
+            <Route path="/calendar" element={<Calendar />} />
+            <Route path="/admin/moderation" element={<AdminModeration />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>

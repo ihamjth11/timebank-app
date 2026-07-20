@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
+import Toast from '../components/Toast'
 import '../styles/dashboard.css'
 import '../styles/profile.css'
 
@@ -50,10 +51,7 @@ function BadgesCard({ badges, streak }) {
         Badges & Streak
         {streak > 0 && (
           <span style={{ fontSize: '12px', color: '#ff9f43', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
-           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ marginRight: '2px' }}>
-  <path d="M12 2c-1.5 3.5-5 5.5-5 10a5 5 0 0010 0c0-1.5-.7-2.5-1.5-3.2 0 1.7-.8 2.7-1.7 2.7-1.5 0-1.7-1.7-.8-3.3.8-1.7-.2-3.5-1-6.2z" stroke="#ff9f43" strokeWidth="1.6" strokeLinejoin="round" fill="#ff9f43"/>
-</svg>
-{streak} week{streak > 1 ? 's' : ''} streak
+            🔥 {streak} week{streak > 1 ? 's' : ''} streak
           </span>
         )}
       </div>
@@ -80,6 +78,54 @@ function BadgesCard({ badges, streak }) {
   )
 }
 
+const REPORT_REASONS = [
+  { value: 'spam', label: 'Spam' },
+  { value: 'harassment', label: 'Harassment' },
+  { value: 'inappropriate_content', label: 'Inappropriate content' },
+  { value: 'no_show', label: 'No-show / broken commitment' },
+  { value: 'fraud', label: 'Fraud' },
+  { value: 'other', label: 'Other' }
+]
+
+function ReportModal({ userName, onClose, onSubmit }) {
+  const [reason, setReason] = useState('spam')
+  const [details, setDetails] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async () => {
+    setLoading(true)
+    await onSubmit(reason, details)
+    setLoading(false)
+    onClose()
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={onClose}>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', padding: '28px', width: '100%', maxWidth: '380px' }} onClick={e => e.stopPropagation()}>
+        <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>Report {userName}</h2>
+        <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '18px' }}>Your report is confidential and reviewed by TimeBank moderators.</p>
+
+        <div style={{ marginBottom: '14px' }}>
+          <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Reason</label>
+          <select value={reason} onChange={e => setReason(e.target.value)} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}>
+            {REPORT_REASONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+          </select>
+        </div>
+
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Details (optional)</label>
+          <textarea rows={3} value={details} onChange={e => setDetails(e.target.value)} placeholder="What happened?" style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px', fontFamily: 'inherit', resize: 'vertical' }} />
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSubmit} disabled={loading} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: '#ff5050', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{loading ? 'Submitting...' : 'Submit Report'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function PublicProfile() {
   const { userId } = useParams()
   const navigate = useNavigate()
@@ -91,6 +137,10 @@ function PublicProfile() {
   const [reviewCount, setReviewCount] = useState(0)
   const [badgeData, setBadgeData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [isBlocked, setIsBlocked] = useState(false)
+  const [toast, setToast] = useState(null)
 
   const initials = currentUser?.name
     ? currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase()
@@ -121,6 +171,40 @@ function PublicProfile() {
     }
     fetchProfile()
   }, [userId])
+
+  useEffect(() => {
+    setIsBlocked((currentUser?.blockedUsers || []).some(id => String(id) === String(userId)))
+  }, [currentUser, userId])
+
+  const handleBlock = async () => {
+    if (!window.confirm('Block this user? They will be hidden from your messages and skill feed.')) return
+    try {
+      await axios.post(`${API}/moderation/block/${userId}`, {}, { headers: { Authorization: `Bearer ${token}` } })
+      setIsBlocked(true)
+      setToast({ message: 'User blocked', type: 'success' })
+    } catch (err) {
+      setToast({ message: 'Failed to block user', type: 'error' })
+    }
+  }
+
+  const handleUnblock = async () => {
+    try {
+      await axios.post(`${API}/moderation/unblock/${userId}`, {}, { headers: { Authorization: `Bearer ${token}` } })
+      setIsBlocked(false)
+      setToast({ message: 'User unblocked', type: 'success' })
+    } catch (err) {
+      setToast({ message: 'Failed to unblock user', type: 'error' })
+    }
+  }
+
+  const handleReport = async (reason, details) => {
+    try {
+      await axios.post(`${API}/moderation/reports`, { reportedUserId: userId, reason, details }, { headers: { Authorization: `Bearer ${token}` } })
+      setToast({ message: 'Report submitted. Thank you for keeping TimeBank safe.', type: 'success' })
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Failed to submit report', type: 'error' })
+    }
+  }
 
   const handleMessage = async () => {
     try {
@@ -265,7 +349,33 @@ function PublicProfile() {
                   </div>
                 </div>
                 {profileUser._id !== currentUser?.id && (
-                  <button className="profile__edit-btn" onClick={handleMessage}>💬 Message</button>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', position: 'relative' }}>
+                    <button className="profile__edit-btn" onClick={handleMessage}>💬 Message</button>
+                    <button
+                      onClick={() => setShowMoreMenu(!showMoreMenu)}
+                      style={{
+                        width: '38px', height: '38px', borderRadius: '10px', border: '1px solid var(--border2)',
+                        background: 'var(--card)', color: 'var(--text-secondary)', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 700
+                      }}
+                    >⋯</button>
+                    {showMoreMenu && (
+                      <div style={{
+                        position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: 'var(--card)',
+                        border: '1px solid var(--border2)', borderRadius: '12px', boxShadow: 'var(--shadow-lg)',
+                        zIndex: 50, minWidth: '160px', overflow: 'hidden'
+                      }}>
+                        <button
+                          onClick={() => { setShowReportModal(true); setShowMoreMenu(false) }}
+                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '11px 16px', background: 'none', border: 'none', color: 'var(--text)', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+                        >🚩 Report</button>
+                        <button
+                          onClick={() => { setShowMoreMenu(false); isBlocked ? handleUnblock() : handleBlock() }}
+                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '11px 16px', background: 'none', border: 'none', color: '#ff5050', fontSize: '13px', fontWeight: 600, cursor: 'pointer', borderTop: '1px solid var(--border2)' }}
+                        >{isBlocked ? '✓ Unblock' : '🚫 Block'}</button>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -335,6 +445,10 @@ function PublicProfile() {
           </>
         )}
       </main>
+      {showReportModal && (
+        <ReportModal userName={profileUser?.name} onClose={() => setShowReportModal(false)} onSubmit={handleReport} />
+      )}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   )
 }
