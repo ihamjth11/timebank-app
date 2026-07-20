@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
@@ -138,6 +138,19 @@ function PublicProfile() {
   const [badgeData, setBadgeData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 })
+  const menuBtnRef = useRef(null)
+
+  useEffect(() => {
+    if (!showMoreMenu) return
+    const handleClickOutside = (e) => {
+      if (menuBtnRef.current && !menuBtnRef.current.contains(e.target)) {
+        setShowMoreMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showMoreMenu])
   const [showReportModal, setShowReportModal] = useState(false)
   const [isBlocked, setIsBlocked] = useState(false)
   const [toast, setToast] = useState(null)
@@ -349,10 +362,14 @@ function PublicProfile() {
                   </div>
                 </div>
                 {profileUser._id !== currentUser?.id && (
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', position: 'relative' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }} ref={menuBtnRef}>
                     <button className="profile__edit-btn" onClick={handleMessage}>💬 Message</button>
                     <button
-                      onClick={() => setShowMoreMenu(!showMoreMenu)}
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect()
+                        setMenuPos({ top: rect.bottom + 6, right: window.innerWidth - rect.right })
+                        setShowMoreMenu(!showMoreMenu)
+                      }}
                       style={{
                         width: '38px', height: '38px', borderRadius: '10px', border: '1px solid var(--border2)',
                         background: 'var(--card)', color: 'var(--text-secondary)', cursor: 'pointer',
@@ -361,9 +378,9 @@ function PublicProfile() {
                     >⋯</button>
                     {showMoreMenu && (
                       <div style={{
-                        position: 'absolute', top: 'calc(100% + 6px)', right: 0, background: 'var(--card)',
+                        position: 'fixed', top: `${menuPos.top}px`, right: `${menuPos.right}px`, background: 'var(--card)',
                         border: '1px solid var(--border2)', borderRadius: '12px', boxShadow: 'var(--shadow-lg)',
-                        zIndex: 50, minWidth: '160px', overflow: 'hidden'
+                        zIndex: 500, minWidth: '160px', overflow: 'hidden'
                       }}>
                         <button
                           onClick={() => { setShowReportModal(true); setShowMoreMenu(false) }}
