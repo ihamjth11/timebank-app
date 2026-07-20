@@ -23,6 +23,7 @@ app.use('/api/push', require('./routes/push'))
 app.use('/api/reviews', require('./routes/reviews'))
 app.use('/api/badges', require('./routes/badges'))
 app.use('/api/leaderboard', require('./routes/leaderboard'))
+app.use('/api/workshops', require('./routes/workshops'))
 app.get('/', (req, res) => {
   res.json({
     success: true,

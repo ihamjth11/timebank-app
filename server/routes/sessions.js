@@ -20,33 +20,68 @@ const auth = (req, res, next) => {
 
 router.post('/', auth, async (req, res) => {
   try {
-    const { participantId, date, time, meetingLink } = req.body
+    const { participantId, date, time, meetingLink, repeatWeeks } = req.body
     if (!participantId || !date || !time) {
       return res.status(400).json({ success: false, message: 'Missing fields' })
     }
 
-    const session = new Session({
-      organizer: req.user.id,
-      participant: participantId,
-      date,
-      time,
-      meetingLink: meetingLink || ''
-    })
+    // repeatWeeks: how many total weekly occurrences to create (1 = no repeat).
+    const occurrences = Math.min(Math.max(Number(repeatWeeks) || 1, 1), 12)
+    const createdSessions = []
 
-    await session.save()
+    for (let i = 0; i < occurrences; i++) {
+      const occurrenceDate = new Date(`${date}T00:00:00`)
+      occurrenceDate.setDate(occurrenceDate.getDate() + i * 7)
+      const dateStr = occurrenceDate.toISOString().slice(0, 10)
+
+      const session = new Session({
+        organizer: req.user.id,
+        participant: participantId,
+        date: dateStr,
+        time,
+        meetingLink: meetingLink || ''
+      })
+      await session.save()
+      createdSessions.push(session)
+    }
 
     const organizer = await User.findById(req.user.id).select('name')
+    const notifText = occurrences > 1
+      ? `${organizer?.name || 'Someone'} scheduled ${occurrences} weekly sessions with you`
+      : `${organizer?.name || 'Someone'} scheduled a session with you`
+
     await Notification.create({
       user: participantId,
       type: 'session_scheduled',
       fromUser: req.user.id,
       fromName: organizer?.name || 'Someone',
-      text: `${organizer?.name || 'Someone'} scheduled a session with you`,
+      text: notifText,
       link: '/messages'
     })
 
-    res.status(201).json({ success: true, session })
+    res.status(201).json({ success: true, session: createdSessions[0], sessions: createdSessions })
   } catch (error) {
+    console.error('Create session error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+// GET /api/sessions/mine — every session (any status) this user is part of,
+// across all conversations. Must be defined before the /:otherUserId route
+// so Express doesn't treat "mine" as a user id param.
+router.get('/mine', auth, async (req, res) => {
+  try {
+    const userId = req.user.id
+    const sessions = await Session.find({
+      $or: [{ organizer: userId }, { participant: userId }]
+    })
+      .populate('organizer', 'name avatar')
+      .populate('participant', 'name avatar')
+      .sort({ date: 1, time: 1 })
+
+    res.json({ success: true, sessions })
+  } catch (error) {
+    console.error('My sessions error:', error)
     res.status(500).json({ success: false, message: 'Server error' })
   }
 })

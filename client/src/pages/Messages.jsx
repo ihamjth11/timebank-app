@@ -47,12 +47,14 @@ function ScheduleModal({ onClose, onSchedule }) {
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
   const [link, setLink] = useState('')
+  const [repeat, setRepeat] = useState(false)
+  const [repeatWeeks, setRepeatWeeks] = useState(4)
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async () => {
     if (!date || !time) return
     setLoading(true)
-    await onSchedule({ date, time, meetingLink: link })
+    await onSchedule({ date, time, meetingLink: link, repeatWeeks: repeat ? repeatWeeks : 1 })
     setLoading(false)
     onClose()
   }
@@ -69,13 +71,37 @@ function ScheduleModal({ onClose, onSchedule }) {
           <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Time</label>
           <input type="time" value={time} onChange={e => setTime(e.target.value)} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}/>
         </div>
-        <div style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: '14px' }}>
           <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Meeting Link (optional)</label>
           <input type="text" placeholder="https://meet.google.com/..." value={link} onChange={e => setLink(e.target.value)} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}/>
         </div>
+        <div style={{ marginBottom: repeat ? '14px' : '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--input-bg)', borderRadius: '10px' }}>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>Repeat weekly</span>
+          <label style={{ position: 'relative', display: 'inline-block', width: '38px', height: '22px', cursor: 'pointer' }}>
+            <input type="checkbox" checked={repeat} onChange={e => setRepeat(e.target.checked)} style={{ opacity: 0, width: 0, height: 0 }} />
+            <span style={{
+              position: 'absolute', inset: 0, borderRadius: '20px', transition: 'background 0.2s',
+              background: repeat ? 'linear-gradient(135deg, #7c6fff, #ff6fb0)' : 'var(--border)'
+            }}>
+              <span style={{
+                position: 'absolute', top: '3px', left: repeat ? '19px' : '3px', width: '16px', height: '16px',
+                borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)'
+              }} />
+            </span>
+          </label>
+        </div>
+        {repeat && (
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Number of weeks</label>
+            <select value={repeatWeeks} onChange={e => setRepeatWeeks(Number(e.target.value))} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}>
+              {[2, 3, 4, 6, 8, 12].map(n => <option key={n} value={n}>{n} weeks</option>)}
+            </select>
+            <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '6px' }}>Creates {repeatWeeks} sessions, same day and time, one every week.</p>
+          </div>
+        )}
         <div style={{ display: 'flex', gap: '10px' }}>
           <button onClick={onClose} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-          <button onClick={handleSubmit} disabled={loading || !date || !time} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', fontWeight: 600, cursor: 'pointer', opacity: (!date || !time) ? 0.5 : 1 }}>{loading ? 'Scheduling...' : 'Schedule'}</button>
+          <button onClick={handleSubmit} disabled={loading || !date || !time} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', fontWeight: 600, cursor: 'pointer', opacity: (!date || !time) ? 0.5 : 1 }}>{loading ? 'Scheduling...' : (repeat ? `Schedule ${repeatWeeks}×` : 'Schedule')}</button>
         </div>
       </div>
     </div>
@@ -594,7 +620,9 @@ function Messages() {
     setLoading(true)
     try {
       const res = await axios.get(`${API}/messages/conversations`, { headers: { Authorization: `Bearer ${token}` } })
-      setConversations(res.data.conversations || [])
+      const blockedIds = (user?.blockedUsers || []).map(String)
+      const visible = (res.data.conversations || []).filter(c => !blockedIds.includes(String(c.otherUserId)))
+      setConversations(visible)
     } catch (err) {
       console.error('Failed to fetch conversations:', err)
     } finally {
@@ -770,9 +798,9 @@ function Messages() {
     reader.readAsDataURL(pendingVoice.blob)
   }
 
-  const scheduleSession = async ({ date, time, meetingLink }) => {
+  const scheduleSession = async ({ date, time, meetingLink, repeatWeeks }) => {
     try {
-      await axios.post(`${API}/sessions`, { participantId: activeChat.otherUserId, date, time, meetingLink }, { headers: { Authorization: `Bearer ${token}` } })
+      await axios.post(`${API}/sessions`, { participantId: activeChat.otherUserId, date, time, meetingLink, repeatWeeks }, { headers: { Authorization: `Bearer ${token}` } })
       openChat(activeChat)
     } catch (err) {
       console.error('Failed to schedule session:', err)
@@ -920,6 +948,11 @@ function Messages() {
             <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5"/><path d="M16.5 16.5l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             </div>Find Skills
+          </a>
+          <a href="/workshops" className="dash__nav-item">
+            <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>
+            </div>Classes
           </a>
           <a href="/leaderboard" className="dash__nav-item">
             <div className="dash__nav-item-icon" style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)' }}>

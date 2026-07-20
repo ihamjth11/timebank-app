@@ -1,5 +1,4 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
 
 const ITEMS = [
   {
@@ -13,6 +12,10 @@ const ITEMS = [
   {
     path: '/skills', label: 'Skills',
     icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.6"/><path d="M16.5 16.5l4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>)
+  },
+  {
+    path: '/workshops', label: 'Classes',
+    icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round"/></svg>)
   },
   {
     path: '/leaderboard', label: 'Ranks',
@@ -31,14 +34,6 @@ const ITEMS = [
 function MobileNav() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { logout } = useAuth()
-
-  const handleLogout = () => {
-    if (window.confirm('Are you sure you want to logout?')) {
-      logout()
-      window.location.href = '/'
-    }
-  }
 
   return (
     <nav className="mobile-nav">
@@ -53,18 +48,6 @@ function MobileNav() {
           <span>{item.label}</span>
         </div>
       ))}
-      <div
-        className="mobile-nav__item mobile-nav__item--logout"
-        onClick={handleLogout}
-        style={{ cursor: 'pointer' }}
-      >
-        <div className="mobile-nav__icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
-          </svg>
-        </div>
-        <span>Logout</span>
-      </div>
     </nav>
   )
 }

@@ -664,6 +664,16 @@
   border-radius: 6px;
 }
 
+.profile__mobile-logout {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .profile__mobile-logout {
+    display: flex;
+  }
+}
+
 @media (max-width: 1024px) {
   .dash__stats { grid-template-columns: repeat(2, 1fr); }
   .dash__grid { grid-template-columns: 1fr; }
