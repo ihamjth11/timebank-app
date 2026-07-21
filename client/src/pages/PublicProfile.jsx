@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import Toast from '../components/Toast'
+import ConfirmModal from '../components/ConfirmModal'
 import '../styles/dashboard.css'
 import '../styles/profile.css'
 
@@ -87,6 +88,19 @@ const REPORT_REASONS = [
   { value: 'other', label: 'Other' }
 ]
 
+const IconFlag = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M5 3v18" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><path d="M5 4h11l-2.5 4L16 12H5" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/></svg>
+)
+const IconBlock = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.7"/><path d="M5.5 5.5l13 13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>
+)
+const IconCheckSmall = ({ size = 14 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+)
+const IconDots = ({ size = 17 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><circle cx="5" cy="12" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="19" cy="12" r="1.7" fill="currentColor"/></svg>
+)
+
 function ReportModal({ userName, onClose, onSubmit }) {
   const [reason, setReason] = useState('spam')
   const [details, setDetails] = useState('')
@@ -152,6 +166,7 @@ function PublicProfile() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showMoreMenu])
   const [showReportModal, setShowReportModal] = useState(false)
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false)
   const [isBlocked, setIsBlocked] = useState(false)
   const [toast, setToast] = useState(null)
 
@@ -189,8 +204,8 @@ function PublicProfile() {
     setIsBlocked((currentUser?.blockedUsers || []).some(id => String(id) === String(userId)))
   }, [currentUser, userId])
 
-  const handleBlock = async () => {
-    if (!window.confirm('Block this user? They will be hidden from your messages and skill feed.')) return
+  const confirmBlock = async () => {
+    setShowBlockConfirm(false)
     try {
       await axios.post(`${API}/moderation/block/${userId}`, {}, { headers: { Authorization: `Bearer ${token}` } })
       setIsBlocked(true)
@@ -373,23 +388,31 @@ function PublicProfile() {
                       style={{
                         width: '38px', height: '38px', borderRadius: '10px', border: '1px solid var(--border2)',
                         background: 'var(--card)', color: 'var(--text-secondary)', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 700
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
                       }}
-                    >⋯</button>
+                    ><IconDots /></button>
                     {showMoreMenu && (
                       <div style={{
                         position: 'fixed', top: `${menuPos.top}px`, right: `${menuPos.right}px`, background: 'var(--card)',
-                        border: '1px solid var(--border2)', borderRadius: '12px', boxShadow: 'var(--shadow-lg)',
-                        zIndex: 500, minWidth: '160px', overflow: 'hidden'
+                        border: '1px solid var(--border2)', borderRadius: '14px', boxShadow: 'var(--shadow-lg)',
+                        zIndex: 500, minWidth: '170px', overflow: 'hidden'
                       }}>
                         <button
                           onClick={() => { setShowReportModal(true); setShowMoreMenu(false) }}
-                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '11px 16px', background: 'none', border: 'none', color: 'var(--text)', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
-                        >🚩 Report</button>
+                          style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', padding: '11px 16px', background: 'none', border: 'none', color: 'var(--text)', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+                        >
+                          <span style={{ width: '26px', height: '26px', borderRadius: '8px', background: 'rgba(255,159,67,0.12)', color: '#ff9f43', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconFlag size={13} /></span>
+                          Report
+                        </button>
                         <button
-                          onClick={() => { setShowMoreMenu(false); isBlocked ? handleUnblock() : handleBlock() }}
-                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '11px 16px', background: 'none', border: 'none', color: '#ff5050', fontSize: '13px', fontWeight: 600, cursor: 'pointer', borderTop: '1px solid var(--border2)' }}
-                        >{isBlocked ? '✓ Unblock' : '🚫 Block'}</button>
+                          onClick={() => { setShowMoreMenu(false); isBlocked ? handleUnblock() : setShowBlockConfirm(true) }}
+                          style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', padding: '11px 16px', background: 'none', border: 'none', color: '#ff5050', fontSize: '13px', fontWeight: 600, cursor: 'pointer', borderTop: '1px solid var(--border2)' }}
+                        >
+                          <span style={{ width: '26px', height: '26px', borderRadius: '8px', background: 'rgba(255,80,80,0.1)', color: '#ff5050', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {isBlocked ? <IconCheckSmall size={13} /> : <IconBlock size={13} />}
+                          </span>
+                          {isBlocked ? 'Unblock' : 'Block'}
+                        </button>
                       </div>
                     )}
                   </div>
@@ -464,6 +487,15 @@ function PublicProfile() {
       </main>
       {showReportModal && (
         <ReportModal userName={profileUser?.name} onClose={() => setShowReportModal(false)} onSubmit={handleReport} />
+      )}
+      {showBlockConfirm && (
+        <ConfirmModal
+          title={`Block ${profileUser?.name}?`}
+          message="They'll be hidden from your messages and skill feed, and won't be able to reach you."
+          danger
+          onCancel={() => setShowBlockConfirm(false)}
+          onConfirm={confirmBlock}
+        />
       )}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
