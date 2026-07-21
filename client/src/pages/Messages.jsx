@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext'
 import ConfirmModal from '../components/ConfirmModal'
+import Toast from '../components/Toast'
 import MobileNav from '../components/MobileNav'
 import '../styles/dashboard.css'
 import '../styles/messages.css'
@@ -597,6 +598,7 @@ function Messages() {
   const [deleteMsgId, setDeleteMsgId] = useState(null)
   const [previewImage, setPreviewImage] = useState(null)
   const [showDeleteChat, setShowDeleteChat] = useState(false)
+  const [toast, setToast] = useState(null)
   const [showAttach, setShowAttach] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
   const [recordSeconds, setRecordSeconds] = useState(0)
@@ -683,7 +685,7 @@ function Messages() {
       fetchConversations()
     } catch (err) {
       console.error('Failed to send message:', err)
-      alert(err.response?.data?.message || 'Failed to send. File may be too large.')
+      setToast({ message: err.response?.data?.message || 'Failed to send. File may be too large.', type: 'error' })
     }
   }
 
@@ -709,7 +711,7 @@ function Messages() {
     const file = e.target.files[0]
     e.target.value = ''
     if (!file) return
-    if (file.size > MAX_FILE_SIZE) { alert('Image too large. Max 2MB allowed.'); return }
+    if (file.size > MAX_FILE_SIZE) { setToast({ message: 'Image too large. Max 2MB allowed.', type: 'error' }); return }
     const reader = new FileReader()
     reader.onloadend = () => {
       setPendingAttachment({ messageType: 'image', fileData: reader.result, fileName: file.name })
@@ -721,7 +723,7 @@ function Messages() {
     const file = e.target.files[0]
     e.target.value = ''
     if (!file) return
-    if (file.size > MAX_FILE_SIZE) { alert('File too large. Max 2MB allowed.'); return }
+    if (file.size > MAX_FILE_SIZE) { setToast({ message: 'File too large. Max 2MB allowed.', type: 'error' }); return }
     const reader = new FileReader()
     reader.onloadend = () => {
       setPendingAttachment({ messageType: 'file', fileData: reader.result, fileName: file.name })
@@ -741,7 +743,7 @@ function Messages() {
   // recording with Play/Discard/Send, matching a standard voice-note flow.
   const startRecording = async () => {
     if (!navigator.mediaDevices || !window.MediaRecorder) {
-      alert('Voice recording is not supported in this browser.')
+      setToast({ message: 'Voice recording is not supported in this browser.', type: 'error' })
       return
     }
     try {
@@ -758,18 +760,18 @@ function Messages() {
         setRecordSeconds(0)
         const actualType = recorder.mimeType || 'audio/webm'
         const blob = new Blob(audioChunksRef.current, { type: actualType })
-        if (blob.size === 0) { alert('Recording was too short. Please try again.'); return }
-        if (blob.size > MAX_FILE_SIZE) { alert('Voice note too long. Keep under 2MB (~1 min).'); return }
+        if (blob.size === 0) { setToast({ message: 'Recording was too short. Please try again.', type: 'error' }); return }
+        if (blob.size > MAX_FILE_SIZE) { setToast({ message: 'Voice note too long. Keep under 2MB (~1 min).', type: 'error' }); return }
         const url = URL.createObjectURL(blob)
         setPendingVoice({ blob, url })
       }
-      recorder.onerror = () => alert('Recording failed. Please try again.')
+      recorder.onerror = () => setToast({ message: 'Recording failed. Please try again.', type: 'error' })
       recorder.start()
       setIsRecording(true)
       setRecordSeconds(0)
       recordIntervalRef.current = setInterval(() => setRecordSeconds(s => s + 1), 1000)
     } catch (err) {
-      alert('Microphone access denied or unavailable.')
+      setToast({ message: 'Microphone access denied or unavailable.', type: 'error' })
     }
   }
 
@@ -866,10 +868,10 @@ function Messages() {
     const helperId = choice === 'me' ? user.id : activeChat.otherUserId
     try {
       const res = await axios.post(`${API}/sessions/${sessionId}/complete`, { helperId }, { headers: { Authorization: `Bearer ${token}` } })
-      if (!res.data.success) alert(res.data.message)
+      if (!res.data.success) setToast({ message: res.data.message, type: 'error' })
       openChat(activeChat)
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to mark completed')
+      setToast({ message: err.response?.data?.message || 'Failed to mark completed', type: 'error' })
     }
   }
 
@@ -884,7 +886,7 @@ function Messages() {
       setEditingSession(null)
       openChat(activeChat)
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to update session')
+      setToast({ message: err.response?.data?.message || 'Failed to update session', type: 'error' })
     }
   }
 
@@ -897,7 +899,7 @@ function Messages() {
       await axios.delete(`${API}/sessions/${sessionId}`, { headers: { Authorization: `Bearer ${token}` } })
       openChat(activeChat)
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to cancel session')
+      setToast({ message: err.response?.data?.message || 'Failed to cancel session', type: 'error' })
     }
   }
 
@@ -908,7 +910,7 @@ function Messages() {
       setRatedSessionIds(prev => ({ ...prev, [sessionId]: true }))
       setRatingSessionId(null)
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to submit rating')
+      setToast({ message: err.response?.data?.message || 'Failed to submit rating', type: 'error' })
     }
   }
 
@@ -1247,6 +1249,7 @@ Calendar
       {showBulkDelete && (
         <ConfirmModal title={`Delete ${selectedIds.length} message(s)?`} message="Selected messages will be permanently deleted." danger onCancel={() => setShowBulkDelete(false)} onConfirm={confirmBulkDelete} />
       )}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <MobileNav />
     </div>
   )

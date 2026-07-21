@@ -8,7 +8,7 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['message', 'session_scheduled', 'session_completed', 'session_reminder', 'session_starting', 'session_cancelled'],
+    enum: ['message', 'session_scheduled', 'session_completed', 'session_reminder', 'session_starting', 'session_cancelled', 'user_blocked', 'report_filed', 'report_received'],
     required: true
   },
   fromUser: {

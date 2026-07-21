@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const Report = require('../models/Report')
 const User = require('../models/User')
+const Notification = require('../models/Notification')
 const jwt = require('jsonwebtoken')
 
 const auth = (req, res, next) => {
@@ -43,6 +44,28 @@ router.post('/reports', auth, async (req, res) => {
       reason,
       details: details || ''
     })
+
+    // Confirm to the reporter that it went through, and alert every admin
+    // so reports don't sit unnoticed until someone checks the panel.
+    const reporter = await User.findById(req.user.id).select('name')
+    await Notification.create({
+      user: req.user.id,
+      type: 'report_filed',
+      fromUser: req.user.id,
+      fromName: reporter?.name || 'You',
+      text: 'Your report was submitted. Our team will review it shortly.',
+      link: '/profile'
+    })
+
+    const admins = await User.find({ isAdmin: true }).select('_id')
+    await Promise.all(admins.map(admin => Notification.create({
+      user: admin._id,
+      type: 'report_received',
+      fromUser: req.user.id,
+      fromName: reporter?.name || 'Someone',
+      text: `${reporter?.name || 'Someone'} filed a new report — review it in Moderation`,
+      link: '/admin/moderation'
+    })))
 
     res.status(201).json({ success: true, report })
   } catch (error) {
@@ -102,6 +125,16 @@ router.post('/block/:userId', auth, async (req, res) => {
       user.blockedUsers.push(targetId)
       await user.save()
     }
+
+    const blockedPerson = await User.findById(targetId).select('name')
+    await Notification.create({
+      user: req.user.id,
+      type: 'user_blocked',
+      fromUser: req.user.id,
+      fromName: user.name,
+      text: `You blocked ${blockedPerson?.name || 'this user'}. They can no longer message you.`,
+      link: '/profile'
+    })
 
     res.json({ success: true, blockedUsers: user.blockedUsers })
   } catch (error) {

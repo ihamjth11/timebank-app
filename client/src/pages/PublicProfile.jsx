@@ -251,7 +251,7 @@ function PublicProfile() {
       }
       navigate('/messages')
     } catch (err) {
-      alert('Failed to start conversation')
+      setToast({ message: err.response?.data?.message || 'Failed to start conversation', type: 'error' })
     }
   }
 
