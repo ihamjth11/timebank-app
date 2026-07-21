@@ -137,6 +137,13 @@ router.post('/login', async (req, res) => {
       })
     }
 
+    if (user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'This account has been suspended. Contact TimeBank support if you think this is a mistake.'
+      })
+    }
+
     const token = jwt.sign(
       { id: user._id },
       process.env.JWT_SECRET,
@@ -224,6 +231,13 @@ router.post('/google', async (req, res) => {
         referrer.referralCount = (referrer.referralCount || 0) + 1
         await referrer.save()
       }
+    }
+
+    if (user.isActive === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'This account has been suspended. Contact TimeBank support if you think this is a mistake.'
+      })
     }
 
     const token = jwt.sign(

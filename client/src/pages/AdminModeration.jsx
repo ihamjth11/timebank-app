@@ -56,6 +56,16 @@ function AdminModeration() {
     }
   }
 
+  const suspendUser = async (userId, userName) => {
+    if (!window.confirm(`Suspend ${userName}'s account? They will be unable to log in.`)) return
+    try {
+      await axios.put(`${API}/moderation/users/${userId}/suspend`, {}, { headers: { Authorization: `Bearer ${token}` } })
+      fetchReports()
+    } catch (err) {
+      console.error('Failed to suspend user:', err)
+    }
+  }
+
   if (denied) {
     return (
       <div className="dash">
@@ -116,9 +126,10 @@ function AdminModeration() {
                 <div style={{ fontSize: '12.5px', color: '#7c6fff', fontWeight: 600, marginBottom: '4px' }}>{REASON_LABELS[r.reason] || r.reason}</div>
                 {r.details && <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '10px', lineHeight: '1.5' }}>{r.details}</p>}
                 {r.status === 'pending' && (
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button onClick={() => updateStatus(r._id, 'reviewed')} style={{ background: 'rgba(0,184,148,0.1)', color: '#00b894', border: '1px solid rgba(0,184,148,0.25)', borderRadius: '8px', padding: '6px 14px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>Mark Reviewed</button>
                     <button onClick={() => updateStatus(r._id, 'dismissed')} style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: '8px', padding: '6px 14px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>Dismiss</button>
+                    <button onClick={() => suspendUser(r.reportedUser?._id, r.reportedUser?.name)} style={{ background: 'rgba(255,80,80,0.08)', color: '#ff5050', border: '1px solid rgba(255,80,80,0.25)', borderRadius: '8px', padding: '6px 14px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>🚫 Suspend Account</button>
                   </div>
                 )}
               </div>

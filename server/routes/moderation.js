@@ -136,4 +136,38 @@ router.get('/blocked', auth, async (req, res) => {
   }
 })
 
+// PUT /api/moderation/users/:userId/suspend — admin only, deactivate an account.
+// Suspended accounts are blocked at login (see auth.js). Existing active
+// sessions/tokens remain valid until they naturally expire.
+router.put('/users/:userId/suspend', auth, requireAdmin, async (req, res) => {
+  try {
+    const targetUser = await User.findById(req.params.userId)
+    if (!targetUser) return res.status(404).json({ success: false, message: 'User not found' })
+
+    targetUser.isActive = false
+    await targetUser.save()
+
+    res.json({ success: true, message: `${targetUser.name} has been suspended` })
+  } catch (error) {
+    console.error('Suspend user error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
+// PUT /api/moderation/users/:userId/reactivate — admin only, restore an account
+router.put('/users/:userId/reactivate', auth, requireAdmin, async (req, res) => {
+  try {
+    const targetUser = await User.findById(req.params.userId)
+    if (!targetUser) return res.status(404).json({ success: false, message: 'User not found' })
+
+    targetUser.isActive = true
+    await targetUser.save()
+
+    res.json({ success: true, message: `${targetUser.name} has been reactivated` })
+  } catch (error) {
+    console.error('Reactivate user error:', error)
+    res.status(500).json({ success: false, message: 'Server error' })
+  }
+})
+
 module.exports = router

@@ -616,8 +616,8 @@ function Messages() {
   const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'MH'
   const otherInitials = activeChat?.name ? activeChat.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?'
 
-  const fetchConversations = async () => {
-    setLoading(true)
+  const fetchConversations = async (showLoading = true) => {
+    if (showLoading) setLoading(true)
     try {
       const res = await axios.get(`${API}/messages/conversations`, { headers: { Authorization: `Bearer ${token}` } })
       const blockedIds = (user?.blockedUsers || []).map(String)
@@ -626,13 +626,13 @@ function Messages() {
     } catch (err) {
       console.error('Failed to fetch conversations:', err)
     } finally {
-      setLoading(false)
+      if (showLoading) setLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchConversations()
-    const interval = setInterval(fetchConversations, 8000)
+    fetchConversations(true)
+    const interval = setInterval(() => fetchConversations(false), 8000)
     return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
