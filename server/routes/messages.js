@@ -17,6 +17,19 @@ const auth = (req, res, next) => {
   }
 }
 
+// Returns true if either user has blocked the other — checked both ways so
+// a block is fully mutual: neither person can message or view the thread.
+const isBlockedEitherWay = async (userIdA, userIdB) => {
+  const [userA, userB] = await Promise.all([
+    User.findById(userIdA).select('blockedUsers'),
+    User.findById(userIdB).select('blockedUsers')
+  ])
+  if (!userA || !userB) return false
+  const aBlockedB = (userA.blockedUsers || []).some(id => id.toString() === userIdB)
+  const bBlockedA = (userB.blockedUsers || []).some(id => id.toString() === userIdA)
+  return aBlockedB || bBlockedA
+}
+
 router.get('/conversations', auth, async (req, res) => {
   try {
     const userId = req.user.id
@@ -42,17 +55,28 @@ router.get('/conversations', auth, async (req, res) => {
       }
     }
 
-    const otherIds = Object.keys(convoMap)
-    const users = await User.find({ _id: { $in: otherIds } }).select('name email')
+    const currentUser = await User.findById(userId).select('blockedUsers')
+    const myBlockedIds = new Set((currentUser?.blockedUsers || []).map(id => id.toString()))
 
-    const conversations = otherIds.map(id => {
-      const u = users.find(u => u._id.toString() === id)
-      return {
-        ...convoMap[id],
-        name: u?.name || 'Unknown User',
-        email: u?.email || ''
-      }
-    }).sort((a, b) => new Date(b.lastTime) - new Date(a.lastTime))
+    const otherIds = Object.keys(convoMap)
+    const users = await User.find({ _id: { $in: otherIds } }).select('name email blockedUsers')
+
+    // Hide the conversation if either side has blocked the other.
+    const conversations = otherIds
+      .filter(id => {
+        const u = users.find(u => u._id.toString() === id)
+        const theyBlockedMe = (u?.blockedUsers || []).some(bid => bid.toString() === userId)
+        return !myBlockedIds.has(id) && !theyBlockedMe
+      })
+      .map(id => {
+        const u = users.find(u => u._id.toString() === id)
+        return {
+          ...convoMap[id],
+          name: u?.name || 'Unknown User',
+          email: u?.email || ''
+        }
+      })
+      .sort((a, b) => new Date(b.lastTime) - new Date(a.lastTime))
 
     res.json({ success: true, conversations })
   } catch (error) {
@@ -64,6 +88,14 @@ router.get('/:userId', auth, async (req, res) => {
   try {
     const userId = req.user.id
     const otherId = req.params.userId
+
+    // If either person has blocked the other, the thread is fully hidden —
+    // return an empty conversation rather than a hard error so the UI can
+    // just show "no messages" instead of crashing.
+    const blocked = await isBlockedEitherWay(userId, otherId)
+    if (blocked) {
+      return res.json({ success: true, messages: [], blocked: true })
+    }
 
     const messages = await Message.find({
       $or: [
@@ -88,6 +120,11 @@ router.post('/', auth, async (req, res) => {
     const { receiverId, text, messageType, fileData, fileName } = req.body
     if (!receiverId || (!text && !fileData)) {
       return res.status(400).json({ success: false, message: 'Missing fields' })
+    }
+
+    const blocked = await isBlockedEitherWay(req.user.id, receiverId)
+    if (blocked) {
+      return res.status(403).json({ success: false, message: "You can't message this user" })
     }
 
     const message = new Message({
