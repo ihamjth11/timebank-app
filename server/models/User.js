@@ -65,7 +65,7 @@ const UserSchema = new mongoose.Schema({
   bio: {
     type: String,
     default: '',
-    maxlength: 200
+    maxlength: 800
   },
 
   // Active status

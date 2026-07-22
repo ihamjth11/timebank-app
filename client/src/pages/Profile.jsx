@@ -104,6 +104,7 @@ function EditProfileModal({ user, onClose, onSave }) {
     avatar: user?.avatar || ''
   })
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [rawImage, setRawImage] = useState(null)
   const bioWordCount = form.bio.trim() === '' ? 0 : form.bio.trim().split(/\s+/).length
 
@@ -124,9 +125,11 @@ function EditProfileModal({ user, onClose, onSave }) {
   const handleSubmit = async () => {
     if (bioWordCount > 90) return
     setLoading(true)
+    setError('')
     const result = await onSave(form)
     setLoading(false)
     if (result.success) onClose()
+    else setError(result.message || 'Failed to save profile. Please try again.')
   }
 
   return (
@@ -143,6 +146,16 @@ function EditProfileModal({ user, onClose, onSave }) {
         <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', marginBottom: '20px' }}>
           Edit Profile
         </h2>
+
+        {error && (
+          <div style={{
+            background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)',
+            color: '#ff5050', padding: '10px 14px', borderRadius: '10px',
+            fontSize: '13px', marginBottom: '14px'
+          }}>
+            {error}
+          </div>
+        )}
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '20px' }}>
           <div style={{

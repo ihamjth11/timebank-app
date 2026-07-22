@@ -318,6 +318,10 @@ router.put('/profile', async (req, res) => {
 
   } catch (error) {
     console.error('Update profile error:', error)
+    if (error.name === 'ValidationError') {
+      const firstError = Object.values(error.errors)[0]
+      return res.status(400).json({ success: false, message: firstError?.message || 'Invalid profile data' })
+    }
     res.status(500).json({ success: false, message: 'Server error' })
   }
 })

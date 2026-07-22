@@ -517,10 +517,11 @@ function ChatBubble({ msg, isMine, senderInitials, time, onRequestDelete, select
       {!isMine && !selectMode && (
         <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'rgba(124,111,255,0.15)', color: '#7c6fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 700, flexShrink: 0 }}>{senderInitials}</div>
       )}
-      {isMine && showActions && !selectMode && (
+      {isMine && !selectMode && (
         <button onClick={(e) => { e.stopPropagation(); onRequestDelete(msg._id) }} title="Delete message" style={{
           background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '50%', width: '22px', height: '22px', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff5050', flexShrink: 0
+          display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff5050', flexShrink: 0,
+          opacity: showActions ? 1 : 0, pointerEvents: showActions ? 'auto' : 'none', transition: 'opacity 0.15s ease'
         }}><IconTrash size={11} /></button>
       )}
       <div style={{ position: 'relative' }}>
@@ -1105,7 +1106,7 @@ Calendar
             </div>
 
             <div style={{
-              flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '10px', boxSizing: 'border-box', width: '100%',
+              flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px', boxSizing: 'border-box', width: '100%',
               background: `var(--bg2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%237c6fff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
             }}>
               {timeline.map((item, i) => {
