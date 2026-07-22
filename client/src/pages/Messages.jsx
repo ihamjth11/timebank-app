@@ -1015,7 +1015,17 @@ Calendar
         {!activeChat ? (
           <div className="msgs__list">
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>Loading conversations...</div>
+              <>
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px' }}>
+                    <span className="skeleton" style={{ width: '48px', height: '48px', borderRadius: '50%', flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="skeleton skeleton-line" style={{ width: '45%', marginBottom: '8px' }} />
+                      <div className="skeleton skeleton-line" style={{ width: '70%' }} />
+                    </div>
+                  </div>
+                ))}
+              </>
             ) : conversations.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
                 <div style={{ marginBottom: '16px', opacity: 0.4, color: 'var(--text-muted)', display: 'flex', justifyContent: 'center' }}><IconChatBubble size={40} /></div>

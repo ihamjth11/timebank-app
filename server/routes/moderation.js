@@ -136,6 +136,17 @@ router.post('/block/:userId', auth, async (req, res) => {
       link: '/profile'
     })
 
+    // Also let the other person know, worded neutrally rather than
+    // announcing "you were blocked" to keep things low-conflict.
+    await Notification.create({
+      user: targetId,
+      type: 'user_blocked',
+      fromUser: req.user.id,
+      fromName: 'TimeBank',
+      text: `You can no longer message ${user.name} or see their listings.`,
+      link: '/messages'
+    })
+
     res.json({ success: true, blockedUsers: user.blockedUsers })
   } catch (error) {
     console.error('Block user error:', error)
@@ -150,6 +161,16 @@ router.post('/unblock/:userId', auth, async (req, res) => {
     const user = await User.findById(req.user.id)
     user.blockedUsers = user.blockedUsers.filter(id => id.toString() !== targetId)
     await user.save()
+
+    const unblockedPerson = await User.findById(targetId).select('name')
+    await Notification.create({
+      user: req.user.id,
+      type: 'user_blocked',
+      fromUser: req.user.id,
+      fromName: user.name,
+      text: `You unblocked ${unblockedPerson?.name || 'this user'}.`,
+      link: '/profile'
+    })
 
     res.json({ success: true, blockedUsers: user.blockedUsers })
   } catch (error) {

@@ -105,6 +105,7 @@ function EditProfileModal({ user, onClose, onSave }) {
   })
   const [loading, setLoading] = useState(false)
   const [rawImage, setRawImage] = useState(null)
+  const bioWordCount = form.bio.trim() === '' ? 0 : form.bio.trim().split(/\s+/).length
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0]
@@ -121,6 +122,7 @@ function EditProfileModal({ user, onClose, onSave }) {
   }
 
   const handleSubmit = async () => {
+    if (bioWordCount > 90) return
     setLoading(true)
     const result = await onSave(form)
     setLoading(false)
@@ -194,14 +196,24 @@ function EditProfileModal({ user, onClose, onSave }) {
           <textarea
             value={form.bio}
             onChange={e => setForm({ ...form, bio: e.target.value })}
-            maxLength={200}
             rows={3}
             style={{
-              width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)',
+              width: '100%', background: 'var(--input-bg)',
+              border: `1px solid ${bioWordCount > 90 ? '#ff5050' : 'var(--border)'}`,
               borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none',
               fontSize: '14px', fontFamily: 'inherit', resize: 'vertical'
             }}
           />
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
+            {bioWordCount > 90 ? (
+              <span style={{ fontSize: '11.5px', color: '#ff5050', fontWeight: 600 }}>
+                Bio must be 90 words or fewer — remove {bioWordCount - 90} word{bioWordCount - 90 > 1 ? 's' : ''}
+              </span>
+            ) : <span />}
+            <span style={{ fontSize: '11px', color: bioWordCount > 90 ? '#ff5050' : 'var(--text-muted)', fontWeight: 600 }}>
+              {bioWordCount}/90 words
+            </span>
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>
@@ -211,9 +223,11 @@ function EditProfileModal({ user, onClose, onSave }) {
           }}>
             Cancel
           </button>
-          <button onClick={handleSubmit} disabled={loading} style={{
+          <button onClick={handleSubmit} disabled={loading || bioWordCount > 90} style={{
             flex: 1, padding: '11px', borderRadius: '10px', border: 'none',
-            background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', fontWeight: 600, cursor: 'pointer'
+            background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', fontWeight: 600,
+            cursor: (loading || bioWordCount > 90) ? 'not-allowed' : 'pointer',
+            opacity: bioWordCount > 90 ? 0.5 : 1
           }}>
             {loading ? 'Saving...' : 'Save Changes'}
           </button>
@@ -363,6 +377,67 @@ function BadgesCard({ badges, streak, sessionCount }) {
               </div>
             )
           })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function BlockedUsersCard({ token }) {
+  const [blocked, setBlocked] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchBlocked = async () => {
+    setLoading(true)
+    try {
+      const res = await axios.get(`${API}/moderation/blocked`, { headers: { Authorization: `Bearer ${token}` } })
+      setBlocked(res.data.blockedUsers || [])
+    } catch (err) {
+      console.error('Failed to fetch blocked users:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { fetchBlocked() }, [])
+
+  const handleUnblock = async (userId) => {
+    try {
+      await axios.post(`${API}/moderation/unblock/${userId}`, {}, { headers: { Authorization: `Bearer ${token}` } })
+      setBlocked(blocked.filter(u => u._id !== userId))
+    } catch (err) {
+      console.error('Failed to unblock:', err)
+    }
+  }
+
+  if (!loading && blocked.length === 0) return null
+
+  return (
+    <div className="dash__txns" style={{ marginTop: '14px' }}>
+      <div className="dash__section-title">Blocked Users</div>
+      {loading ? (
+        <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '10px' }}>Loading...</div>
+      ) : (
+        <div style={{ marginTop: '12px' }}>
+          {blocked.map(u => (
+            <div key={u._id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0', borderBottom: '1px solid var(--border2)' }}>
+              <div style={{
+                width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0,
+                background: u.avatar ? 'transparent' : 'linear-gradient(135deg, #7c6fff, #ff6fb0)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: 700
+              }}>
+                {u.avatar ? <img src={u.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : u.name?.split(' ').map(n => n[0]).join('').toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>{u.name}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{u.location}</div>
+              </div>
+              <button onClick={() => handleUnblock(u._id)} style={{
+                background: 'var(--input-bg)', border: '1px solid var(--border)', color: 'var(--text-secondary)',
+                borderRadius: '8px', padding: '6px 14px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer'
+              }}>Unblock</button>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -586,6 +661,8 @@ function Profile() {
             {user?.bio || "No bio added yet. Click 'Edit Profile' to add one!"}
           </p>
         </div>
+
+        <BlockedUsersCard token={token} />
 
         <button
           className="profile__mobile-logout"
