@@ -7,9 +7,20 @@ const router = express.Router()
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const { OAuth2Client } = require('google-auth-library')
+const rateLimit = require('express-rate-limit')
 const User = require('../models/User')
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+
+// Limits login/register/Google-login attempts per IP — slows down
+// brute-force and credential-stuffing attacks.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many attempts. Please try again in a few minutes.' }
+})
 
 const REFERRAL_BONUS = 2 // credits given to both the new user and the referrer
 
@@ -26,7 +37,7 @@ async function generateUniqueReferralCode() {
 // ===================================
 // REGISTER — POST /api/auth/register
 // ===================================
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   try {
     const { name, email, password, refCode } = req.body
 
@@ -110,7 +121,8 @@ router.post('/register', async (req, res) => {
 // ===================================
 // LOGIN — POST /api/auth/login
 // ===================================
-router.post('/login', async (req, res) => {
+
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body
 
@@ -121,7 +133,7 @@ router.post('/login', async (req, res) => {
       })
     }
 
-    const user = await User.findOne({ email })
+    const user = await User.findOne({ email: email.toLowerCase().trim() })
     if (!user || !user.password) {
       return res.status(400).json({ 
         success: false,
@@ -129,12 +141,36 @@ router.post('/login', async (req, res) => {
       })
     }
 
+    // Account-level lockout: after too many wrong passwords, block further
+    // attempts on THIS account for a cooldown period, even from other IPs.
+    if (user.lockUntil && user.lockUntil > Date.now()) {
+      const minutesLeft = Math.ceil((user.lockUntil - Date.now()) / 60000)
+      return res.status(429).json({
+        success: false,
+        message: `Too many failed attempts. Try again in ${minutesLeft} minute${minutesLeft > 1 ? 's' : ''}.`
+      })
+    }
+
     const isMatch = await bcrypt.compare(password, user.password)
     if (!isMatch) {
+      user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1
+      if (user.failedLoginAttempts >= 5) {
+        user.lockUntil = new Date(Date.now() + 15 * 60 * 1000)
+        user.failedLoginAttempts = 0
+      }
+      await user.save()
+
       return res.status(400).json({ 
         success: false,
         message: 'Invalid email or password' 
       })
+    }
+
+    // Successful password match — clear any lockout state
+    if (user.failedLoginAttempts > 0 || user.lockUntil) {
+      user.failedLoginAttempts = 0
+      user.lockUntil = null
+      await user.save()
     }
 
     if (user.isActive === false) {
@@ -182,7 +218,7 @@ router.post('/login', async (req, res) => {
 // ===================================
 // GOOGLE LOGIN — POST /api/auth/google
 // ===================================
-router.post('/google', async (req, res) => {
+router.post('/google', authLimiter, async (req, res) => {
   try {
     const { credential, refCode } = req.body
     if (!credential) {

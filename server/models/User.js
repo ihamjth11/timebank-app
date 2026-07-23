@@ -74,6 +74,16 @@ const UserSchema = new mongoose.Schema({
     default: true
   },
 
+  // Brute-force login protection
+  failedLoginAttempts: {
+    type: Number,
+    default: 0
+  },
+  lockUntil: {
+    type: Date,
+    default: null
+  },
+
   // Unique code this user can share to invite friends
   referralCode: {
     type: String,
