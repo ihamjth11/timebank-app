@@ -39,6 +39,12 @@
   height: 100vh;
   z-index: 100;
   box-shadow: var(--shadow);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.dash__sidebar-bottom {
+  flex-shrink: 0;
 }
 
 .dash__sidebar-logo {
