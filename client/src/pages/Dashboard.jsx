@@ -2,6 +2,7 @@ import MobileNav from '../components/MobileNav'
 import ThemeToggle from '../components/ThemeToggle'
 import OnboardingTour from '../components/OnboardingTour'
 import NotificationBell from '../components/NotificationBell'
+import InstallPrompt from '../components/InstallPrompt'
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -215,6 +216,8 @@ function Dashboard() {
           <NotificationBell />
           </div>
         </div>
+
+        <InstallPrompt />
 
         {/* Stats */}
         <div className="dash__stats">
