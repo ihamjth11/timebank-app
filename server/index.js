@@ -1,7 +1,6 @@
 const express = require('express')
 const cors = require('cors')
 const helmet = require('helmet')
-const mongoSanitize = require('express-mongo-sanitize')
 const rateLimit = require('express-rate-limit')
 const dotenv = require('dotenv')
 const connectDB = require('./config/db')
@@ -42,9 +41,25 @@ app.use(cors({
 
 app.use(express.json({ limit: '5mb' }))
 
-// Strips out any MongoDB query operators (like $gt, $ne) from user input
-// so req.body/req.query/req.params can't be used to inject NoSQL queries.
-app.use(mongoSanitize())
+// Lightweight NoSQL-injection guard, hand-rolled instead of using the
+// express-mongo-sanitize package: that package tries to reassign
+// req.query/req.params, which are read-only getters on newer
+// Express/Node combinations and crashes EVERY request with a 500.
+// Mutating req.body's own keys in place is always safe.
+function stripMongoOperators(obj) {
+  if (!obj || typeof obj !== 'object') return
+  for (const key of Object.keys(obj)) {
+    if (key.startsWith('$') || key.includes('.')) {
+      delete obj[key]
+    } else if (obj[key] && typeof obj[key] === 'object') {
+      stripMongoOperators(obj[key])
+    }
+  }
+}
+app.use((req, res, next) => {
+  if (req.body) stripMongoOperators(req.body)
+  next()
+})
 
 // General API-wide rate limit — a looser ceiling than the auth-specific
 // limiter, just to blunt abusive scripts/scrapers hitting the API hard.
