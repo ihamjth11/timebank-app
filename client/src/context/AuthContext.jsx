@@ -6,9 +6,34 @@ const AuthContext = createContext()
 
 const INACTIVITY_LIMIT_MS = 7 * 24 * 60 * 60 * 1000 // 7 days of not opening the app
 
+// iOS Home Screen ("Add to Home Screen") web apps sometimes don't reliably
+// keep localStorage in sync with regular Safari due to WebKit's storage
+// purging behavior. As a resilience layer, we mirror the token into a
+// first-party cookie too — cookies have historically survived more
+// consistently than localStorage under iOS's Intelligent Tracking
+// Prevention, so if one gets wiped we can recover the session from the
+// other instead of forcing a fresh login every time.
+function setStoredToken(token) {
+  localStorage.setItem('token', token)
+  document.cookie = `tb_token=${token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`
+}
+
+function getStoredToken() {
+  const fromLocalStorage = localStorage.getItem('token')
+  if (fromLocalStorage) return fromLocalStorage
+  const match = document.cookie.match(/(?:^|;\s*)tb_token=([^;]+)/)
+  return match ? match[1] : null
+}
+
+function clearStoredToken() {
+  localStorage.removeItem('token')
+  localStorage.removeItem('tb_last_active')
+  document.cookie = 'tb_token=; path=/; max-age=0'
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
-  const [token, setToken] = useState(localStorage.getItem('token') || null)
+  const [token, setToken] = useState(getStoredToken())
   const [loading, setLoading] = useState(false)
   const [initializing, setInitializing] = useState(true)
   const [error, setError] = useState(null)
@@ -21,8 +46,7 @@ export function AuthProvider({ children }) {
   }
 
   const clearSession = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('tb_last_active')
+    clearStoredToken()
     setToken(null)
     setUser(null)
   }
@@ -35,6 +59,12 @@ export function AuthProvider({ children }) {
   // explicit Logout tap or genuine 7-day inactivity.
   useEffect(() => {
     const loadUser = async () => {
+      // If localStorage lost the token but the backup cookie still has it
+      // (or vice versa), re-sync both so future loads are consistent.
+      if (token) {
+        setStoredToken(token)
+      }
+
       const lastActive = parseInt(localStorage.getItem('tb_last_active') || '0', 10)
       if (token && lastActive && Date.now() - lastActive > INACTIVITY_LIMIT_MS) {
         clearSession()
@@ -86,7 +116,7 @@ export function AuthProvider({ children }) {
       })
       setToken(res.data.token)
       setUser(res.data.user)
-      localStorage.setItem('token', res.data.token)
+      setStoredToken(res.data.token)
       markActive()
       return { success: true }
     } catch (err) {
@@ -107,7 +137,7 @@ export function AuthProvider({ children }) {
       })
       setToken(res.data.token)
       setUser(res.data.user)
-      localStorage.setItem('token', res.data.token)
+      setStoredToken(res.data.token)
       markActive()
       return { success: true }
     } catch (err) {
@@ -126,7 +156,7 @@ export function AuthProvider({ children }) {
       const res = await axios.post(`${API}/auth/google`, { credential, refCode })
       setToken(res.data.token)
       setUser(res.data.user)
-      localStorage.setItem('token', res.data.token)
+      setStoredToken(res.data.token)
       markActive()
       return { success: true }
     } catch (err) {
