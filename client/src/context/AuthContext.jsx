@@ -4,6 +4,8 @@ import { subscribeToPush } from '../utils/pushNotifications'
 
 const AuthContext = createContext()
 
+const INACTIVITY_LIMIT_MS = 7 * 24 * 60 * 60 * 1000 // 7 days of not opening the app
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(localStorage.getItem('token') || null)
@@ -14,21 +16,51 @@ export function AuthProvider({ children }) {
 
   const API = 'https://timebank-app.onrender.com/api'
 
-  // On app load, if a token exists but user is not loaded, fetch the real user
+  const markActive = () => {
+    localStorage.setItem('tb_last_active', Date.now().toString())
+  }
+
+  const clearSession = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('tb_last_active')
+    setToken(null)
+    setUser(null)
+  }
+
+  // On app load: first check whether the user has simply been away for
+  // 7+ days (auto-logout for inactivity), then — and only if a real,
+  // confirmed-invalid token is returned — clear the session. Network
+  // errors, CORS hiccups, or a temporarily unreachable server must NEVER
+  // silently log the user out; they should only be logged out by an
+  // explicit Logout tap or genuine 7-day inactivity.
   useEffect(() => {
     const loadUser = async () => {
+      const lastActive = parseInt(localStorage.getItem('tb_last_active') || '0', 10)
+      if (token && lastActive && Date.now() - lastActive > INACTIVITY_LIMIT_MS) {
+        clearSession()
+        setInitializing(false)
+        return
+      }
+
       if (token && !user) {
         try {
           const res = await axios.get(`${API}/auth/me`, {
             headers: { Authorization: `Bearer ${token}` }
           })
           setUser(res.data.user)
+          markActive()
         } catch (err) {
-          // Token invalid/expired — clear it
-          localStorage.removeItem('token')
-          setToken(null)
-          setUser(null)
+          // Only a real "token rejected" response (401/403) should log the
+          // person out. Anything else (network error, CORS, timeout, 5xx)
+          // just fails silently for this load — the token stays, and the
+          // next successful request will restore the session normally.
+          const status = err.response?.status
+          if (status === 401 || status === 403) {
+            clearSession()
+          }
         }
+      } else if (token && user) {
+        markActive()
       }
       setInitializing(false)
     }
@@ -55,6 +87,7 @@ export function AuthProvider({ children }) {
       setToken(res.data.token)
       setUser(res.data.user)
       localStorage.setItem('token', res.data.token)
+      markActive()
       return { success: true }
     } catch (err) {
       const msg = err.response?.data?.message || 'Registration failed'
@@ -75,6 +108,7 @@ export function AuthProvider({ children }) {
       setToken(res.data.token)
       setUser(res.data.user)
       localStorage.setItem('token', res.data.token)
+      markActive()
       return { success: true }
     } catch (err) {
       const msg = err.response?.data?.message || 'Login failed'
@@ -93,6 +127,7 @@ export function AuthProvider({ children }) {
       setToken(res.data.token)
       setUser(res.data.user)
       localStorage.setItem('token', res.data.token)
+      markActive()
       return { success: true }
     } catch (err) {
       const msg = err.response?.data?.message || 'Google login failed'
@@ -111,6 +146,7 @@ export function AuthProvider({ children }) {
         headers: { Authorization: `Bearer ${token}` }
       })
       setUser(res.data.user)
+      markActive()
       return { success: true }
     } catch (err) {
       const msg = err.response?.data?.message || 'Update failed'
@@ -122,10 +158,8 @@ export function AuthProvider({ children }) {
   }
 
   const logout = () => {
-    setUser(null)
-    setToken(null)
     pushSubscribedRef.current = false
-    localStorage.removeItem('token')
+    clearSession()
   }
 
   return (

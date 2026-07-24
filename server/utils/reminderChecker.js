@@ -1,12 +1,9 @@
-const webpush = require('web-push')
 const Session = require('../models/Session')
 const Notification = require('../models/Notification')
-const PushSubscription = require('../models/PushSubscription')
+const { initPush, sendPushToUser } = require('./pushHelper')
 
 const REMINDER_WINDOW_MS = 15 * 60 * 1000 // 15 minutes
 const CHECK_INTERVAL_MS = 60 * 1000 // check every 1 minute
-
-let pushEnabled = false
 
 // session.date is a "YYYY-MM-DD" string and session.time is "HH:MM",
 // both entered as the user's local Sri Lanka time (UTC+5:30). The server
@@ -14,26 +11,6 @@ let pushEnabled = false
 // offset here to get the correct absolute moment in time.
 function getSessionDateTime(session) {
   return new Date(`${session.date}T${session.time}:00+05:30`)
-}
-
-async function sendPushToUser(userId, payload) {
-  if (!pushEnabled) return
-  const subs = await PushSubscription.find({ user: userId })
-  for (const sub of subs) {
-    try {
-      await webpush.sendNotification(
-        { endpoint: sub.endpoint, keys: sub.keys },
-        JSON.stringify(payload)
-      )
-    } catch (err) {
-      // Subscription expired or the user revoked permission — clean it up
-      if (err.statusCode === 410 || err.statusCode === 404) {
-        await PushSubscription.deleteOne({ _id: sub._id })
-      } else {
-        console.error('Push send error:', err.message)
-      }
-    }
-  }
 }
 
 async function notifyBoth(session, { type, text, link }) {
@@ -98,24 +75,7 @@ async function checkSessionReminders() {
 }
 
 function startReminderChecker() {
-  // Configure web-push only now (after dotenv has definitely loaded),
-  // and never let a missing/misconfigured key crash the whole server.
-  if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-    try {
-      webpush.setVapidDetails(
-        'mailto:hamjath11@gmail.com',
-        process.env.VAPID_PUBLIC_KEY,
-        process.env.VAPID_PRIVATE_KEY
-      )
-      pushEnabled = true
-    } catch (err) {
-      console.error('⚠️  Failed to configure web-push, push notifications disabled:', err.message)
-      pushEnabled = false
-    }
-  } else {
-    console.warn('⚠️  VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY not set — browser push notifications disabled, in-app reminders still work.')
-    pushEnabled = false
-  }
+  initPush() // configure web-push once, shared with every route file
 
   checkSessionReminders() // run once immediately on server startup
   setInterval(checkSessionReminders, CHECK_INTERVAL_MS)

@@ -3,6 +3,7 @@ const router = express.Router()
 const Report = require('../models/Report')
 const User = require('../models/User')
 const Notification = require('../models/Notification')
+const { sendPushToUser } = require('../utils/pushHelper')
 const jwt = require('jsonwebtoken')
 
 const auth = (req, res, next) => {
@@ -64,6 +65,11 @@ router.post('/reports', auth, async (req, res) => {
       fromUser: req.user.id,
       fromName: reporter?.name || 'Someone',
       text: `${reporter?.name || 'Someone'} filed a new report — review it in Moderation`,
+      link: '/admin/moderation'
+    })))
+    await Promise.all(admins.map(admin => sendPushToUser(admin._id, {
+      title: 'TimeBank Moderation',
+      body: `${reporter?.name || 'Someone'} filed a new report`,
       link: '/admin/moderation'
     })))
 

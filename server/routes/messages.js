@@ -3,6 +3,7 @@ const router = express.Router()
 const Message = require('../models/Message')
 const User = require('../models/User')
 const Notification = require('../models/Notification')
+const { sendPushToUser } = require('../utils/pushHelper')
 const jwt = require('jsonwebtoken')
 
 const auth = (req, res, next) => {
@@ -148,6 +149,14 @@ router.post('/', auth, async (req, res) => {
       fromUser: req.user.id,
       fromName: sender?.name || 'Someone',
       text: notifText,
+      link: '/messages'
+    })
+
+    // Real OS-level push (like WhatsApp/Instagram) — shows up even if the
+    // recipient doesn't have TimeBank open at all.
+    await sendPushToUser(receiverId, {
+      title: sender?.name || 'TimeBank',
+      body: messageType === 'text' || !messageType ? (text || 'Sent a message') : `Sent a ${messageType}`,
       link: '/messages'
     })
 
