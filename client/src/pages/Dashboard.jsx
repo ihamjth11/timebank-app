@@ -3,6 +3,7 @@ import ThemeToggle from '../components/ThemeToggle'
 import OnboardingTour from '../components/OnboardingTour'
 import NotificationBell from '../components/NotificationBell'
 import InstallPrompt from '../components/InstallPrompt'
+import EnableNotifications from '../components/EnableNotifications'
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
@@ -218,6 +219,7 @@ function Dashboard() {
         </div>
 
         <InstallPrompt />
+        <EnableNotifications token={token} />
 
         {/* Stats */}
         <div className="dash__stats">
