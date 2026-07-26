@@ -23,7 +23,7 @@ const STATUS_STYLE = {
 }
 
 function AdminModeration() {
-  const { user, token } = useAuth()
+  const { user, token, initializing } = useAuth()
   const navigate = useNavigate()
   const [reports, setReports] = useState([])
   const [loading, setLoading] = useState(true)
@@ -45,7 +45,19 @@ function AdminModeration() {
     }
   }
 
-  useEffect(() => { if (token) fetchReports() }, [token, filter])
+  useEffect(() => {
+    // Wait for AuthContext to finish restoring the session before deciding
+    // anything. Once it's done: with a token, fetch reports as normal;
+    // without one, stop showing "Loading..." forever and send the person
+    // to log in instead.
+    if (initializing) return
+    if (!token) {
+      navigate('/login')
+      return
+    }
+    fetchReports()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, filter, initializing])
 
   const updateStatus = async (id, status) => {
     try {
