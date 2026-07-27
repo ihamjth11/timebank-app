@@ -1,6 +1,7 @@
 import { createContext, useState, useContext, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { subscribeToPush } from '../utils/pushNotifications'
+import { analytics } from '../utils/analytics'
 
 const AuthContext = createContext()
 
@@ -118,6 +119,7 @@ export function AuthProvider({ children }) {
       setUser(res.data.user)
       setStoredToken(res.data.token)
       markActive()
+      analytics.signUp('email')
       return { success: true }
     } catch (err) {
       const msg = err.response?.data?.message || 'Registration failed'
@@ -139,6 +141,7 @@ export function AuthProvider({ children }) {
       setUser(res.data.user)
       setStoredToken(res.data.token)
       markActive()
+      analytics.login('email')
       return { success: true }
     } catch (err) {
       const msg = err.response?.data?.message || 'Login failed'
@@ -158,6 +161,7 @@ export function AuthProvider({ children }) {
       setUser(res.data.user)
       setStoredToken(res.data.token)
       markActive()
+      analytics.login('google')
       return { success: true }
     } catch (err) {
       const msg = err.response?.data?.message || 'Google login failed'

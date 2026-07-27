@@ -16,11 +16,13 @@ import Leaderboard from './pages/Leaderboard'
 import Workshops from './pages/Workshops'
 import Calendar from './pages/Calendar'
 import AdminModeration from './pages/AdminModeration'
+import PageTracker from './components/PageTracker'
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <BrowserRouter>
+        <PageTracker />
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/register" element={<Register />} />
