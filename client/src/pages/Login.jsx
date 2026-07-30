@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { GoogleLogin } from '@react-oauth/google'
 import { useAuth } from '../context/AuthContext'
@@ -7,8 +7,15 @@ import '../styles/auth.css'
 function Login() {
   const [form, setForm] = useState({ email: '', password: '' })
   const [err, setErr] = useState('')
-  const { login, googleLogin, loading } = useAuth()
+  const { login, googleLogin, loading, token, initializing } = useAuth()
   const navigate = useNavigate()
+
+  // If already logged in (PWA reopen), skip the login page entirely
+  useEffect(() => {
+    if (!initializing && token) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [initializing, token, navigate])
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -37,6 +44,9 @@ function Login() {
       setErr(result.message)
     }
   }
+
+  // Wait for auth check before rendering login form
+  if (initializing) return null
 
   return (
     <div className="auth">
@@ -76,7 +86,7 @@ function Login() {
           <div className="auth__divider-line" />
         </div>
 
-        <form className="auth__form" onSubmit={handleSubmit}>
+        <div className="auth__form">
           <div className="auth__field">
             <label className="auth__label">Email Address</label>
             <input
@@ -103,12 +113,12 @@ function Login() {
 
           <button
             className="auth__btn"
-            type="submit"
+            onClick={handleSubmit}
             disabled={loading}
           >
-           {loading ? 'Signing in...' : 'Sign In →'}
+            {loading ? 'Signing in...' : 'Sign In →'}
           </button>
-        </form>
+        </div>
 
         <div className="auth__footer">
           Don't have an account?{' '}
