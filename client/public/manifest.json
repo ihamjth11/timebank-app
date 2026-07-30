@@ -2,7 +2,7 @@
   "name": "TimeBank",
   "short_name": "TimeBank",
   "description": "Sri Lanka's first time exchange platform",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#faf9fd",
   "theme_color": "#5b3df0",
