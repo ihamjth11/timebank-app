@@ -46,7 +46,7 @@ function Login() {
   }
 
   // Wait for auth check before rendering login form
-  if (initializing) return null
+ if (initializing || token) return null
 
   return (
     <div className="auth">
