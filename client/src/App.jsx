@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
+import ProtectedRoute from './components/ProtectedRoute'
 import LandingPage from './pages/LandingPage'
 import Register from './pages/Register'
 import Login from './pages/Login'
@@ -17,28 +18,32 @@ import Workshops from './pages/Workshops'
 import Calendar from './pages/Calendar'
 import AdminModeration from './pages/AdminModeration'
 import PageTracker from './components/PageTracker'
+
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <BrowserRouter>
-        <PageTracker />
+          <PageTracker />
           <Routes>
+            {/* Public routes */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/skills" element={<SkillFeed />} />
-            <Route path="/wallet" element={<Wallet />} />
-            <Route path="/messages" element={<Messages />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/profile/:userId" element={<PublicProfile />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
-            <Route path="/leaderboard" element={<Leaderboard />} />
-            <Route path="/workshops" element={<Workshops />} />
-            <Route path="/calendar" element={<Calendar />} />
-            <Route path="/admin/moderation" element={<AdminModeration />} />
+            <Route path="/profile/:userId" element={<PublicProfile />} />
+
+            {/* Protected routes */}
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/skills" element={<ProtectedRoute><SkillFeed /></ProtectedRoute>} />
+            <Route path="/wallet" element={<ProtectedRoute><Wallet /></ProtectedRoute>} />
+            <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+            <Route path="/workshops" element={<ProtectedRoute><Workshops /></ProtectedRoute>} />
+            <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
+            <Route path="/admin/moderation" element={<ProtectedRoute><AdminModeration /></ProtectedRoute>} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>
