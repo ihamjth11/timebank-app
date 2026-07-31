@@ -3,50 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import '../styles/hero.css'
 
-function useCounter(target, duration = 2000, start = false) {
-  const [count, setCount] = useState(0)
-
-  useEffect(() => {
-    if (!start) return
-    let current = 0
-    const step = target / (duration / 16)
-    const timer = setInterval(() => {
-      current += step
-      if (current >= target) {
-        setCount(target)
-        clearInterval(timer)
-      } else {
-        setCount(Math.floor(current))
-      }
-    }, 16)
-    return () => clearInterval(timer)
-  }, [start, target, duration])
-
-  return count
-}
-
 function Hero() {
   const { t } = useTranslation()
-  const [statsVisible, setStatsVisible] = useState(false)
-  const statsRef = useRef(null)
-
-  const credits     = useCounter(12400, 2200, statsVisible)
-  const skills      = useCounter(340,   1800, statsVisible)
-  const communities = useCounter(28,    1500, statsVisible)
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setStatsVisible(true)
-          observer.disconnect()
-        }
-      },
-      { threshold: 0.3 }
-    )
-    if (statsRef.current) observer.observe(statsRef.current)
-    return () => observer.disconnect()
-  }, [])
 
   const scrollToHow = () => {
     const el = document.getElementById('how')
@@ -82,18 +40,18 @@ function Hero() {
         </button>
       </div>
 
-      <div className="hero__stats" ref={statsRef}>
+      <div className="hero__stats">
         <div className="hero__stat">
-          <div className="hero__stat-num">{credits.toLocaleString()}+</div>
-          <div className="hero__stat-label">{t('stat1')}</div>
+          <div className="hero__stat-num">1hr = 1</div>
+          <div className="hero__stat-label">Time Credit</div>
         </div>
         <div className="hero__stat">
-          <div className="hero__stat-num">{skills}+</div>
-          <div className="hero__stat-label">{t('stat2')}</div>
+          <div className="hero__stat-num">0%</div>
+          <div className="hero__stat-label">Real Money Needed</div>
         </div>
         <div className="hero__stat">
-          <div className="hero__stat-num">{communities}</div>
-          <div className="hero__stat-label">{t('stat3')}</div>
+          <div className="hero__stat-num">100%</div>
+          <div className="hero__stat-label">Community Powered</div>
         </div>
       </div>
 
