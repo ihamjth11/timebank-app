@@ -100,6 +100,7 @@ function WorkshopCard({ workshop, currentUserId, onJoin, onLeave, onCancel, onCo
   const isWaitlisted = workshop.waitlist?.some(a => String(a._id || a) === String(currentUserId))
   const isFull = workshop.attendeeCount >= workshop.capacity
   const initials = workshop.host?.name ? workshop.host.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?'
+  const showLink = (isHost || isJoined) && workshop.meetingLink
 
   return (
     <div style={{ background: 'var(--card)', border: '1px solid var(--border2)', borderRadius: '18px', padding: '20px', boxShadow: 'var(--shadow)' }}>
@@ -119,6 +120,26 @@ function WorkshopCard({ workshop, currentUserId, onJoin, onLeave, onCancel, onCo
           <span style={{ color: '#ff9f43', fontWeight: 600 }}>⏳ {workshop.waitlistCount} waiting</span>
         )}
       </div>
+
+      {/* Meeting link — only visible to host and joined attendees */}
+      {showLink && (
+        <a
+          href={workshop.meetingLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: 'flex', alignItems: 'center', gap: '7px',
+            background: 'rgba(111,255,212,0.08)', border: '1px solid rgba(111,255,212,0.25)',
+            borderRadius: '10px', padding: '8px 12px', marginBottom: '14px',
+            fontSize: '12.5px', fontWeight: 600, color: '#6fffd4', textDecoration: 'none'
+          }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+            <path d="M15 3h6v6M10 14L21 3M9 3H3v18h18v-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Join Meeting
+        </a>
+      )}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -191,7 +212,7 @@ function Workshops() {
 
   const handleCreate = async (form) => {
     try {
-      const res = await axios.post(`${API}/workshops`, form, { headers: { Authorization: `Bearer ${token}` } })
+      await axios.post(`${API}/workshops`, form, { headers: { Authorization: `Bearer ${token}` } })
       setToast({ message: 'Class created!', type: 'success' })
       fetchWorkshops()
       return { success: true }
