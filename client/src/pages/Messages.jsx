@@ -262,8 +262,10 @@ function SessionCard({ session, currentUserId, activeChat, onMarkCompleted, onRa
           ><IconCalendar size={12} /> Add to Google Calendar</a>
         </div>
       )}
-      {!isOrganizer && session.status !== 'completed' && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Proposed by the other person</div>}
-      {session.status !== 'completed' && (
+     {!isOrganizer && session.status !== 'completed' && (
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Proposed by the other person</div>
+      )}
+      {isOrganizer && session.status !== 'completed' && (
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '8px' }}>
           <button onClick={() => onEdit(session)} style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '8px', padding: '5px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}><IconEdit size={12} /> Edit</button>
           <button onClick={() => onDelete(session._id)} style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.3)', color: '#ff5050', borderRadius: '8px', padding: '5px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}><IconTrash size={12} /> Cancel</button>
