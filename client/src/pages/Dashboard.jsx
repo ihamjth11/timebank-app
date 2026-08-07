@@ -46,13 +46,11 @@ const NAV_ITEMS = [
     label: 'Profile', bg: 'rgba(124,111,255,0.15)', color: '#7c6fff', path: '/profile'
   },
   {
-  icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/><path d="M9 9a3 3 0 015.12 2.12C14.12 13 12 13.5 12 15M12 18h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>),
-  label: 'Help', bg: 'rgba(111,255,212,0.15)', color: '#6fffd4', path: '/help'
-},
+    icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/><path d="M9 9a3 3 0 015.12 2.12C14.12 13 12 13.5 12 15M12 18h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>),
+    label: 'Help', bg: 'rgba(111,255,212,0.15)', color: '#6fffd4', path: '/help'
+  },
 ]
 
-// Waving hand as a clean stroke-based SVG (replaces the 👋 emoji) with a
-// gentle CSS wave animation defined via inline keyframes below.
 function WaveIcon() {
   return (
     <span style={{ display: 'inline-flex', transformOrigin: '70% 70%', animation: 'tb-wave 2.2s ease-in-out infinite' }}>
@@ -88,6 +86,7 @@ function Dashboard() {
     logout()
     window.location.href = '/'
   }
+
   const handleNavClick = (path) => {
     navigate(path)
   }
@@ -149,7 +148,6 @@ function Dashboard() {
 
       {/* SIDEBAR */}
       <aside className="dash__sidebar">
-
         <Link to="/" className="dash__sidebar-logo">
           <div className="dash__sidebar-logo-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -217,8 +215,8 @@ function Dashboard() {
             <p className="dash__header-sub">Here's what's happening in your TimeBank</p>
           </div>
           <div className="dash__header-right">
-          <ThemeToggle />
-          <NotificationBell />
+            <ThemeToggle />
+            <NotificationBell />
           </div>
         </div>
 
@@ -290,6 +288,7 @@ function Dashboard() {
           <div className="dash__actions">
             <div className="dash__section-title">Quick Actions</div>
             <div className="dash__action-grid">
+
               <div className="dash__action-btn" onClick={() => navigate('/skills')}>
                 <div className="dash__action-icon" style={{ background: 'rgba(124,111,255,0.1)', color: '#7c6fff' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -297,17 +296,9 @@ function Dashboard() {
                     <path d="M16.5 16.5l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
                   </svg>
                 </div>
-                <div className="dash__action-btn" onClick={() => navigate('/help')}>
-  <div className="dash__action-icon" style={{ background: 'rgba(111,255,212,0.1)', color: '#6fffd4' }}>
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
-      <path d="M9 9a3 3 0 015.12 2.12C14.12 13 12 13.5 12 15M12 18h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-    </svg>
-  </div>
-  Help
-</div>
                 Find Skills
               </div>
+
               <div className="dash__action-btn" onClick={() => navigate('/skills')}>
                 <div className="dash__action-icon" style={{ background: 'rgba(111,255,212,0.1)', color: '#6fffd4' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -316,6 +307,7 @@ function Dashboard() {
                 </div>
                 Post Skill
               </div>
+
               <div className="dash__action-btn" onClick={() => navigate('/messages')}>
                 <div className="dash__action-icon" style={{ background: 'rgba(255,111,176,0.1)', color: '#ff6fb0' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -324,6 +316,7 @@ function Dashboard() {
                 </div>
                 Messages
               </div>
+
               <div className="dash__action-btn" onClick={() => navigate('/profile')}>
                 <div className="dash__action-icon" style={{ background: 'rgba(255,209,102,0.1)', color: '#ffd166' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -333,6 +326,7 @@ function Dashboard() {
                 </div>
                 Profile
               </div>
+
               <div className="dash__action-btn" onClick={() => navigate('/calendar')}>
                 <div className="dash__action-icon" style={{ background: 'rgba(124,111,255,0.1)', color: '#7c6fff' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -342,6 +336,18 @@ function Dashboard() {
                 </div>
                 Calendar
               </div>
+
+              {/* Help button */}
+              <div className="dash__action-btn" onClick={() => navigate('/help')}>
+                <div className="dash__action-icon" style={{ background: 'rgba(111,255,212,0.1)', color: '#6fffd4' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
+                    <path d="M9 9a3 3 0 015.12 2.12C14.12 13 12 13.5 12 15M12 18h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                Help
+              </div>
+
             </div>
           </div>
 
