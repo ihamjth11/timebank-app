@@ -45,10 +45,7 @@ const NAV_ITEMS = [
     icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>),
     label: 'Profile', bg: 'rgba(124,111,255,0.15)', color: '#7c6fff', path: '/profile'
   },
-  {
-    icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/><path d="M9 9a3 3 0 015.12 2.12C14.12 13 12 13.5 12 15M12 18h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>),
-    label: 'Help', bg: 'rgba(111,255,212,0.15)', color: '#6fffd4', path: '/help'
-  },
+  // Help removed from sidebar — only in Quick Actions
 ]
 
 function WaveIcon() {
@@ -141,7 +138,6 @@ function Dashboard() {
 
   return (
     <div className="dash">
-
       {showOnboarding && (
         <OnboardingTour onClose={() => setShowOnboarding(false)} />
       )}
@@ -205,8 +201,6 @@ function Dashboard() {
 
       {/* MAIN CONTENT */}
       <main className="dash__main">
-
-        {/* Header */}
         <div className="dash__header">
           <div>
             <h1 className="dash__header-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -235,7 +229,6 @@ function Dashboard() {
             <div className="dash__stat-num">{user?.timeCredits ?? 5}</div>
             <div className="dash__stat-label">Time Credits</div>
           </div>
-
           <div className="dash__stat-card">
             <div className="dash__stat-icon" style={{ background: 'rgba(111,255,212,0.1)' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -247,7 +240,6 @@ function Dashboard() {
             <div className="dash__stat-num">{mySkills.length}</div>
             <div className="dash__stat-label">Skills Posted</div>
           </div>
-
           <div className="dash__stat-card">
             <div className="dash__stat-icon" style={{ background: 'rgba(255,111,176,0.1)' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -257,7 +249,6 @@ function Dashboard() {
             <div className="dash__stat-num">{memberStatus}</div>
             <div className="dash__stat-label">Member Status</div>
           </div>
-
           <div className="dash__stat-card">
             <div className="dash__stat-icon" style={{ background: 'rgba(255,209,102,0.1)' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -272,7 +263,6 @@ function Dashboard() {
 
         {/* Content Grid */}
         <div className="dash__grid">
-
           {/* Wallet */}
           <div className="dash__wallet">
             <div className="dash__wallet-label">TIME BALANCE</div>
@@ -288,7 +278,6 @@ function Dashboard() {
           <div className="dash__actions">
             <div className="dash__section-title">Quick Actions</div>
             <div className="dash__action-grid">
-
               <div className="dash__action-btn" onClick={() => navigate('/skills')}>
                 <div className="dash__action-icon" style={{ background: 'rgba(124,111,255,0.1)', color: '#7c6fff' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -298,7 +287,6 @@ function Dashboard() {
                 </div>
                 Find Skills
               </div>
-
               <div className="dash__action-btn" onClick={() => navigate('/skills')}>
                 <div className="dash__action-icon" style={{ background: 'rgba(111,255,212,0.1)', color: '#6fffd4' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -307,7 +295,6 @@ function Dashboard() {
                 </div>
                 Post Skill
               </div>
-
               <div className="dash__action-btn" onClick={() => navigate('/messages')}>
                 <div className="dash__action-icon" style={{ background: 'rgba(255,111,176,0.1)', color: '#ff6fb0' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -316,7 +303,6 @@ function Dashboard() {
                 </div>
                 Messages
               </div>
-
               <div className="dash__action-btn" onClick={() => navigate('/profile')}>
                 <div className="dash__action-icon" style={{ background: 'rgba(255,209,102,0.1)', color: '#ffd166' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -326,7 +312,6 @@ function Dashboard() {
                 </div>
                 Profile
               </div>
-
               <div className="dash__action-btn" onClick={() => navigate('/calendar')}>
                 <div className="dash__action-icon" style={{ background: 'rgba(124,111,255,0.1)', color: '#7c6fff' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -336,8 +321,7 @@ function Dashboard() {
                 </div>
                 Calendar
               </div>
-
-              {/* Help button */}
+              {/* Help — Quick Actions only */}
               <div className="dash__action-btn" onClick={() => navigate('/help')}>
                 <div className="dash__action-icon" style={{ background: 'rgba(111,255,212,0.1)', color: '#6fffd4' }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -347,7 +331,6 @@ function Dashboard() {
                 </div>
                 Help
               </div>
-
             </div>
           </div>
 
@@ -387,7 +370,6 @@ function Dashboard() {
               <button className="dash__skill-add" onClick={() => navigate('/skills')}>+ Add Skill</button>
             </div>
           </div>
-
         </div>
       </main>
       <MobileNav />
