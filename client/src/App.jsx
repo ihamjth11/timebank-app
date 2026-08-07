@@ -18,6 +18,7 @@ import Workshops from './pages/Workshops'
 import Calendar from './pages/Calendar'
 import AdminModeration from './pages/AdminModeration'
 import PageTracker from './components/PageTracker'
+import HelpPage from './pages/HelpPage'
 
 function App() {
   return (
@@ -44,7 +45,9 @@ function App() {
             <Route path="/workshops" element={<ProtectedRoute><Workshops /></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
             <Route path="/admin/moderation" element={<ProtectedRoute><AdminModeration /></ProtectedRoute>} />
+            <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
           </Routes>
+
         </BrowserRouter>
       </AuthProvider>
     </ThemeProvider>

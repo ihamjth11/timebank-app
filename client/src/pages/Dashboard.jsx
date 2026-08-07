@@ -45,6 +45,10 @@ const NAV_ITEMS = [
     icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>),
     label: 'Profile', bg: 'rgba(124,111,255,0.15)', color: '#7c6fff', path: '/profile'
   },
+  {
+  icon: (<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/><path d="M9 9a3 3 0 015.12 2.12C14.12 13 12 13.5 12 15M12 18h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>),
+  label: 'Help', bg: 'rgba(111,255,212,0.15)', color: '#6fffd4', path: '/help'
+},
 ]
 
 // Waving hand as a clean stroke-based SVG (replaces the 👋 emoji) with a
