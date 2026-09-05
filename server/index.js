@@ -5,6 +5,7 @@ const rateLimit = require('express-rate-limit')
 const dotenv = require('dotenv')
 const connectDB = require('./config/db')
 const { startReminderChecker } = require('./utils/reminderChecker')
+const otpRoutes = require('./routes/otp')
 
 dotenv.config()
 connectDB()
@@ -85,6 +86,7 @@ app.use('/api/badges', require('./routes/badges'))
 app.use('/api/leaderboard', require('./routes/leaderboard'))
 app.use('/api/workshops', require('./routes/workshops'))
 app.use('/api/moderation', require('./routes/moderation'))
+app.use('/api/otp', otpRoutes)
 app.get('/', (req, res) => {
   res.json({
     success: true,

@@ -31,6 +31,12 @@ const UserSchema = new mongoose.Schema({
     minlength: 6
   },
 
+  // Email verification status
+  emailVerified: {
+    type: Boolean,
+    default: false
+  },
+
   // Google OAuth ID — Google vachi login pannina users-ku mattum
   googleId: {
     type: String,
