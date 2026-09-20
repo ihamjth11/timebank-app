@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { GoogleLogin } from '@react-oauth/google'
 import { useAuth } from '../context/AuthContext'
@@ -8,95 +8,107 @@ import '../styles/auth.css'
 const API = 'https://timebank-app.onrender.com/api'
 
 function Register() {
-  const [step, setStep] = useState(1) // 1 = register form, 2 = otp verify
+  const [step, setStep] = useState(1) // 1 = form, 2 = otp
   const [form, setForm] = useState({ name: '', email: '', password: '', referralCode: '' })
-  const [otp, setOtp] = useState('')
+  const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [err, setErr] = useState('')
   const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
-  const [resending, setResending] = useState(false)
+  const [resendTimer, setResendTimer] = useState(0)
+  const otpRefs = useRef([])
+  const timerRef = useRef(null)
   const { register, googleLogin } = useAuth()
   const navigate = useNavigate()
+
+  const startTimer = () => {
+    setResendTimer(60)
+    timerRef.current = setInterval(() => {
+      setResendTimer(prev => {
+        if (prev <= 1) { clearInterval(timerRef.current); return 0 }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  useEffect(() => { return () => clearInterval(timerRef.current) }, [])
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
     setErr('')
   }
 
-  // Step 1 — Submit register form → send OTP
+  const handleOtpChange = (index, value) => {
+    if (!/^\d*$/.test(value)) return
+    const newOtp = [...otp]
+    newOtp[index] = value.slice(-1)
+    setOtp(newOtp)
+    setErr('')
+    if (value && index < 5) otpRefs.current[index + 1]?.focus()
+  }
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus()
+    }
+  }
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault()
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6)
+    const newOtp = [...otp]
+    pasted.split('').forEach((char, i) => { newOtp[i] = char })
+    setOtp(newOtp)
+    otpRefs.current[Math.min(pasted.length, 5)]?.focus()
+  }
+
+  // Step 1 — Send OTP
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.name || !form.email || !form.password) return setErr('Please fill all required fields')
     if (form.password.length < 6) return setErr('Password must be at least 6 characters')
-
-    setLoading(true)
-    setErr('')
-
+    setLoading(true); setErr('')
     try {
-      // Send OTP to email first
-      const res = await axios.post(`${API}/otp/send`, { email: form.email })
-      if (res.data.success) {
-        setStep(2)
-        setSuccess(`Verification code sent to ${form.email}`)
-      }
+      await axios.post(`${API}/otp/send`, { email: form.email })
+      setStep(2)
+      setSuccess(`Verification code sent to ${form.email}`)
+      startTimer()
+      setTimeout(() => otpRefs.current[0]?.focus(), 100)
     } catch (err) {
       setErr(err.response?.data?.message || 'Failed to send verification code')
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
-  // Step 2 — Verify OTP → register user
+  // Step 2 — Verify OTP + Register
   const handleVerifyOTP = async (e) => {
     e.preventDefault()
-    if (!otp || otp.length !== 6) return setErr('Please enter the 6-digit code')
-
-    setLoading(true)
-    setErr('')
-
+    const otpString = otp.join('')
+    if (otpString.length !== 6) return setErr('Please enter the 6-digit code')
+    setLoading(true); setErr('')
     try {
-      // Verify OTP
-      const verifyRes = await axios.post(`${API}/otp/verify`, { email: form.email, otp })
+      const verifyRes = await axios.post(`${API}/otp/verify`, { email: form.email, otp: otpString })
       if (!verifyRes.data.success) return setErr('Invalid or expired code')
-
-      // Register user
       const result = await register(form.name, form.email, form.password, form.referralCode)
-      if (result.success) {
-        navigate('/dashboard')
-      } else {
-        setErr(result.message)
-      }
+      if (result.success) { navigate('/dashboard') } else { setErr(result.message) }
     } catch (err) {
       setErr(err.response?.data?.message || 'Verification failed')
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
-  // Resend OTP
   const handleResend = async () => {
-    setResending(true)
-    setErr('')
-    setSuccess('')
+    setLoading(true); setErr(''); setSuccess(''); setOtp(['', '', '', '', '', ''])
     try {
       await axios.post(`${API}/otp/send`, { email: form.email })
       setSuccess('New verification code sent!')
-      setOtp('')
-    } catch (err) {
-      setErr('Failed to resend code. Please try again.')
-    } finally {
-      setResending(false)
-    }
+      startTimer()
+      otpRefs.current[0]?.focus()
+    } catch { setErr('Failed to resend code') }
+    finally { setLoading(false) }
   }
 
   const handleGoogleSuccess = async (credentialResponse) => {
     setErr('')
     const result = await googleLogin(credentialResponse.credential)
-    if (result.success) {
-      navigate('/dashboard')
-    } else {
-      setErr(result.message)
-    }
+    if (result.success) { navigate('/dashboard') } else { setErr(result.message) }
   }
 
   return (
@@ -104,7 +116,6 @@ function Register() {
       <div className="auth__bg" />
       <div className="auth__card">
 
-        {/* Logo */}
         <Link to="/" className="auth__logo">
           <div className="auth__logo-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -115,7 +126,7 @@ function Register() {
           <span className="auth__logo-text">TimeBank</span>
         </Link>
 
-        {/* Step 1 — Register Form */}
+        {/* STEP 1 — REGISTER FORM */}
         {step === 1 && (
           <>
             <h1 className="auth__title">Create Account</h1>
@@ -127,10 +138,7 @@ function Register() {
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
                 onError={() => setErr('Google login failed')}
-                theme="filled_black"
-                shape="pill"
-                width="100%"
-                text="signup_with"
+                theme="filled_black" shape="pill" width="100%" text="signup_with"
               />
             </div>
 
@@ -143,57 +151,24 @@ function Register() {
             <div className="auth__form">
               <div className="auth__field">
                 <label className="auth__label">Full Name</label>
-                <input
-                  className="auth__input"
-                  type="text"
-                  name="name"
-                  placeholder="Your full name"
-                  value={form.name}
-                  onChange={handleChange}
-                />
+                <input className="auth__input" type="text" name="name" placeholder="Your full name" value={form.name} onChange={handleChange}/>
               </div>
-
               <div className="auth__field">
                 <label className="auth__label">Email Address</label>
-                <input
-                  className="auth__input"
-                  type="email"
-                  name="email"
-                  placeholder="you@example.com"
-                  value={form.email}
-                  onChange={handleChange}
-                />
+                <input className="auth__input" type="email" name="email" placeholder="you@example.com" value={form.email} onChange={handleChange}/>
               </div>
-
               <div className="auth__field">
                 <label className="auth__label">Password</label>
-                <input
-                  className="auth__input"
-                  type="password"
-                  name="password"
-                  placeholder="Min 6 characters"
-                  value={form.password}
-                  onChange={handleChange}
-                />
+                <input className="auth__input" type="password" name="password" placeholder="Min 6 characters" value={form.password} onChange={handleChange}/>
               </div>
-
               <div className="auth__field">
-                <label className="auth__label">Referral Code <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label>
-                <input
-                  className="auth__input"
-                  type="text"
-                  name="referralCode"
-                  placeholder="Enter referral code"
-                  value={form.referralCode}
-                  onChange={handleChange}
-                />
+                <label className="auth__label">
+                  Referral Code{' '}
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span>
+                </label>
+                <input className="auth__input" type="text" name="referralCode" placeholder="Enter referral code" value={form.referralCode} onChange={handleChange}/>
               </div>
-
-              <button
-                className="auth__btn"
-                onClick={handleSubmit}
-                disabled={loading}
-              >
+              <button className="auth__btn" onClick={handleSubmit} disabled={loading}>
                 {loading ? 'Sending code...' : 'Continue →'}
               </button>
             </div>
@@ -205,15 +180,14 @@ function Register() {
           </>
         )}
 
-        {/* Step 2 — OTP Verification */}
+        {/* STEP 2 — OTP VERIFY */}
         {step === 2 && (
           <>
             <div style={{ textAlign: 'center', marginBottom: '8px' }}>
               <div style={{
                 width: '56px', height: '56px', borderRadius: '50%',
                 background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 16px'
+                display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px'
               }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -229,63 +203,55 @@ function Register() {
 
             {err && <div className="auth__error">{err}</div>}
             {success && (
-              <div style={{
-                background: 'rgba(0,184,148,0.1)', border: '1px solid rgba(0,184,148,0.2)',
-                color: '#00b894', padding: '10px 14px', borderRadius: '10px',
-                fontSize: '13px', marginBottom: '16px', textAlign: 'center'
-              }}>{success}</div>
+              <div style={{ background: 'rgba(0,184,148,0.1)', border: '1px solid rgba(0,184,148,0.2)', color: '#00b894', padding: '10px 14px', borderRadius: '10px', fontSize: '13px', marginBottom: '16px', textAlign: 'center' }}>
+                {success}
+              </div>
             )}
 
-            <div className="auth__form">
-              <div className="auth__field">
-                <label className="auth__label">Verification Code</label>
+            {/* 6 OTP boxes */}
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', margin: '20px 0' }}>
+              {otp.map((digit, index) => (
                 <input
-                  className="auth__input"
+                  key={index}
+                  ref={el => otpRefs.current[index] = el}
                   type="text"
-                  placeholder="Enter 6-digit code"
-                  value={otp}
-                  onChange={(e) => {
-                    setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))
-                    setErr('')
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={e => handleOtpChange(index, e.target.value)}
+                  onKeyDown={e => handleOtpKeyDown(index, e)}
+                  onPaste={index === 0 ? handleOtpPaste : undefined}
+                  style={{
+                    width: '46px', height: '54px', textAlign: 'center',
+                    fontSize: '22px', fontWeight: 700, borderRadius: '12px',
+                    border: `2px solid ${digit ? '#7c6fff' : 'var(--border)'}`,
+                    background: 'var(--input-bg)', color: 'var(--text)',
+                    outline: 'none', transition: 'border-color 0.15s'
                   }}
-                  maxLength={6}
-                  style={{ textAlign: 'center', fontSize: '22px', letterSpacing: '8px', fontWeight: 700 }}
                 />
-              </div>
-
-              <button
-                className="auth__btn"
-                onClick={handleVerifyOTP}
-                disabled={loading || otp.length !== 6}
-              >
-                {loading ? 'Verifying...' : 'Verify and Create Account →'}
-              </button>
+              ))}
             </div>
+
+            <button className="auth__btn" onClick={handleVerifyOTP} disabled={loading || otp.join('').length !== 6}>
+              {loading ? 'Verifying...' : 'Verify and Create Account →'}
+            </button>
 
             <div style={{ textAlign: 'center', marginTop: '16px' }}>
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                Didn't receive the code?
-              </p>
-              <button
-                onClick={handleResend}
-                disabled={resending}
-                style={{
-                  background: 'none', border: 'none', color: '#7c6fff',
-                  fontWeight: 600, fontSize: '13px', cursor: 'pointer'
-                }}
-              >
-                {resending ? 'Sending...' : 'Resend code'}
-              </button>
+              {resendTimer > 0 ? (
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  Resend code in <strong style={{ color: '#7c6fff' }}>{resendTimer}s</strong>
+                </p>
+              ) : (
+                <button onClick={handleResend} disabled={loading}
+                  style={{ background: 'none', border: 'none', color: '#7c6fff', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>
+                  Resend code
+                </button>
+              )}
             </div>
 
-            <div style={{ textAlign: 'center', marginTop: '12px' }}>
-              <button
-                onClick={() => { setStep(1); setErr(''); setSuccess(''); setOtp('') }}
-                style={{
-                  background: 'none', border: 'none', color: 'var(--text-secondary)',
-                  fontSize: '13px', cursor: 'pointer'
-                }}
-              >
+            <div style={{ textAlign: 'center', marginTop: '10px' }}>
+              <button onClick={() => { setStep(1); setErr(''); setSuccess(''); setOtp(['', '', '', '', '', '']) }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '13px', cursor: 'pointer' }}>
                 ← Change email
               </button>
             </div>

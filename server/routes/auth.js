@@ -420,5 +420,23 @@ router.get('/user/:id', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' })
   }
 })
+// Reset password after OTP verification
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, password } = req.body
+    if (!email || !password) return res.status(400).json({ message: 'Email and password required' })
+    if (password.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' })
+
+    const bcrypt = require('bcryptjs')
+    const hashed = await bcrypt.hash(password, 10)
+    const user = await User.findOneAndUpdate({ email }, { password: hashed })
+    if (!user) return res.status(404).json({ message: 'User not found' })
+
+    res.json({ success: true, message: 'Password reset successfully' })
+  } catch (err) {
+    console.error('Reset password error:', err)
+    res.status(500).json({ message: 'Server error' })
+  }
+})
 
 module.exports = router
