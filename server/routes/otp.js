@@ -1,4 +1,5 @@
 const express = require('express')
+const crypto = require('crypto')
 const router = express.Router()
 const Otp = require('../models/Otp')
 const User = require('../models/User')
@@ -10,6 +11,10 @@ const MAX_ATTEMPTS = 5 // wrong guesses allowed per OTP
 
 function normalizeEmail(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : ''
+}
+
+function hashToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex')
 }
 
 // Send OTP (used by both registration and forgot-password flows)
@@ -78,16 +83,23 @@ router.post('/verify', async (req, res) => {
       return res.status(400).json({ message: 'Invalid OTP' })
     }
 
-    // Keep the record and mark it verified. The register and reset-password
-    // routes check this flag, then delete the record after use.
+    // Keep the record and mark it verified. Register checks this flag;
+    // reset-password additionally requires the one-time token below.
+    // Both routes delete the record after a successful use.
+    const verificationToken = crypto.randomBytes(32).toString('hex')
     record.verified = true
+    record.tokenHash = hashToken(verificationToken)
     record.expiresAt = new Date(Date.now() + OTP_EXPIRY_MS)
     await record.save()
 
     // If the user already exists, mark the email as verified
     await User.findOneAndUpdate({ email }, { emailVerified: true })
 
-    res.json({ success: true, message: 'Email verified successfully!' })
+    res.json({
+      success: true,
+      message: 'Email verified successfully!',
+      verificationToken
+    })
   } catch (err) {
     console.error('Verify OTP error:', err)
     res.status(500).json({ message: 'Failed to verify OTP' })

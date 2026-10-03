@@ -6,7 +6,10 @@ const otpSchema = new mongoose.Schema(
     otp: { type: String, required: true },
     expiresAt: { type: Date, required: true },
     verified: { type: Boolean, default: false },
-    attempts: { type: Number, default: 0 }
+    attempts: { type: Number, default: 0 },
+    // SHA-256 hash of the one-time verification token handed to the client
+    // after a successful OTP check (required by reset-password)
+    tokenHash: { type: String, default: null }
   },
   { timestamps: true }
 )

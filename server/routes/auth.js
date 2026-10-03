@@ -3,6 +3,7 @@
 // ===================================
 
 const express = require('express')
+const crypto = require('crypto')
 const router = express.Router()
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
@@ -33,6 +34,16 @@ function normalizeEmail(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : ''
 }
 
+function hashToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex')
+}
+
+// Constant-time comparison of two hex digests
+function safeEqualHex(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false
+  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b))
+}
+
 async function generateUniqueReferralCode() {
   let code
   let exists = true
@@ -45,6 +56,7 @@ async function generateUniqueReferralCode() {
 
 // ===================================
 // REGISTER — POST /api/auth/register
+// Requires a verified OTP record for the email (created by POST /api/otp/verify).
 // ===================================
 router.post('/register', authLimiter, async (req, res) => {
   try {
@@ -65,6 +77,15 @@ router.post('/register', authLimiter, async (req, res) => {
       })
     }
 
+    // The email must have passed OTP verification recently
+    const otpRecord = await Otp.findOne({ email, verified: true })
+    if (!otpRecord || otpRecord.expiresAt < new Date()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Email verification required or expired. Please verify your email again.'
+      })
+    }
+
     const existingUser = await User.findOne({ email }).collation(EMAIL_COLLATION)
     if (existingUser) {
       return res.status(400).json({ 
@@ -81,7 +102,8 @@ router.post('/register', authLimiter, async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      referralCode
+      referralCode,
+      emailVerified: true
     })
 
     // If a valid referral code was supplied, link the accounts and
@@ -96,6 +118,9 @@ router.post('/register', authLimiter, async (req, res) => {
     }
 
     await user.save()
+
+    // One-time use: remove the verified OTP record
+    await Otp.deleteMany({ email })
 
     // Reward the referrer separately, after the new user is saved.
     if (referrer) {
@@ -440,13 +465,14 @@ router.get('/user/:id', async (req, res) => {
 
 // ===================================
 // RESET PASSWORD — POST /api/auth/reset-password
-// Requires a verified OTP record for the email (created by POST /api/otp/verify).
+// Requires a verified OTP record AND the one-time verificationToken that
+// POST /api/otp/verify returned to the person who entered the code.
 // The OTP record is deleted after a successful reset so it cannot be reused.
 // ===================================
 router.post('/reset-password', authLimiter, async (req, res) => {
   try {
     const email = normalizeEmail(req.body.email)
-    const { password } = req.body
+    const { password, verificationToken } = req.body
 
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Email and password required' })
@@ -461,6 +487,17 @@ router.post('/reset-password', authLimiter, async (req, res) => {
     // The email must have passed OTP verification recently
     const otpRecord = await Otp.findOne({ email, verified: true })
     if (!otpRecord || otpRecord.expiresAt < new Date()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Email verification required or expired. Please start again.'
+      })
+    }
+
+    // The caller must hold the token issued at verification time
+    const tokenOk =
+      typeof verificationToken === 'string' &&
+      safeEqualHex(hashToken(verificationToken), otpRecord.tokenHash)
+    if (!tokenOk) {
       return res.status(403).json({
         success: false,
         message: 'Email verification required or expired. Please start again.'

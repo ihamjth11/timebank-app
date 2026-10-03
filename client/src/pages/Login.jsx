@@ -12,6 +12,7 @@ function Login() {
   const [form, setForm] = useState({ email: '', password: '' })
   const [forgotEmail, setForgotEmail] = useState('')
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
+  const [verificationToken, setVerificationToken] = useState('') // one-time token from /otp/verify
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [err, setErr] = useState('')
@@ -84,6 +85,7 @@ function Login() {
     setLoading(true); setErr('')
     try {
       await axios.post(`${API}/otp/send`, { email: forgotEmail })
+      setVerificationToken('')
       setStep('forgot-otp')
       setSuccess(`Verification code sent to ${forgotEmail}`)
       startTimer()
@@ -93,14 +95,15 @@ function Login() {
   }
 
   const handleResend = async () => {
-    setLoading(true); setErr(''); setSuccess(''); setOtp(['', '', '', '', '', ''])
+    setLoading(true); setErr(''); setSuccess(''); setOtp(['', '', '', '', '', '']); setVerificationToken('')
     try {
       await axios.post(`${API}/otp/send`, { email: forgotEmail })
       setSuccess('New code sent!')
       startTimer()
       otpRefs.current[0]?.focus()
-    } catch { setErr('Failed to resend code') }
-    finally { setLoading(false) }
+    } catch (err) {
+      setErr(err.response?.data?.message || 'Failed to resend code')
+    } finally { setLoading(false) }
   }
 
   const handleForgotVerify = async (e) => {
@@ -110,7 +113,11 @@ function Login() {
     setLoading(true); setErr('')
     try {
       const res = await axios.post(`${API}/otp/verify`, { email: forgotEmail, otp: otpString })
-      if (res.data.success) { setStep('forgot-reset'); setSuccess('') }
+      if (res.data.success) {
+        setVerificationToken(res.data.verificationToken || '')
+        setStep('forgot-reset')
+        setSuccess('')
+      }
     } catch (err) {
       setErr(err.response?.data?.message || 'Invalid or expired code')
     } finally { setLoading(false) }
@@ -122,14 +129,26 @@ function Login() {
     if (newPassword !== confirmPassword) return setErr('Passwords do not match')
     setLoading(true); setErr('')
     try {
-      await axios.post(`${API}/auth/reset-password`, { email: forgotEmail, password: newPassword })
+      await axios.post(`${API}/auth/reset-password`, {
+        email: forgotEmail,
+        password: newPassword,
+        verificationToken
+      })
       setSuccess('Password reset successfully!')
       setTimeout(() => {
         setStep('login'); setSuccess(''); setForgotEmail('')
         setOtp(['', '', '', '', '', '']); setNewPassword(''); setConfirmPassword('')
+        setVerificationToken('')
       }, 1500)
     } catch (err) {
-      setErr(err.response?.data?.message || 'Failed to reset password')
+      const message = err.response?.data?.message || 'Failed to reset password'
+      if (err.response?.status === 403) {
+        // Verification expired or invalid: send the user back to start over
+        setVerificationToken('')
+        setOtp(['', '', '', '', '', ''])
+        setStep('forgot-email')
+      }
+      setErr(message)
     } finally { setLoading(false) }
   }
 
@@ -141,6 +160,9 @@ function Login() {
 
   if (initializing || token) return null
 
+  // NOTE: called as a plain function ({OtpBoxes()}), not as a <Component />.
+  // Declaring a component inside another component remounts the inputs on every
+  // keystroke, which makes them lose focus while typing the code.
   const OtpBoxes = () => (
     <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', margin: '20px 0' }}>
       {otp.map((digit, index) => (
@@ -267,7 +289,7 @@ function Login() {
             <p className="auth__sub">We sent a 6-digit code to<br/><strong style={{ color: 'var(--text)' }}>{forgotEmail}</strong></p>
             {err && <div className="auth__error">{err}</div>}
             <SuccessBanner />
-            <OtpBoxes />
+            {OtpBoxes()}
             <button className="auth__btn" onClick={handleForgotVerify} disabled={loading || otp.join('').length !== 6}>
               {loading ? 'Verifying...' : 'Verify Code →'}
             </button>
@@ -279,7 +301,7 @@ function Login() {
               )}
             </div>
             <div style={{ textAlign: 'center', marginTop: '10px' }}>
-              <button onClick={() => { setStep('forgot-email'); setErr(''); setSuccess(''); setOtp(['', '', '', '', '', '']) }}
+              <button onClick={() => { setStep('forgot-email'); setErr(''); setSuccess(''); setOtp(['', '', '', '', '', '']); setVerificationToken('') }}
                 style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '13px', cursor: 'pointer' }}>
                 ← Change email
               </button>
