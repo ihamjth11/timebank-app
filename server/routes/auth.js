@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken')
 const { OAuth2Client } = require('google-auth-library')
 const rateLimit = require('express-rate-limit')
 const User = require('../models/User')
+const Otp = require('../models/Otp')
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
@@ -23,6 +24,14 @@ const authLimiter = rateLimit({
 })
 
 const REFERRAL_BONUS = 2 // credits given to both the new user and the referrer
+const MIN_PASSWORD_LENGTH = 6
+
+// Case-insensitive matching for email lookups (works for old mixed-case records too)
+const EMAIL_COLLATION = { locale: 'en', strength: 2 }
+
+function normalizeEmail(value) {
+  return typeof value === 'string' ? value.trim().toLowerCase() : ''
+}
 
 async function generateUniqueReferralCode() {
   let code
@@ -39,7 +48,8 @@ async function generateUniqueReferralCode() {
 // ===================================
 router.post('/register', authLimiter, async (req, res) => {
   try {
-    const { name, email, password, refCode } = req.body
+    const { name, password, refCode } = req.body
+    const email = normalizeEmail(req.body.email)
 
     if (!name || !email || !password) {
       return res.status(400).json({ 
@@ -48,7 +58,14 @@ router.post('/register', authLimiter, async (req, res) => {
       })
     }
 
-    const existingUser = await User.findOne({ email })
+    if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({
+        success: false,
+        message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
+      })
+    }
+
+    const existingUser = await User.findOne({ email }).collation(EMAIL_COLLATION)
     if (existingUser) {
       return res.status(400).json({ 
         success: false,
@@ -71,7 +88,7 @@ router.post('/register', authLimiter, async (req, res) => {
     // award a signup bonus to the new user.
     let referrer = null
     if (refCode) {
-      referrer = await User.findOne({ referralCode: refCode.toUpperCase() })
+      referrer = await User.findOne({ referralCode: String(refCode).toUpperCase() })
       if (referrer) {
         user.referredBy = referrer._id
         user.timeCredits = (user.timeCredits ?? 5) + REFERRAL_BONUS
@@ -420,22 +437,64 @@ router.get('/user/:id', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' })
   }
 })
-// Reset password after OTP verification
-router.post('/reset-password', async (req, res) => {
-  try {
-    const { email, password } = req.body
-    if (!email || !password) return res.status(400).json({ message: 'Email and password required' })
-    if (password.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' })
 
-    const bcrypt = require('bcryptjs')
+// ===================================
+// RESET PASSWORD — POST /api/auth/reset-password
+// Requires a verified OTP record for the email (created by POST /api/otp/verify).
+// The OTP record is deleted after a successful reset so it cannot be reused.
+// ===================================
+router.post('/reset-password', authLimiter, async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body.email)
+    const { password } = req.body
+
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email and password required' })
+    }
+    if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({
+        success: false,
+        message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters`
+      })
+    }
+
+    // The email must have passed OTP verification recently
+    const otpRecord = await Otp.findOne({ email, verified: true })
+    if (!otpRecord || otpRecord.expiresAt < new Date()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Email verification required or expired. Please start again.'
+      })
+    }
+
+    const user = await User.findOne({ email }).collation(EMAIL_COLLATION)
+    if (!user) {
+      await Otp.deleteMany({ email })
+      return res.status(404).json({ success: false, message: 'User not found' })
+    }
+
     const hashed = await bcrypt.hash(password, 10)
-    const user = await User.findOneAndUpdate({ email }, { password: hashed })
-    if (!user) return res.status(404).json({ message: 'User not found' })
+
+    // Update only the needed fields and clear any login lockout state
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          password: hashed,
+          failedLoginAttempts: 0,
+          lockUntil: null,
+          emailVerified: true
+        }
+      }
+    )
+
+    // One-time use: remove the verified OTP record
+    await Otp.deleteMany({ email })
 
     res.json({ success: true, message: 'Password reset successfully' })
   } catch (err) {
     console.error('Reset password error:', err)
-    res.status(500).json({ message: 'Server error' })
+    res.status(500).json({ success: false, message: 'Server error' })
   }
 })
 
