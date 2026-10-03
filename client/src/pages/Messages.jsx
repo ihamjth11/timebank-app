@@ -40,11 +40,14 @@ const IconCheckCircle = ({ size = 14 }) => (
 const IconEdit = ({ size = 12 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
 )
+const IconLock = ({ size = 12 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.6"/><path d="M8 11V8a4 4 0 018 0v3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+)
 const IconChatBubble = ({ size = 32 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>
 )
 
-function ScheduleModal({ onClose, onSchedule }) {
+function ScheduleModal({ onClose, onSchedule, balance, helperName }) {
   const [date, setDate] = useState('')
   const [time, setTime] = useState('')
   const [link, setLink] = useState('')
@@ -52,18 +55,21 @@ function ScheduleModal({ onClose, onSchedule }) {
   const [repeatWeeks, setRepeatWeeks] = useState(4)
   const [loading, setLoading] = useState(false)
 
+  const totalCredits = repeat ? repeatWeeks : 1
+  const insufficient = typeof balance === 'number' && balance < totalCredits
+
   const handleSubmit = async () => {
-    if (!date || !time) return
+    if (!date || !time || loading) return
     setLoading(true)
-    await onSchedule({ date, time, meetingLink: link, repeatWeeks: repeat ? repeatWeeks : 1 })
+    const ok = await onSchedule({ date, time, meetingLink: link, repeatWeeks: repeat ? repeatWeeks : 1 })
     setLoading(false)
-    onClose()
+    if (ok) onClose()
   }
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={onClose}>
-      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', padding: '28px', width: '100%', maxWidth: '380px' }} onClick={e => e.stopPropagation()}>
-        <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', marginBottom: '20px' }}>Schedule a Session</h2>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', padding: '28px', width: '100%', maxWidth: '380px', maxHeight: '92vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+        <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', marginBottom: '20px' }}>Book a Session</h2>
         <div style={{ marginBottom: '14px' }}>
           <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Date</label>
           <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}/>
@@ -73,10 +79,10 @@ function ScheduleModal({ onClose, onSchedule }) {
           <input type="time" value={time} onChange={e => setTime(e.target.value)} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}/>
         </div>
         <div style={{ marginBottom: '14px' }}>
-          <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Meeting Link (optional)</label>
+          <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Meeting Link (optional, https only)</label>
           <input type="text" placeholder="https://meet.google.com/..." value={link} onChange={e => setLink(e.target.value)} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}/>
         </div>
-        <div style={{ marginBottom: repeat ? '14px' : '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--input-bg)', borderRadius: '10px' }}>
+        <div style={{ marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'var(--input-bg)', borderRadius: '10px' }}>
           <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>Repeat weekly</span>
           <label style={{ position: 'relative', display: 'inline-block', width: '38px', height: '22px', cursor: 'pointer' }}>
             <input type="checkbox" checked={repeat} onChange={e => setRepeat(e.target.checked)} style={{ opacity: 0, width: 0, height: 0 }} />
@@ -92,7 +98,7 @@ function ScheduleModal({ onClose, onSchedule }) {
           </label>
         </div>
         {repeat && (
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '14px' }}>
             <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Number of weeks</label>
             <select value={repeatWeeks} onChange={e => setRepeatWeeks(Number(e.target.value))} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}>
               {[2, 3, 4, 6, 8, 12].map(n => <option key={n} value={n}>{n} weeks</option>)}
@@ -100,9 +106,24 @@ function ScheduleModal({ onClose, onSchedule }) {
             <p style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '6px' }}>Creates {repeatWeeks} sessions, same day and time, one every week.</p>
           </div>
         )}
+
+        <div style={{ marginBottom: '20px', padding: '12px 14px', borderRadius: '12px', background: 'var(--input-bg)', border: `1px solid ${insufficient ? 'rgba(255,80,80,0.4)' : 'var(--border)'}` }}>
+          <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <IconLock size={13} /> {totalCredits} Time Credit{totalCredits > 1 ? 's' : ''} will be held in escrow
+          </div>
+          <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+            Released to {helperName || 'the other person'} only after you both confirm the session happened. Fully refunded if the session is cancelled.
+          </p>
+          {insufficient && (
+            <p style={{ fontSize: '11.5px', color: '#ff5050', margin: '6px 0 0', fontWeight: 600 }}>
+              You have {balance} credit{balance === 1 ? '' : 's'}. You need {totalCredits}.
+            </p>
+          )}
+        </div>
+
         <div style={{ display: 'flex', gap: '10px' }}>
           <button onClick={onClose} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-          <button onClick={handleSubmit} disabled={loading || !date || !time} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', fontWeight: 600, cursor: 'pointer', opacity: (!date || !time) ? 0.5 : 1 }}>{loading ? 'Scheduling...' : (repeat ? `Schedule ${repeatWeeks}×` : 'Schedule')}</button>
+          <button onClick={handleSubmit} disabled={loading || !date || !time} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', fontWeight: 600, cursor: 'pointer', opacity: (!date || !time) ? 0.5 : 1 }}>{loading ? 'Booking...' : (repeat ? `Book ${repeatWeeks}×` : 'Book')}</button>
         </div>
       </div>
     </div>
@@ -151,7 +172,7 @@ function EditSessionModal({ session, onClose, onSave }) {
           <input type="time" value={time} onChange={e => setTime(e.target.value)} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}/>
         </div>
         <div style={{ marginBottom: '20px' }}>
-          <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Meeting Link (optional)</label>
+          <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Meeting Link (optional, https only)</label>
           <input type="text" placeholder="https://meet.google.com/..." value={link} onChange={e => setLink(e.target.value)} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}/>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
@@ -237,6 +258,14 @@ function buildCalendarLink(session, otherName) {
 function SessionCard({ session, currentUserId, activeChat, onMarkCompleted, onRate, alreadyRated, onEdit, onDelete }) {
   const isOrganizer = session.organizer === currentUserId
   const iConfirmed = session.completionConfirmedBy?.includes(currentUserId)
+
+  const escrowHeld = session.escrowStatus === 'held'
+  const escrowReleased = session.escrowStatus === 'released'
+  const escrowAmount = session.escrowAmount || 1
+  const hasStarted = Date.now() >= new Date(`${session.date}T${session.time}:00+05:30`).getTime()
+  // Only open real https links (blocks javascript: and data: links)
+  const safeMeetingLink = /^https:\/\//i.test(session.meetingLink || '')
+
   return (
     <div style={{ alignSelf: 'center', background: 'var(--input-bg)', border: '1px solid var(--accent)', borderRadius: '14px', padding: '14px 18px', maxWidth: '85%', textAlign: 'center', margin: '8px 0' }}>
       <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent)', marginBottom: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
@@ -246,8 +275,20 @@ function SessionCard({ session, currentUserId, activeChat, onMarkCompleted, onRa
       <div style={{ fontSize: '13px', color: 'var(--text)', fontWeight: 600 }}>
         {new Date(session.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} at {session.time}
       </div>
-      {session.meetingLink && (
-        <a href={session.meetingLink} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '8px', fontSize: '12px', color: 'var(--accent)', fontWeight: 600 }}>Join Meeting →</a>
+      {escrowHeld && (
+        <div style={{ marginTop: '6px', fontSize: '11.5px', color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+          <IconLock size={12} /> {escrowAmount} credit{escrowAmount > 1 ? 's' : ''} held in escrow
+        </div>
+      )}
+      {escrowReleased && (
+        <div style={{ marginTop: '6px', fontSize: '11.5px', color: '#00b894', fontWeight: 600 }}>
+          Escrow released: {escrowAmount} credit{escrowAmount > 1 ? 's' : ''} paid
+        </div>
+      )}
+      {session.meetingLink && safeMeetingLink && (
+        <div>
+          <a href={session.meetingLink} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '8px', fontSize: '12px', color: 'var(--accent)', fontWeight: 600 }}>Join Meeting →</a>
+        </div>
       )}
       {session.status !== 'completed' && (
         <div style={{ marginTop: '6px' }}>
@@ -265,9 +306,11 @@ function SessionCard({ session, currentUserId, activeChat, onMarkCompleted, onRa
      {!isOrganizer && session.status !== 'completed' && (
         <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Proposed by the other person</div>
       )}
-      {isOrganizer && session.status !== 'completed' && (
+      {(isOrganizer || escrowHeld) && session.status !== 'completed' && (
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '8px' }}>
-          <button onClick={() => onEdit(session)} style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '8px', padding: '5px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}><IconEdit size={12} /> Edit</button>
+          {isOrganizer && (
+            <button onClick={() => onEdit(session)} style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '8px', padding: '5px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}><IconEdit size={12} /> Edit</button>
+          )}
           <button onClick={() => onDelete(session._id)} style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.3)', color: '#ff5050', borderRadius: '8px', padding: '5px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}><IconTrash size={12} /> Cancel</button>
         </div>
       )}
@@ -275,6 +318,8 @@ function SessionCard({ session, currentUserId, activeChat, onMarkCompleted, onRa
         <div style={{ marginTop: '10px' }}>
           {iConfirmed ? (
             <div style={{ fontSize: '11.5px', color: '#00b894', fontWeight: 600 }}>✓ Waiting for confirmation...</div>
+          ) : (escrowHeld && !hasStarted) ? (
+            <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>You can confirm completion once the session starts</div>
           ) : (
             <button onClick={() => onMarkCompleted(session._id)} style={{ background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none', borderRadius: '10px', padding: '7px 16px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Mark as Completed</button>
           )}
@@ -585,7 +630,7 @@ function AttachMenu({ onClose, onPickImage, onPickFile }) {
 }
 
 function Messages() {
-  const { user, token, logout } = useAuth()
+  const { user, token, logout, refreshUser } = useAuth()
   const [conversations, setConversations] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeChat, setActiveChat] = useState(null)
@@ -598,6 +643,7 @@ function Messages() {
   const [newMsg, setNewMsg] = useState('')
   const [showSchedule, setShowSchedule] = useState(false)
   const [helperPickSessionId, setHelperPickSessionId] = useState(null)
+  const [completeConfirmSessionId, setCompleteConfirmSessionId] = useState(null)
   const [deleteMsgId, setDeleteMsgId] = useState(null)
   const [previewImage, setPreviewImage] = useState(null)
   const [showDeleteChat, setShowDeleteChat] = useState(false)
@@ -803,12 +849,28 @@ function Messages() {
     reader.readAsDataURL(pendingVoice.blob)
   }
 
+  // Books a session. The server holds the credits in escrow and returns the new balance.
+  // Returns true on success so the modal knows whether it can close.
   const scheduleSession = async ({ date, time, meetingLink, repeatWeeks }) => {
     try {
-      await axios.post(`${API}/sessions`, { participantId: activeChat.otherUserId, date, time, meetingLink, repeatWeeks }, { headers: { Authorization: `Bearer ${token}` } })
-      openChat(activeChat)
+      const res = await axios.post(
+        `${API}/sessions`,
+        { participantId: activeChat.otherUserId, date, time, meetingLink, repeatWeeks },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      await openChat(activeChat)
+      if (typeof refreshUser === 'function') refreshUser()
+      const held = res.data.heldCredits
+      const balanceText = typeof res.data.timeCredits === 'number' ? ` Balance: ${res.data.timeCredits}.` : ''
+      setToast({
+        message: `Session booked. ${held} credit${held === 1 ? '' : 's'} held in escrow.${balanceText}`,
+        type: 'success'
+      })
+      return true
     } catch (err) {
-      console.error('Failed to schedule session:', err)
+      console.error('Failed to book session:', err)
+      setToast({ message: err.response?.data?.message || 'Failed to book session', type: 'error' })
+      return false
     }
   }
 
@@ -863,19 +925,44 @@ function Messages() {
     }
   }
 
-  const handleMarkCompleted = (sessionId) => setHelperPickSessionId(sessionId)
+  // Sends the completion confirmation. helperId is only needed for old sessions
+  // (booked before escrow); escrow sessions already know who the helper is.
+  const completeSession = async (sessionId, helperId) => {
+    try {
+      const res = await axios.post(
+        `${API}/sessions/${sessionId}/complete`,
+        helperId ? { helperId } : {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      if (!res.data.success) setToast({ message: res.data.message, type: 'error' })
+      await openChat(activeChat)
+      if (typeof refreshUser === 'function') refreshUser()
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Failed to mark completed', type: 'error' })
+    }
+  }
+
+  const handleMarkCompleted = (sessionId) => {
+    const target = sessions.find(s => s._id === sessionId)
+    if (target?.escrowStatus === 'held') {
+      // Escrow sessions: ask for an explicit confirmation before releasing credits
+      setCompleteConfirmSessionId(sessionId)
+      return
+    }
+    setHelperPickSessionId(sessionId)
+  }
+
+  const confirmEscrowCompletion = async () => {
+    const sessionId = completeConfirmSessionId
+    setCompleteConfirmSessionId(null)
+    await completeSession(sessionId, null)
+  }
 
   const confirmHelper = async (choice) => {
     const sessionId = helperPickSessionId
     setHelperPickSessionId(null)
     const helperId = choice === 'me' ? user.id : activeChat.otherUserId
-    try {
-      const res = await axios.post(`${API}/sessions/${sessionId}/complete`, { helperId }, { headers: { Authorization: `Bearer ${token}` } })
-      if (!res.data.success) setToast({ message: res.data.message, type: 'error' })
-      openChat(activeChat)
-    } catch (err) {
-      setToast({ message: err.response?.data?.message || 'Failed to mark completed', type: 'error' })
-    }
+    await completeSession(sessionId, helperId)
   }
 
   const handleRate = (sessionId) => setRatingSessionId(sessionId)
@@ -899,8 +986,12 @@ function Messages() {
     const sessionId = cancelSessionId
     setCancelSessionId(null)
     try {
-      await axios.delete(`${API}/sessions/${sessionId}`, { headers: { Authorization: `Bearer ${token}` } })
-      openChat(activeChat)
+      const res = await axios.delete(`${API}/sessions/${sessionId}`, { headers: { Authorization: `Bearer ${token}` } })
+      await openChat(activeChat)
+      if (typeof refreshUser === 'function') refreshUser()
+      if (res.data.refunded) {
+        setToast({ message: 'Session cancelled. The escrowed credit was refunded.', type: 'success' })
+      }
     } catch (err) {
       setToast({ message: err.response?.data?.message || 'Failed to cancel session', type: 'error' })
     }
@@ -924,6 +1015,19 @@ function Messages() {
 
   const recordMinutes = Math.floor(recordSeconds / 60)
   const recordSecondsDisplay = (recordSeconds % 60).toString().padStart(2, '0')
+
+  // Text for the confirmation dialogs
+  const cancelTarget = sessions.find(s => s._id === cancelSessionId)
+  const cancelMessage = cancelTarget?.escrowStatus === 'held'
+    ? 'This will cancel the scheduled session and notify the other person. The escrowed credit is refunded in full to the person who booked it. This action cannot be undone.'
+    : 'This will cancel the scheduled session and notify the other person. This action cannot be undone.'
+
+  const completeTarget = sessions.find(s => s._id === completeConfirmSessionId)
+  const completeAmount = completeTarget?.escrowAmount || 1
+  const iAmPayer = !!completeTarget && String(completeTarget.payer) === String(user?.id)
+  const completeMessage = iAmPayer
+    ? `Only confirm if the session really took place. ${completeAmount} credit${completeAmount > 1 ? 's' : ''} will be paid to ${activeChat?.name} once you both confirm.`
+    : `Only confirm if the session really took place. You receive the escrowed credit${completeAmount > 1 ? 's' : ''} once ${activeChat?.name} confirms too.`
 
   return (
     <div className="dash">
@@ -1096,7 +1200,7 @@ Calendar
                       borderRadius: '20px', padding: '8px 16px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
                       whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '6px',
                       boxShadow: '0 3px 10px rgba(124,111,255,0.35)', letterSpacing: '0.1px'
-                    }}><IconCalendar size={13} /> Schedule</button>
+                    }}><IconCalendar size={13} /> Book Session</button>
                     <button onClick={() => setShowDeleteChat(true)} style={{
                       background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.3)', color: '#ff5050',
                       borderRadius: '20px', padding: '8px 16px', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
@@ -1245,13 +1349,23 @@ Calendar
         )}
       </main>
 
-      {showSchedule && <ScheduleModal onClose={() => setShowSchedule(false)} onSchedule={scheduleSession} />}
+      {showSchedule && (
+        <ScheduleModal
+          onClose={() => setShowSchedule(false)}
+          onSchedule={scheduleSession}
+          balance={user?.timeCredits}
+          helperName={activeChat?.name}
+        />
+      )}
       {helperPickSessionId && <HelperPickModal activeChat={activeChat} onClose={() => setHelperPickSessionId(null)} onPick={confirmHelper} />}
       {ratingSessionId && <RatingModal activeChat={activeChat} onClose={() => setRatingSessionId(null)} onSubmit={submitRating} />}
       {editingSession && <EditSessionModal session={editingSession} onClose={() => setEditingSession(null)} onSave={submitEditSession} />}
       {previewImage && <ImageLightbox src={previewImage.src} fileName={previewImage.fileName} onClose={() => setPreviewImage(null)} />}
+      {completeConfirmSessionId && (
+        <ConfirmModal title="Confirm this session happened?" message={completeMessage} onCancel={() => setCompleteConfirmSessionId(null)} onConfirm={confirmEscrowCompletion} />
+      )}
       {cancelSessionId && (
-        <ConfirmModal title="Cancel this session?" message="This will cancel the scheduled session and notify the other person. This action cannot be undone." danger onCancel={() => setCancelSessionId(null)} onConfirm={confirmCancelSession} />
+        <ConfirmModal title="Cancel this session?" message={cancelMessage} danger onCancel={() => setCancelSessionId(null)} onConfirm={confirmCancelSession} />
       )}
       {deleteMsgId && (
         <ConfirmModal title="Delete message?" message="This message will be deleted for you. This action cannot be undone." danger onCancel={() => setDeleteMsgId(null)} onConfirm={confirmDeleteMessage} />

@@ -48,7 +48,37 @@ const sessionSchema = new mongoose.Schema({
   reminderStartSent: {
     type: Boolean,
     default: false
+  },
+
+  // ---- Escrow ----
+  // The person who booked (and pays). Null for sessions created before escrow existed.
+  payer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  // Credits held for this session while it is scheduled
+  escrowAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  // none     = legacy session (credits move at completion, no hold)
+  // held     = credits are held, waiting for both people to confirm
+  // released = credits were paid to the helper
+  // refunded = session was cancelled and the payer got the credits back
+  escrowStatus: {
+    type: String,
+    enum: ['none', 'held', 'released', 'refunded'],
+    default: 'none'
+  },
+  completedAt: {
+    type: Date,
+    default: null
   }
 }, { timestamps: true })
+
+sessionSchema.index({ escrowStatus: 1 })
+sessionSchema.index({ organizer: 1, participant: 1 })
 
 module.exports = mongoose.model('Session', sessionSchema)
