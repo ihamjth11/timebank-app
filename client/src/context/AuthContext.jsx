@@ -16,7 +16,9 @@ const INACTIVITY_LIMIT_MS = 7 * 24 * 60 * 60 * 1000 // 7 days of not opening the
 // other instead of forcing a fresh login every time.
 function setStoredToken(token) {
   localStorage.setItem('token', token)
-  document.cookie = `tb_token=${token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`
+  // The Secure flag keeps the cookie from ever being sent over plain http
+  const secureFlag = window.location.protocol === 'https:' ? '; Secure' : ''
+  document.cookie = `tb_token=${token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax${secureFlag}`
 }
 
 function getStoredToken() {
@@ -107,6 +109,21 @@ export function AuthProvider({ children }) {
       subscribeToPush(token)
     }
   }, [token, user])
+
+  // Re-fetches the current user, for example after credits moved
+  // (booking, cancelling, completing a session). Failures are silent so a
+  // network hiccup never logs anyone out.
+  const refreshUser = async () => {
+    if (!token) return
+    try {
+      const res = await axios.get(`${API}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setUser(res.data.user)
+    } catch (err) {
+      // ignore: the next successful request will bring the data back in sync
+    }
+  }
 
   const register = async (name, email, password, refCode) => {
     setLoading(true)
@@ -199,7 +216,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       user, token, loading, error, initializing,
-      register, login, googleLogin, updateProfile, logout
+      register, login, googleLogin, updateProfile, refreshUser, logout
     }}>
       {children}
     </AuthContext.Provider>
