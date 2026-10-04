@@ -9,9 +9,10 @@ import '../styles/wallet.css'
 const API = 'https://timebank-app.onrender.com/api'
 
 function Wallet() {
-  const { user, token, logout } = useAuth()
+  const { user, token, logout, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [txns, setTxns] = useState([])
+  const [sessions, setSessions] = useState([])
   const [loading, setLoading] = useState(true)
 
   const initials = user?.name
@@ -19,23 +20,52 @@ function Wallet() {
     : 'MH'
 
   useEffect(() => {
-    const fetchTxns = async () => {
+    const fetchData = async () => {
       try {
-        const res = await axios.get(`${API}/transactions`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        setTxns(res.data.transactions || [])
+        const headers = { Authorization: `Bearer ${token}` }
+        const [txnRes, sessionRes] = await Promise.all([
+          axios.get(`${API}/transactions`, { headers }),
+          // A failure here must never hide the transaction history
+          axios.get(`${API}/sessions/mine`, { headers }).catch(() => ({ data: { sessions: [] } }))
+        ])
+        setTxns(txnRes.data.transactions || [])
+        setSessions(sessionRes.data.sessions || [])
       } catch (err) {
-        console.error('Failed to fetch transactions:', err)
+        console.error('Failed to fetch wallet data:', err)
       } finally {
         setLoading(false)
       }
     }
-    if (token) fetchTxns()
+    if (token) {
+      fetchData()
+      // Make sure the balance on screen is the latest one from the server
+      if (typeof refreshUser === 'function') refreshUser()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
   const earned = txns.filter(t => t.type === 'earn').reduce((sum, t) => sum + t.amount, 0)
   const spent = txns.filter(t => t.type === 'spend').reduce((sum, t) => sum + t.amount, 0)
+
+  // Escrow: credits you paid that are still waiting, and credits you will receive
+  const myId = String(user?.id || '')
+  const activeEscrow = sessions.filter(s => s.escrowStatus === 'held' && s.status === 'scheduled')
+  const heldByMe = activeEscrow.filter(s => String(s.payer) === myId)
+  const incomingForMe = activeEscrow.filter(s => String(s.helper) === myId)
+  const heldTotal = heldByMe.reduce((sum, s) => sum + (s.escrowAmount || 0), 0)
+  const incomingTotal = incomingForMe.reduce((sum, s) => sum + (s.escrowAmount || 0), 0)
+
+  const otherPersonName = (session) => {
+    const organizerId = String(session.organizer?._id || session.organizer || '')
+    const other = organizerId === myId ? session.participant : session.organizer
+    return other?.name || 'someone'
+  }
+
+  const escrowStateLabel = (session) => {
+    if (session.disputed) return 'Under review'
+    if (session.firstConfirmedAt) return 'Waiting for confirmation'
+    return 'Scheduled'
+  }
 
   return (
     <div className="dash">
@@ -130,9 +160,14 @@ function Wallet() {
 
         <div className="wallet__card">
           <div className="wallet__card-left">
-            <div className="wallet__card-label">TOTAL BALANCE</div>
+            <div className="wallet__card-label">AVAILABLE BALANCE</div>
             <div className="wallet__card-balance">{user?.timeCredits ?? 5}.0</div>
             <div className="wallet__card-unit">Time Credits</div>
+            {heldTotal > 0 && (
+              <div style={{ fontSize: '12.5px', color: '#ffd166', fontWeight: 600, marginTop: '6px' }}>
+                + {heldTotal}.0 on hold in escrow
+              </div>
+            )}
             <div className="wallet__card-stats">
               <div className="wallet__card-stat">
                 <div className="wallet__card-stat-num" style={{ color: '#6fffd4' }}>+{earned}.0</div>
@@ -167,6 +202,38 @@ function Wallet() {
             </div>
           </div>
         </div>
+
+        {(heldByMe.length > 0 || incomingForMe.length > 0) && (
+          <div className="dash__txns" style={{ marginTop: '20px' }}>
+            <div className="dash__section-title">Escrow</div>
+            <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', margin: '0 0 12px', lineHeight: 1.5 }}>
+              Credits for booked sessions are held safely until the session is confirmed. {heldTotal > 0 ? `${heldTotal} credit${heldTotal > 1 ? 's' : ''} you paid ${heldTotal > 1 ? 'are' : 'is'} on hold. ` : ''}
+              {incomingTotal > 0 ? `${incomingTotal} credit${incomingTotal > 1 ? 's' : ''} will reach you after confirmation.` : ''}
+            </p>
+
+            {heldByMe.map(s => (
+              <div key={s._id} className="dash__txn">
+                <div className="dash__txn-icon" style={{ background: 'rgba(255,209,102,0.12)' }}>🔒</div>
+                <div className="dash__txn-info">
+                  <div className="dash__txn-name">On hold for your session with {otherPersonName(s)}</div>
+                  <div className="dash__txn-time">{s.date} at {s.time} · {escrowStateLabel(s)}</div>
+                </div>
+                <div className="dash__txn-amount spend">{s.escrowAmount}.0</div>
+              </div>
+            ))}
+
+            {incomingForMe.map(s => (
+              <div key={s._id} className="dash__txn">
+                <div className="dash__txn-icon" style={{ background: 'rgba(111,255,212,0.1)' }}>⏳</div>
+                <div className="dash__txn-info">
+                  <div className="dash__txn-name">Incoming from {otherPersonName(s)}</div>
+                  <div className="dash__txn-time">{s.date} at {s.time} · {escrowStateLabel(s)}</div>
+                </div>
+                <div className="dash__txn-amount earn">+{s.escrowAmount}.0</div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="wallet__how">
           <h3 className="dash__section-title" style={{ marginBottom: '16px' }}>How Time Credits Work</h3>
