@@ -9,6 +9,8 @@ import '../styles/messages.css'
 
 const API = 'https://timebank-app.onrender.com/api'
 const MAX_FILE_SIZE = 2 * 1024 * 1024
+// Must match ESCROW_POLICY.AUTO_RELEASE_AFTER_HOURS in server/utils/ledger.js
+const AUTO_RELEASE_HOURS = 72
 
 const IconClose = ({ size = 14 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
@@ -241,6 +243,91 @@ function RatingModal({ activeChat, onClose, onSubmit }) {
   )
 }
 
+// Opens a dispute: freezes the escrowed credit until the TimeBank team decides.
+function DisputeModal({ activeChat, onClose, onSubmit }) {
+  const [reason, setReason] = useState('')
+  const [loading, setLoading] = useState(false)
+  const valid = reason.trim().length >= 10
+
+  const handleSubmit = async () => {
+    if (!valid || loading) return
+    setLoading(true)
+    const ok = await onSubmit(reason.trim())
+    if (!ok) setLoading(false)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={onClose}>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', padding: '26px', width: '100%', maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
+        <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>Report a problem</h2>
+        <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: 1.5 }}>
+          The escrowed credit is frozen until the TimeBank team reviews this session with {activeChat?.name || 'the other person'}. Describe what happened.
+        </p>
+        <textarea
+          value={reason}
+          onChange={e => setReason(e.target.value)}
+          placeholder="For example: the other person did not join the session."
+          rows={4}
+          maxLength={1000}
+          style={{
+            width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)',
+            borderRadius: '12px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '13px',
+            resize: 'none', boxSizing: 'border-box', fontFamily: 'inherit'
+          }}
+        />
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px' }}>
+          {reason.trim().length}/1000 {reason.trim().length < 10 ? '(at least 10 characters)' : ''}
+        </div>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSubmit} disabled={!valid || loading} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: '#ff5050', color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: valid ? 1 : 0.5 }}>{loading ? 'Sending...' : 'Report problem'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// The OTHER person adds their side of the story to an open dispute.
+function RespondModal({ activeChat, onClose, onSubmit }) {
+  const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(false)
+  const valid = message.trim().length >= 5
+
+  const handleSubmit = async () => {
+    if (!valid || loading) return
+    setLoading(true)
+    const ok = await onSubmit(message.trim())
+    if (!ok) setLoading(false)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={onClose}>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', padding: '26px', width: '100%', maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
+        <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>Add your side</h2>
+        <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: 1.5 }}>
+          {activeChat?.name || 'The other person'} reported a problem with this session. Tell the TimeBank team what happened from your point of view.
+        </p>
+        <textarea
+          value={message}
+          onChange={e => setMessage(e.target.value)}
+          placeholder="Your explanation"
+          rows={4}
+          maxLength={1000}
+          style={{
+            width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)',
+            borderRadius: '12px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '13px',
+            resize: 'none', boxSizing: 'border-box', fontFamily: 'inherit'
+          }}
+        />
+        <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSubmit} disabled={!valid || loading} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: valid ? 1 : 0.5 }}>{loading ? 'Sending...' : 'Send'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function buildCalendarLink(session, otherName) {
   const start = new Date(`${session.date}T${session.time}:00+05:30`)
   const end = new Date(start.getTime() + 60 * 60 * 1000) // default 1-hour session
@@ -255,16 +342,29 @@ function buildCalendarLink(session, otherName) {
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${dates}&details=${details}`
 }
 
-function SessionCard({ session, currentUserId, activeChat, onMarkCompleted, onRate, alreadyRated, onEdit, onDelete }) {
+function SessionCard({ session, currentUserId, activeChat, dispute, onMarkCompleted, onRate, alreadyRated, onEdit, onDelete, onReport, onRespond }) {
   const isOrganizer = session.organizer === currentUserId
   const iConfirmed = session.completionConfirmedBy?.includes(currentUserId)
 
   const escrowHeld = session.escrowStatus === 'held'
   const escrowReleased = session.escrowStatus === 'released'
   const escrowAmount = session.escrowAmount || 1
+  const underReview = escrowHeld && !!session.disputed
   const hasStarted = Date.now() >= new Date(`${session.date}T${session.time}:00+05:30`).getTime()
   // Only open real https links (blocks javascript: and data: links)
   const safeMeetingLink = /^https:\/\//i.test(session.meetingLink || '')
+
+  const openedByMe = !!dispute && String(dispute.openedBy) === String(currentUserId)
+  const canAddSide = underReview && !!dispute && dispute.status === 'open' && !openedByMe && !dispute.response
+
+  // When the first person confirmed, the other one has AUTO_RELEASE_HOURS to respond
+  const autoReleaseAt = escrowHeld && session.firstConfirmedAt && !underReview
+    ? new Date(new Date(session.firstConfirmedAt).getTime() + AUTO_RELEASE_HOURS * 60 * 60 * 1000)
+    : null
+  const autoReleaseLabel = autoReleaseAt
+    ? autoReleaseAt.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    : ''
+  const otherName = activeChat?.name || 'the other person'
 
   return (
     <div style={{ alignSelf: 'center', background: 'var(--input-bg)', border: '1px solid var(--accent)', borderRadius: '14px', padding: '14px 18px', maxWidth: '85%', textAlign: 'center', margin: '8px 0' }}>
@@ -275,9 +375,29 @@ function SessionCard({ session, currentUserId, activeChat, onMarkCompleted, onRa
       <div style={{ fontSize: '13px', color: 'var(--text)', fontWeight: 600 }}>
         {new Date(session.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} at {session.time}
       </div>
-      {escrowHeld && (
+      {escrowHeld && !underReview && (
         <div style={{ marginTop: '6px', fontSize: '11.5px', color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
           <IconLock size={12} /> {escrowAmount} credit{escrowAmount > 1 ? 's' : ''} held in escrow
+        </div>
+      )}
+      {underReview && (
+        <div style={{ marginTop: '8px', fontSize: '12px', color: '#ffb800', fontWeight: 700, lineHeight: 1.5 }}>
+          Under review by the TimeBank team.<br />
+          <span style={{ fontWeight: 500, color: 'var(--text-secondary)', fontSize: '11.5px' }}>
+            The {escrowAmount} escrowed credit{escrowAmount > 1 ? 's are' : ' is'} frozen until they decide.
+          </span>
+        </div>
+      )}
+      {canAddSide && (
+        <div style={{ marginTop: '8px' }}>
+          <button onClick={() => onRespond(dispute)} style={{ background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none', borderRadius: '10px', padding: '7px 16px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Add your side</button>
+        </div>
+      )}
+      {underReview && dispute && !canAddSide && (
+        <div style={{ marginTop: '6px', fontSize: '11px', color: 'var(--text-muted)' }}>
+          {openedByMe
+            ? (dispute.response ? `${otherName} has added their side.` : `Waiting for ${otherName} to add their side.`)
+            : 'You have added your side.'}
         </div>
       )}
       {escrowReleased && (
@@ -306,7 +426,7 @@ function SessionCard({ session, currentUserId, activeChat, onMarkCompleted, onRa
      {!isOrganizer && session.status !== 'completed' && (
         <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Proposed by the other person</div>
       )}
-      {(isOrganizer || escrowHeld) && session.status !== 'completed' && (
+      {(isOrganizer || escrowHeld) && session.status !== 'completed' && !underReview && (
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '8px' }}>
           {isOrganizer && (
             <button onClick={() => onEdit(session)} style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', borderRadius: '8px', padding: '5px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}><IconEdit size={12} /> Edit</button>
@@ -314,7 +434,7 @@ function SessionCard({ session, currentUserId, activeChat, onMarkCompleted, onRa
           <button onClick={() => onDelete(session._id)} style={{ background: 'rgba(255,80,80,0.08)', border: '1px solid rgba(255,80,80,0.3)', color: '#ff5050', borderRadius: '8px', padding: '5px 12px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}><IconTrash size={12} /> Cancel</button>
         </div>
       )}
-      {session.status !== 'completed' && (
+      {session.status !== 'completed' && !underReview && (
         <div style={{ marginTop: '10px' }}>
           {iConfirmed ? (
             <div style={{ fontSize: '11.5px', color: '#00b894', fontWeight: 600 }}>✓ Waiting for confirmation...</div>
@@ -322,6 +442,18 @@ function SessionCard({ session, currentUserId, activeChat, onMarkCompleted, onRa
             <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>You can confirm completion once the session starts</div>
           ) : (
             <button onClick={() => onMarkCompleted(session._id)} style={{ background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none', borderRadius: '10px', padding: '7px 16px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Mark as Completed</button>
+          )}
+          {autoReleaseAt && (
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: 1.4 }}>
+              {iConfirmed
+                ? `If ${otherName} does not respond, the credit is released automatically on ${autoReleaseLabel}.`
+                : `${otherName} confirmed. If you do not respond by ${autoReleaseLabel}, the credit is released to the helper automatically.`}
+            </div>
+          )}
+          {escrowHeld && hasStarted && (
+            <div style={{ marginTop: '6px' }}>
+              <button onClick={() => onReport(session._id)} style={{ background: 'none', border: 'none', color: '#ff5050', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Report a problem</button>
+            </div>
           )}
         </div>
       )}
@@ -636,6 +768,7 @@ function Messages() {
   const [activeChat, setActiveChat] = useState(null)
   const [thread, setThread] = useState([])
   const [sessions, setSessions] = useState([])
+  const [disputesBySession, setDisputesBySession] = useState({})
   const [ratedSessionIds, setRatedSessionIds] = useState({})
   const [ratingSessionId, setRatingSessionId] = useState(null)
   const [editingSession, setEditingSession] = useState(null)
@@ -644,6 +777,8 @@ function Messages() {
   const [showSchedule, setShowSchedule] = useState(false)
   const [helperPickSessionId, setHelperPickSessionId] = useState(null)
   const [completeConfirmSessionId, setCompleteConfirmSessionId] = useState(null)
+  const [disputeSessionId, setDisputeSessionId] = useState(null)
+  const [respondDispute, setRespondDispute] = useState(null)
   const [deleteMsgId, setDeleteMsgId] = useState(null)
   const [previewImage, setPreviewImage] = useState(null)
   const [showDeleteChat, setShowDeleteChat] = useState(false)
@@ -713,14 +848,26 @@ function Messages() {
     setSelectMode(false)
     setSelectedIds([])
     try {
-      const [msgRes, sessRes] = await Promise.all([
+      const [msgRes, sessRes, disputeRes] = await Promise.all([
         axios.get(`${API}/messages/${convo.otherUserId}`, { headers: { Authorization: `Bearer ${token}` } }),
-        axios.get(`${API}/sessions/${convo.otherUserId}`, { headers: { Authorization: `Bearer ${token}` } })
+        axios.get(`${API}/sessions/${convo.otherUserId}`, { headers: { Authorization: `Bearer ${token}` } }),
+        // A failure here must never stop the chat from loading
+        axios.get(`${API}/disputes/mine`, { headers: { Authorization: `Bearer ${token}` } })
+          .catch(() => ({ data: { disputes: [] } }))
       ])
       setThread(msgRes.data.messages || [])
       const fetchedSessions = sessRes.data.sessions || []
       setSessions(fetchedSessions)
       checkRatedSessions(fetchedSessions)
+
+      // Newest dispute per session (the server returns newest first)
+      const disputeMap = {}
+      const disputeList = disputeRes.data.disputes || []
+      disputeList.forEach(d => {
+        const key = String(d.session)
+        if (!disputeMap[key]) disputeMap[key] = d
+      })
+      setDisputesBySession(disputeMap)
     } catch (err) {
       console.error('Failed to fetch thread:', err)
     }
@@ -963,6 +1110,42 @@ function Messages() {
     setHelperPickSessionId(null)
     const helperId = choice === 'me' ? user.id : activeChat.otherUserId
     await completeSession(sessionId, helperId)
+  }
+
+  // Opens a dispute for the chosen session. Returns true on success.
+  const submitDispute = async (reason) => {
+    try {
+      await axios.post(
+        `${API}/disputes`,
+        { sessionId: disputeSessionId, reason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      setDisputeSessionId(null)
+      await openChat(activeChat)
+      setToast({ message: 'Problem reported. The credit is frozen until the TimeBank team reviews it.', type: 'success' })
+      return true
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Failed to report the problem', type: 'error' })
+      return false
+    }
+  }
+
+  // Adds the other person's side to an open dispute. Returns true on success.
+  const submitDisputeResponse = async (message) => {
+    try {
+      await axios.post(
+        `${API}/disputes/${respondDispute._id}/respond`,
+        { message },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      setRespondDispute(null)
+      await openChat(activeChat)
+      setToast({ message: 'Your side was sent to the TimeBank team.', type: 'success' })
+      return true
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Failed to send your response', type: 'error' })
+      return false
+    }
   }
 
   const handleRate = (sessionId) => setRatingSessionId(sessionId)
@@ -1223,11 +1406,14 @@ Calendar
                       session={item}
                       currentUserId={user?.id}
                       activeChat={activeChat}
+                      dispute={disputesBySession[String(item._id)]}
                       onMarkCompleted={handleMarkCompleted}
                       onRate={handleRate}
                       alreadyRated={!!ratedSessionIds[item._id]}
                       onEdit={handleEditSession}
                       onDelete={handleDeleteSession}
+                      onReport={setDisputeSessionId}
+                      onRespond={setRespondDispute}
                     />
                   )
                 }
@@ -1359,6 +1545,8 @@ Calendar
       )}
       {helperPickSessionId && <HelperPickModal activeChat={activeChat} onClose={() => setHelperPickSessionId(null)} onPick={confirmHelper} />}
       {ratingSessionId && <RatingModal activeChat={activeChat} onClose={() => setRatingSessionId(null)} onSubmit={submitRating} />}
+      {disputeSessionId && <DisputeModal activeChat={activeChat} onClose={() => setDisputeSessionId(null)} onSubmit={submitDispute} />}
+      {respondDispute && <RespondModal activeChat={activeChat} onClose={() => setRespondDispute(null)} onSubmit={submitDisputeResponse} />}
       {editingSession && <EditSessionModal session={editingSession} onClose={() => setEditingSession(null)} onSave={submitEditSession} />}
       {previewImage && <ImageLightbox src={previewImage.src} fileName={previewImage.fileName} onClose={() => setPreviewImage(null)} />}
       {completeConfirmSessionId && (
