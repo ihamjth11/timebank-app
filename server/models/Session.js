@@ -64,7 +64,7 @@ const sessionSchema = new mongoose.Schema({
     min: 0
   },
   // none     = legacy session (credits move at completion, no hold)
-  // held     = credits are held, waiting for both people to confirm
+  // held     = credits are held, waiting for confirmation
   // released = credits were paid to the helper
   // refunded = session was cancelled and the payer got the credits back
   escrowStatus: {
@@ -75,10 +75,28 @@ const sessionSchema = new mongoose.Schema({
   completedAt: {
     type: Date,
     default: null
+  },
+
+  // When the FIRST of the two people confirmed. Starts the auto-release timer.
+  firstConfirmedAt: {
+    type: Date,
+    default: null
+  },
+  // True while a dispute is open. Freezes confirmations, cancellation and auto-settlement.
+  disputed: {
+    type: Boolean,
+    default: false
+  },
+  // Why the escrow was settled (audit trail)
+  settlementReason: {
+    type: String,
+    enum: ['mutual_confirmation', 'auto_timeout', 'admin_decision', 'cancelled', null],
+    default: null
   }
 }, { timestamps: true })
 
 sessionSchema.index({ escrowStatus: 1 })
+sessionSchema.index({ escrowStatus: 1, firstConfirmedAt: 1 })
 sessionSchema.index({ organizer: 1, participant: 1 })
 
 module.exports = mongoose.model('Session', sessionSchema)

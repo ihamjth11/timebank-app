@@ -5,6 +5,7 @@ const rateLimit = require('express-rate-limit')
 const dotenv = require('dotenv')
 const connectDB = require('./config/db')
 const { startReminderChecker } = require('./utils/reminderChecker')
+const { startEscrowSettler } = require('./utils/escrowSettler')
 const otpRoutes = require('./routes/otp')
 
 dotenv.config()
@@ -78,6 +79,7 @@ app.use('/api/auth', require('./routes/auth'))
 app.use('/api/skills', require('./routes/skills'))
 app.use('/api/messages', require('./routes/messages'))
 app.use('/api/sessions', require('./routes/sessions'))
+app.use('/api/disputes', require('./routes/disputes'))
 app.use('/api/transactions', require('./routes/transactions'))
 app.use('/api/notifications', require('./routes/notifications'))
 app.use('/api/push', require('./routes/push'))
@@ -109,5 +111,5 @@ const PORT = process.env.PORT || 5000
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
   startReminderChecker()
+  startEscrowSettler()
 })
-

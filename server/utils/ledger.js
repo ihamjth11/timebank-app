@@ -10,6 +10,7 @@
 //    (held -> released OR held -> refunded) guarded by conditional updates.
 // 5. All steps of one operation run inside ONE MongoDB transaction:
 //    either everything is saved, or nothing is.
+// 6. A session under dispute is frozen: only an admin decision can settle it.
 // ===================================
 
 const mongoose = require('mongoose')
@@ -17,6 +18,12 @@ const User = require('../models/User')
 const Session = require('../models/Session')
 const Transaction = require('../models/Transaction')
 const LedgerEntry = require('../models/LedgerEntry')
+
+// Timing rules for sessions whose escrow nobody settled
+const ESCROW_POLICY = {
+  AUTO_RELEASE_AFTER_HOURS: 72, // one person confirmed, the other stayed silent
+  AUTO_REFUND_AFTER_DAYS: 7 // nobody confirmed after the session started
+}
 
 class LedgerError extends Error {
   constructor(code, message, status = 400) {
@@ -118,13 +125,25 @@ async function creditUser({ userId, amount, type, sessionId, counterpartyId, key
 }
 
 // held -> released: pays the helper. Only one caller can ever win this transition.
-async function releaseEscrow(sessionId, dbSession) {
+// A disputed session can only be released with allowDisputed (admin decision).
+async function releaseEscrow(sessionId, dbSession, { reason = 'mutual_confirmation', allowDisputed = false } = {}) {
+  const filter = { _id: sessionId, escrowStatus: 'held', status: 'scheduled' }
+  if (!allowDisputed) filter.disputed = { $ne: true }
+
   const session = await Session.findOneAndUpdate(
-    { _id: sessionId, escrowStatus: 'held', status: 'scheduled' },
-    { $set: { escrowStatus: 'released', status: 'completed', creditsTransferred: true, completedAt: new Date() } },
+    filter,
+    {
+      $set: {
+        escrowStatus: 'released',
+        status: 'completed',
+        creditsTransferred: true,
+        completedAt: new Date(),
+        settlementReason: reason
+      }
+    },
     { new: true, session: dbSession }
   )
-  if (!session) throw new LedgerError('NOT_RELEASABLE', 'This session has already been settled', 409)
+  if (!session) throw new LedgerError('NOT_RELEASABLE', 'This session has already been settled or is under dispute', 409)
 
   await creditUser({
     userId: session.helper,
@@ -147,13 +166,17 @@ async function releaseEscrow(sessionId, dbSession) {
 }
 
 // held -> refunded: gives the held credits back to the payer.
-async function refundEscrow(sessionId, dbSession) {
+// A disputed session can only be refunded with allowDisputed (admin decision).
+async function refundEscrow(sessionId, dbSession, { reason = 'cancelled', allowDisputed = false } = {}) {
+  const filter = { _id: sessionId, escrowStatus: 'held', status: 'scheduled' }
+  if (!allowDisputed) filter.disputed = { $ne: true }
+
   const session = await Session.findOneAndUpdate(
-    { _id: sessionId, escrowStatus: 'held', status: 'scheduled' },
-    { $set: { escrowStatus: 'refunded', status: 'cancelled' } },
+    filter,
+    { $set: { escrowStatus: 'refunded', status: 'cancelled', settlementReason: reason } },
     { new: true, session: dbSession }
   )
-  if (!session) throw new LedgerError('NOT_REFUNDABLE', 'This session can no longer be refunded', 409)
+  if (!session) throw new LedgerError('NOT_REFUNDABLE', 'This session can no longer be refunded or is under dispute', 409)
 
   await creditUser({
     userId: session.payer,
@@ -172,7 +195,16 @@ async function refundEscrow(sessionId, dbSession) {
 async function settleLegacySession(sessionId, helperId, payerId, dbSession) {
   const session = await Session.findOneAndUpdate(
     { _id: sessionId, status: 'scheduled', escrowStatus: 'none', creditsTransferred: false },
-    { $set: { status: 'completed', creditsTransferred: true, completedAt: new Date(), payer: payerId, helper: helperId } },
+    {
+      $set: {
+        status: 'completed',
+        creditsTransferred: true,
+        completedAt: new Date(),
+        payer: payerId,
+        helper: helperId,
+        settlementReason: 'mutual_confirmation'
+      }
+    },
     { new: true, session: dbSession }
   )
   if (!session) throw new LedgerError('NOT_RELEASABLE', 'This session has already been settled', 409)
@@ -207,6 +239,7 @@ async function settleLegacySession(sessionId, helperId, payerId, dbSession) {
 }
 
 module.exports = {
+  ESCROW_POLICY,
   LedgerError,
   runInTransaction,
   debitUser,

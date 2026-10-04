@@ -3,8 +3,10 @@
 //
 // Money rules (see utils/ledger.js):
 // - The person who books is the payer. Their credit is HELD at booking time.
-// - Credits are released to the helper only when BOTH people confirm.
+// - Credits are released to the helper when BOTH people confirm
+//   (or automatically, see utils/escrowSettler.js).
 // - Cancelling a scheduled session refunds the held credit in full.
+// - A session under dispute is frozen until an admin decides.
 // - Booking requires both people to have sent at least one message (chat gate).
 // ===================================
 
@@ -18,6 +20,7 @@ const User = require('../models/User')
 const Message = require('../models/Message')
 const Notification = require('../models/Notification')
 const {
+  ESCROW_POLICY,
   LedgerError,
   runInTransaction,
   debitUser,
@@ -138,6 +141,24 @@ async function notifySettlement(session) {
     })
   } catch (error) {
     console.error('Settlement notification error:', error)
+  }
+}
+
+// Tells the other person that the 72-hour auto-release timer has started
+async function notifyFirstConfirmation(session, confirmerId) {
+  try {
+    const otherId = sameId(session.organizer, confirmerId) ? session.participant : session.organizer
+    const confirmer = await User.findById(confirmerId).select('name')
+    await Notification.create({
+      user: otherId,
+      type: 'session_reminder',
+      fromUser: confirmerId,
+      fromName: confirmer?.name || 'Someone',
+      text: `${confirmer?.name || 'Someone'} confirmed the session. Please confirm too. If you do not respond within ${ESCROW_POLICY.AUTO_RELEASE_AFTER_HOURS} hours, the escrowed credit is released to the helper automatically. If something went wrong, report a problem before then.`,
+      link: '/messages'
+    })
+  } catch (error) {
+    console.error('First confirmation notification error:', error)
   }
 }
 
@@ -285,13 +306,15 @@ router.post('/', auth, bookingLimiter, async (req, res) => {
   }
 })
 
-// GET /api/sessions/mine — every session (any status) this user is part of,
+// GET /api/sessions/mine — every active or completed session this user is part of,
 // across all conversations. Must be defined before the /:otherUserId route
 // so Express doesn't treat "mine" as a user id param.
+// (Cancelled sessions kept only for the audit trail are hidden.)
 router.get('/mine', auth, async (req, res) => {
   try {
     const userId = req.user.id
     const sessions = await Session.find({
+      status: { $ne: 'cancelled' },
       $or: [{ organizer: userId }, { participant: userId }]
     })
       .populate('organizer', 'name avatar')
@@ -314,6 +337,7 @@ router.get('/:otherUserId', auth, async (req, res) => {
     const otherId = req.params.otherUserId
 
     const sessions = await Session.find({
+      status: { $ne: 'cancelled' },
       $or: [
         { organizer: userId, participant: otherId },
         { organizer: otherId, participant: userId }
@@ -348,6 +372,9 @@ router.put('/:id', auth, async (req, res) => {
     if (session.status !== 'scheduled') {
       return res.status(400).json({ success: false, message: 'Only scheduled sessions can be edited' })
     }
+    if (session.disputed) {
+      return res.status(409).json({ success: false, message: 'This session is under review and cannot be edited' })
+    }
 
     const newDate = date || session.date
     const newTime = time || session.time
@@ -381,7 +408,7 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     const updated = await Session.findOneAndUpdate(
-      { _id: session._id, status: 'scheduled' },
+      { _id: session._id, status: 'scheduled', disputed: { $ne: true } },
       { $set: updates },
       { new: true }
     )
@@ -427,9 +454,12 @@ router.delete('/:id', auth, async (req, res) => {
       if (!session) throw new LedgerError('NOT_FOUND', 'Session not found', 404)
       if (!isParty(session, userId)) throw new LedgerError('FORBIDDEN', 'Not part of this session', 403)
       if (session.status === 'completed') throw new LedgerError('INVALID_STATE', 'Cannot cancel a completed session', 400)
+      if (session.disputed) {
+        throw new LedgerError('DISPUTED', 'This session is under review by the TimeBank team, so it cannot be cancelled', 409)
+      }
 
       const refunded = session.escrowStatus === 'held'
-      if (refunded) await refundEscrow(session._id, dbSession)
+      if (refunded) await refundEscrow(session._id, dbSession, { reason: 'cancelled' })
 
       await Session.deleteOne({ _id: session._id }, { session: dbSession })
       return { session, refunded }
@@ -458,6 +488,8 @@ router.delete('/:id', auth, async (req, res) => {
 
 // ===================================
 // COMPLETE — both people confirm, then the escrow is released
+// The first confirmation starts a timer: if the other person stays silent,
+// the credit is released automatically (see utils/escrowSettler.js).
 // ===================================
 router.post('/:id/complete', auth, completeLimiter, async (req, res) => {
   try {
@@ -475,6 +507,9 @@ router.post('/:id/complete', auth, completeLimiter, async (req, res) => {
       if (!isParty(existing, userId)) throw new LedgerError('FORBIDDEN', 'Not part of this session', 403)
       if (existing.status === 'completed') return { session: existing, settled: false, already: true }
       if (existing.status !== 'scheduled') throw new LedgerError('INVALID_STATE', 'This session is not active', 400)
+      if (existing.disputed) {
+        throw new LedgerError('DISPUTED', 'This session is under review by the TimeBank team, so it cannot be confirmed right now', 409)
+      }
 
       const isEscrow = existing.escrowStatus === 'held'
 
@@ -512,23 +547,38 @@ router.post('/:id/complete', auth, completeLimiter, async (req, res) => {
         helperId = String(requestedHelperId)
       }
 
+      const wasFirstConfirmation = isEscrow && (existing.completionConfirmedBy || []).length === 0
+
       // Record this person's confirmation (safe to repeat)
       const updated = await Session.findOneAndUpdate(
-        { _id: existing._id, status: 'scheduled' },
+        { _id: existing._id, status: 'scheduled', disputed: { $ne: true } },
         { $addToSet: { completionConfirmedBy: userId } },
         { new: true, session: dbSession }
       )
       if (!updated) throw new LedgerError('CONFLICT', 'This session was just updated. Please try again.', 409)
 
+      // Start the auto-release timer on the first confirmation
+      if (isEscrow && !updated.firstConfirmedAt) {
+        const confirmedAt = new Date()
+        await Session.updateOne(
+          { _id: updated._id, firstConfirmedAt: null },
+          { $set: { firstConfirmedAt: confirmedAt } },
+          { session: dbSession }
+        )
+        updated.firstConfirmedAt = confirmedAt
+      }
+
       const confirmed = updated.completionConfirmedBy.map(String)
       const bothConfirmed =
         confirmed.includes(String(updated.organizer)) && confirmed.includes(String(updated.participant))
 
-      if (!bothConfirmed) return { session: updated, settled: false }
+      if (!bothConfirmed) {
+        return { session: updated, settled: false, firstConfirmation: wasFirstConfirmation }
+      }
 
       let settledSession
       if (isEscrow) {
-        settledSession = await releaseEscrow(updated._id, dbSession)
+        settledSession = await releaseEscrow(updated._id, dbSession, { reason: 'mutual_confirmation' })
       } else {
         const payerId = sameId(helperId, updated.organizer) ? updated.participant : updated.organizer
         settledSession = await settleLegacySession(updated._id, helperId, payerId, dbSession)
@@ -537,6 +587,7 @@ router.post('/:id/complete', auth, completeLimiter, async (req, res) => {
     })
 
     if (outcome.settled) await notifySettlement(outcome.session)
+    else if (outcome.firstConfirmation) await notifyFirstConfirmation(outcome.session, userId)
 
     res.json({
       success: true,
