@@ -11,6 +11,9 @@
 // 5. All steps of one operation run inside ONE MongoDB transaction:
 //    either everything is saved, or nothing is.
 // 6. A session under dispute is frozen: only an admin decision can settle it.
+//
+// Class (workshop) escrow uses the same debitUser / creditUser here;
+// see utils/enrollmentLedger.js.
 // ===================================
 
 const mongoose = require('mongoose')
@@ -67,8 +70,11 @@ async function writeEntry(entry, dbSession) {
 }
 
 // Removes credits from a user. Fails if the balance is too low or the account is suspended.
-// Returns the new balance.
-async function debitUser({ userId, amount, type, sessionId, counterpartyId, key, insufficientMessage }, dbSession) {
+// Returns the new balance. Pass sessionId (sessions) OR enrollmentId (classes).
+async function debitUser(
+  { userId, amount, type, sessionId, enrollmentId, counterpartyId, key, insufficientMessage },
+  dbSession
+) {
   assertAmount(amount)
 
   const updated = await User.findOneAndUpdate(
@@ -90,7 +96,8 @@ async function debitUser({ userId, amount, type, sessionId, counterpartyId, key,
     direction: 'debit',
     amount,
     balanceAfter: updated.timeCredits,
-    session: sessionId,
+    session: sessionId || undefined,
+    enrollment: enrollmentId || undefined,
     counterparty: counterpartyId || null,
     idempotencyKey: key
   }, dbSession)
@@ -99,7 +106,10 @@ async function debitUser({ userId, amount, type, sessionId, counterpartyId, key,
 }
 
 // Adds credits to a user. Returns the new balance.
-async function creditUser({ userId, amount, type, sessionId, counterpartyId, key }, dbSession) {
+async function creditUser(
+  { userId, amount, type, sessionId, enrollmentId, counterpartyId, key },
+  dbSession
+) {
   assertAmount(amount)
 
   const updated = await User.findOneAndUpdate(
@@ -116,7 +126,8 @@ async function creditUser({ userId, amount, type, sessionId, counterpartyId, key
     direction: 'credit',
     amount,
     balanceAfter: updated.timeCredits,
-    session: sessionId,
+    session: sessionId || undefined,
+    enrollment: enrollmentId || undefined,
     counterparty: counterpartyId || null,
     idempotencyKey: key
   }, dbSession)

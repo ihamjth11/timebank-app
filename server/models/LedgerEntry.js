@@ -6,10 +6,13 @@
 const mongoose = require('mongoose')
 
 const ENTRY_TYPES = [
-  'escrow_hold', // payer balance debited when a session is booked
-  'escrow_release', // helper balance credited when both sides confirm
-  'escrow_refund', // payer balance credited back when a session is cancelled
-  'session_settlement' // legacy sessions (booked before escrow existed)
+  'escrow_hold', // session: payer balance debited when a session is booked
+  'escrow_release', // session: helper balance credited when both sides confirm
+  'escrow_refund', // session: payer balance credited back when a session is cancelled
+  'session_settlement', // legacy sessions (booked before escrow existed)
+  'class_hold', // class: student balance debited when joining a class
+  'class_release', // class: host balance credited when the student confirms
+  'class_refund' // class: student balance credited back
 ]
 
 const ledgerEntrySchema = new mongoose.Schema(
@@ -19,7 +22,20 @@ const ledgerEntrySchema = new mongoose.Schema(
     direction: { type: String, enum: ['debit', 'credit'], required: true, immutable: true },
     amount: { type: Number, required: true, min: 1, immutable: true },
     balanceAfter: { type: Number, required: true, immutable: true },
-    session: { type: mongoose.Schema.Types.ObjectId, ref: 'Session', required: true, immutable: true, index: true },
+    // Every entry points to a session OR to a class enrollment
+    session: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Session',
+      immutable: true,
+      index: true,
+      required: function () { return !this.enrollment }
+    },
+    enrollment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Enrollment',
+      immutable: true,
+      index: true
+    },
     counterparty: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, immutable: true },
     // Unique per operation, so the same movement can never be applied twice
     idempotencyKey: { type: String, required: true, unique: true, immutable: true }

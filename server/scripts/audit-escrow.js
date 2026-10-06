@@ -4,7 +4,8 @@
 // Run from the server folder:
 //   node scripts/audit-escrow.js
 //
-// It checks that the credits currently held in escrow match the ledger:
+// It checks that the credits currently held in escrow match the ledger,
+// for sessions and for classes:
 //   held now = (all holds) - (all releases) - (all refunds)
 // It never writes to the database.
 // ===================================
@@ -12,6 +13,7 @@
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') })
 const mongoose = require('mongoose')
 const Session = require('../models/Session')
+const Enrollment = require('../models/Enrollment')
 const LedgerEntry = require('../models/LedgerEntry')
 const User = require('../models/User')
 
@@ -33,6 +35,7 @@ async function main() {
     if (!ok) failed = true
   }
 
+  // ---------- Sessions ----------
   const holds = await sumEntries({ type: 'escrow_hold' })
   const releases = await sumEntries({ type: 'escrow_release' })
   const refunds = await sumEntries({ type: 'escrow_refund' })
@@ -46,7 +49,7 @@ async function main() {
 
   const expectedHeld = holds.total - releases.total - refunds.total
   check(
-    'Credits held in escrow match the ledger',
+    'Session credits held in escrow match the ledger',
     heldNow === expectedHeld,
     `sessions say ${heldNow}, ledger says ${expectedHeld}`
   )
@@ -66,6 +69,40 @@ async function main() {
     `debits ${legacyDebits.total}, credits ${legacyCredits.total}`
   )
 
+  // ---------- Classes ----------
+  const classHolds = await sumEntries({ type: 'class_hold' })
+  const classReleases = await sumEntries({ type: 'class_release' })
+  const classRefunds = await sumEntries({ type: 'class_refund' })
+
+  const classHeldRows = await Enrollment.aggregate([
+    { $match: { status: 'held' } },
+    { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
+  ])
+  const classHeldNow = classHeldRows[0]?.total || 0
+  const classHeldCount = classHeldRows[0]?.count || 0
+
+  const classExpectedHeld = classHolds.total - classReleases.total - classRefunds.total
+  check(
+    'Class credits held in escrow match the ledger',
+    classHeldNow === classExpectedHeld,
+    `enrollments say ${classHeldNow}, ledger says ${classExpectedHeld}`
+  )
+
+  const releasedEnrollments = await Enrollment.countDocuments({ status: 'released' })
+  check(
+    'Every released enrollment has exactly one class release entry',
+    releasedEnrollments === classReleases.count,
+    `${releasedEnrollments} released enrollments, ${classReleases.count} release entries`
+  )
+
+  const refundedEnrollments = await Enrollment.countDocuments({ status: 'refunded' })
+  check(
+    'Every refunded enrollment has exactly one class refund entry',
+    refundedEnrollments === classRefunds.count,
+    `${refundedEnrollments} refunded enrollments, ${classRefunds.count} refund entries`
+  )
+
+  // ---------- Balances ----------
   const negativeLedgerBalances = await LedgerEntry.countDocuments({ balanceAfter: { $lt: 0 } })
   check('No ledger entry ever left a negative balance', negativeLedgerBalances === 0, `${negativeLedgerBalances} found`)
 
@@ -75,8 +112,8 @@ async function main() {
   }
 
   console.log('')
-  console.log(`Summary: ${heldSessions} session(s) in escrow holding ${heldNow} credit(s) in total`)
-  console.log(`Ledger totals: holds ${holds.total}, releases ${releases.total}, refunds ${refunds.total}`)
+  console.log(`Sessions: ${heldSessions} in escrow holding ${heldNow} credit(s). Ledger: holds ${holds.total}, releases ${releases.total}, refunds ${refunds.total}`)
+  console.log(`Classes: ${classHeldCount} enrollment(s) in escrow holding ${classHeldNow} credit(s). Ledger: holds ${classHolds.total}, releases ${classReleases.total}, refunds ${classRefunds.total}`)
   console.log(failed ? 'RESULT: PROBLEM FOUND' : 'RESULT: ALL CHECKS PASSED')
 
   await mongoose.disconnect()

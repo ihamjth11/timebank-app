@@ -9,6 +9,8 @@ import '../styles/dashboard.css'
 
 const API = 'https://timebank-app.onrender.com/api'
 const CATEGORIES = ['All', 'Technology', 'Design', 'Education', 'Cooking', 'Music', 'Language', 'Business', 'Health', 'Other']
+// Must match MAX_CREDITS_PER_PERSON in server/routes/workshops.js
+const MAX_CREDITS_PER_PERSON = 10
 
 function CreateWorkshopModal({ onClose, onCreate }) {
   const [form, setForm] = useState({
@@ -33,6 +35,8 @@ function CreateWorkshopModal({ onClose, onCreate }) {
     else setError(result.message || 'Failed to create class')
   }
 
+  const today = new Date().toISOString().slice(0, 10)
+
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={onClose}>
       <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', padding: '28px', width: '100%', maxWidth: '440px', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
@@ -43,12 +47,12 @@ function CreateWorkshopModal({ onClose, onCreate }) {
 
         <div style={{ marginBottom: '14px' }}>
           <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Class Title</label>
-          <input name="title" placeholder="e.g. Beginner Spanish Conversation" value={form.title} onChange={handleChange} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}/>
+          <input name="title" maxLength={120} placeholder="e.g. Beginner Spanish Conversation" value={form.title} onChange={handleChange} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}/>
         </div>
 
         <div style={{ marginBottom: '14px' }}>
           <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Description</label>
-          <textarea name="description" placeholder="What will students learn?" rows={3} value={form.description} onChange={handleChange} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px', fontFamily: 'inherit', resize: 'vertical' }}/>
+          <textarea name="description" maxLength={2000} placeholder="What will students learn?" rows={3} value={form.description} onChange={handleChange} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px', fontFamily: 'inherit', resize: 'vertical' }}/>
         </div>
 
         <div style={{ marginBottom: '14px' }}>
@@ -61,7 +65,7 @@ function CreateWorkshopModal({ onClose, onCreate }) {
         <div style={{ display: 'flex', gap: '10px', marginBottom: '14px' }}>
           <div style={{ flex: 1 }}>
             <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Date</label>
-            <input type="date" name="date" value={form.date} onChange={handleChange} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}/>
+            <input type="date" name="date" min={today} value={form.date} onChange={handleChange} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}/>
           </div>
           <div style={{ flex: 1 }}>
             <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Time</label>
@@ -75,14 +79,21 @@ function CreateWorkshopModal({ onClose, onCreate }) {
             <input type="number" name="capacity" min={1} max={100} value={form.capacity} onChange={handleChange} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}/>
           </div>
           <div style={{ flex: 1 }}>
-            <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Credits / student</label>
-            <input type="number" name="creditsPerPerson" min={1} value={form.creditsPerPerson} onChange={handleChange} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}/>
+            <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Credits / student (max {MAX_CREDITS_PER_PERSON})</label>
+            <input type="number" name="creditsPerPerson" min={1} max={MAX_CREDITS_PER_PERSON} value={form.creditsPerPerson} onChange={handleChange} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}/>
           </div>
         </div>
 
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Meeting Link (optional)</label>
+        <div style={{ marginBottom: '14px' }}>
+          <label style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '6px', display: 'block' }}>Meeting Link (optional, https only)</label>
           <input name="meetingLink" placeholder="https://meet.google.com/..." value={form.meetingLink} onChange={handleChange} style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '14px' }}/>
+        </div>
+
+        <div style={{ marginBottom: '20px', padding: '12px 14px', borderRadius: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text)', marginBottom: '4px' }}>How you get paid</div>
+          <p style={{ fontSize: '11.5px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+            Each student's credits are held in escrow when they join. After the class, every student confirms they attended and their credits are released to you. If you cancel the class, everyone is refunded.
+          </p>
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>
@@ -94,19 +105,77 @@ function CreateWorkshopModal({ onClose, onCreate }) {
   )
 }
 
-function WorkshopCard({ workshop, currentUserId, onJoin, onLeave, onCancel, onComplete }) {
-  const isHost = String(workshop.host._id || workshop.host) === String(currentUserId)
-  const isJoined = workshop.attendees?.some(a => String(a._id || a) === String(currentUserId))
-  const isWaitlisted = workshop.waitlist?.some(a => String(a._id || a) === String(currentUserId))
+function WorkshopCard({ workshop, onJoin, onLeave, onCancel, onComplete, onConfirm }) {
+  // Everything about "me" comes from the server, never from other people's ids
+  const viewer = workshop.viewer || {}
+  const { isHost, isJoined, isWaitlisted, hasStarted, enrollmentStatus, canConfirm } = viewer
+  const isCompleted = workshop.status === 'completed'
   const isFull = workshop.attendeeCount >= workshop.capacity
   const initials = workshop.host?.name ? workshop.host.name.split(' ').map(n => n[0]).join('').toUpperCase() : '?'
-  const showLink = (isHost || isJoined) && workshop.meetingLink
+  // Only real https links are opened (blocks javascript: and data: links)
+  const showLink = /^https:\/\//i.test(workshop.meetingLink || '')
+  const price = workshop.creditsPerPerson
+
+  const smallButton = (extra) => ({
+    borderRadius: '8px', padding: '6px 14px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', ...extra
+  })
+
+  let action
+  if (isHost) {
+    action = (
+      <div style={{ display: 'flex', gap: '6px' }}>
+        {isCompleted ? (
+          <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#00b894' }}>✓ Completed</span>
+        ) : (
+          <>
+            {hasStarted && (
+              <button onClick={() => onComplete(workshop._id)} style={smallButton({ background: 'rgba(0,184,148,0.1)', color: '#00b894', border: '1px solid rgba(0,184,148,0.25)' })}>Complete</button>
+            )}
+            <button onClick={() => onCancel(workshop._id)} style={smallButton({ background: 'rgba(255,80,80,0.08)', color: '#ff5050', border: '1px solid rgba(255,80,80,0.25)' })}>Cancel</button>
+          </>
+        )}
+      </div>
+    )
+  } else if (isJoined) {
+    if (canConfirm) {
+      action = (
+        <button onClick={() => onConfirm(workshop._id)} style={smallButton({ background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none' })}>Confirm attendance</button>
+      )
+    } else if (enrollmentStatus === 'held' && !hasStarted) {
+      action = (
+        <button onClick={() => onLeave(workshop._id)} title="Leave and get your credits back" style={smallButton({ background: 'var(--input-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' })}>✓ Joined · Leave</button>
+      )
+    } else if (enrollmentStatus === 'held') {
+      action = <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#ffb800' }}>Credits frozen</span>
+    } else if (!hasStarted) {
+      // Joined before escrow existed: nothing is held yet
+      action = (
+        <button onClick={() => onLeave(workshop._id)} style={smallButton({ background: 'var(--input-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' })}>✓ Joined · Leave</button>
+      )
+    } else {
+      action = <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#00b894' }}>✓ Joined</span>
+    }
+  } else if (isWaitlisted) {
+    action = (
+      <button onClick={() => onLeave(workshop._id)} style={smallButton({ background: 'rgba(255,159,67,0.1)', color: '#ff9f43', border: '1px solid rgba(255,159,67,0.3)' })}>⏳ On Waitlist</button>
+    )
+  } else if (hasStarted || isCompleted) {
+    action = <span style={{ fontSize: '11.5px', fontWeight: 600, color: 'var(--text-muted)' }}>{isCompleted ? 'Completed' : 'Already started'}</span>
+  } else {
+    action = (
+      <button onClick={() => onJoin(workshop._id)} style={smallButton({
+        background: isFull ? 'rgba(255,159,67,0.1)' : 'linear-gradient(135deg, #7c6fff, #ff6fb0)',
+        color: isFull ? '#ff9f43' : '#fff',
+        border: isFull ? '1px solid rgba(255,159,67,0.3)' : 'none'
+      })}>{isFull ? 'Join Waitlist' : `Join · ${price} credit${price > 1 ? 's' : ''}`}</button>
+    )
+  }
 
   return (
     <div style={{ background: 'var(--card)', border: '1px solid var(--border2)', borderRadius: '18px', padding: '20px', boxShadow: 'var(--shadow)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
         <span style={{ fontSize: '11px', fontWeight: 700, color: '#7c6fff', background: 'rgba(124,111,255,0.1)', padding: '4px 10px', borderRadius: '20px' }}>{workshop.category}</span>
-        <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#ffd166', background: 'rgba(255,209,102,0.1)', padding: '4px 10px', borderRadius: '20px' }}>{workshop.creditsPerPerson}h/person</span>
+        <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#ffd166', background: 'rgba(255,209,102,0.1)', padding: '4px 10px', borderRadius: '20px' }}>{price} credit{price > 1 ? 's' : ''}/person</span>
       </div>
 
       <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>{workshop.title}</h3>
@@ -121,7 +190,7 @@ function WorkshopCard({ workshop, currentUserId, onJoin, onLeave, onCancel, onCo
         )}
       </div>
 
-      {/* Meeting link — only visible to host and joined attendees */}
+      {/* Meeting link: the server only sends it to the host and to joined students */}
       {showLink && (
         <a
           href={workshop.meetingLink}
@@ -141,6 +210,14 @@ function WorkshopCard({ workshop, currentUserId, onJoin, onLeave, onCancel, onCo
         </a>
       )}
 
+      {!isHost && !isJoined && !isWaitlisted && !hasStarted && !isCompleted && (
+        <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '0 0 12px', lineHeight: 1.4 }}>
+          {isFull
+            ? 'Nothing is charged until a seat opens up for you.'
+            : 'Your credits are held in escrow and only released to the host after you confirm you attended.'}
+        </p>
+      )}
+
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{ width: '28px', height: '28px', borderRadius: '50%', overflow: 'hidden', background: workshop.host?.avatar ? 'transparent' : 'linear-gradient(135deg, #7c6fff, #ff6fb0)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: 700 }}>
@@ -148,23 +225,7 @@ function WorkshopCard({ workshop, currentUserId, onJoin, onLeave, onCancel, onCo
           </div>
           <span style={{ fontSize: '12.5px', color: 'var(--text-secondary)', fontWeight: 600 }}>{workshop.host?.name}</span>
         </div>
-
-        {isHost ? (
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <button onClick={() => onComplete(workshop._id)} style={{ background: 'rgba(0,184,148,0.1)', color: '#00b894', border: '1px solid rgba(0,184,148,0.25)', borderRadius: '8px', padding: '6px 12px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>Complete</button>
-            <button onClick={() => onCancel(workshop._id)} style={{ background: 'rgba(255,80,80,0.08)', color: '#ff5050', border: '1px solid rgba(255,80,80,0.25)', borderRadius: '8px', padding: '6px 12px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-          </div>
-        ) : isJoined ? (
-          <button onClick={() => onLeave(workshop._id)} style={{ background: 'var(--input-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: '8px', padding: '6px 14px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>✓ Joined</button>
-        ) : isWaitlisted ? (
-          <button onClick={() => onLeave(workshop._id)} style={{ background: 'rgba(255,159,67,0.1)', color: '#ff9f43', border: '1px solid rgba(255,159,67,0.3)', borderRadius: '8px', padding: '6px 14px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>⏳ On Waitlist</button>
-        ) : (
-          <button onClick={() => onJoin(workshop._id)} style={{
-            background: isFull ? 'rgba(255,159,67,0.1)' : 'linear-gradient(135deg, #7c6fff, #ff6fb0)',
-            color: isFull ? '#ff9f43' : '#fff', border: isFull ? '1px solid rgba(255,159,67,0.3)' : 'none', borderRadius: '8px', padding: '6px 14px',
-            fontSize: '11.5px', fontWeight: 700, cursor: 'pointer'
-          }}>{isFull ? 'Join Waitlist' : 'Join Class'}</button>
-        )}
+        {action}
       </div>
     </div>
   )
@@ -186,7 +247,7 @@ function WorkshopSkeleton() {
 }
 
 function Workshops() {
-  const { user, token } = useAuth()
+  const { user, token, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [workshops, setWorkshops] = useState([])
   const [loading, setLoading] = useState(true)
@@ -194,12 +255,21 @@ function Workshops() {
   const [showCreate, setShowCreate] = useState(false)
   const [toast, setToast] = useState(null)
   const [cancelId, setCancelId] = useState(null)
+  const [completeId, setCompleteId] = useState(null)
+  const [confirmId, setConfirmId] = useState(null)
+
+  const authHeaders = () => (token ? { Authorization: `Bearer ${token}` } : {})
+
+  const syncBalance = () => {
+    if (typeof refreshUser === 'function') refreshUser()
+  }
 
   const fetchWorkshops = async () => {
     setLoading(true)
     try {
       const params = category !== 'All' ? { category } : {}
-      const res = await axios.get(`${API}/workshops`, { params })
+      // Sending the token lets the server tell us what is true for ME (joined, host, ...)
+      const res = await axios.get(`${API}/workshops`, { params, headers: authHeaders() })
       setWorkshops(res.data.workshops || [])
     } catch (err) {
       console.error('Failed to fetch workshops:', err)
@@ -208,11 +278,11 @@ function Workshops() {
     }
   }
 
-  useEffect(() => { fetchWorkshops() }, [category])
+  useEffect(() => { fetchWorkshops() }, [category, token])
 
   const handleCreate = async (form) => {
     try {
-      await axios.post(`${API}/workshops`, form, { headers: { Authorization: `Bearer ${token}` } })
+      await axios.post(`${API}/workshops`, form, { headers: authHeaders() })
       setToast({ message: 'Class created!', type: 'success' })
       fetchWorkshops()
       return { success: true }
@@ -223,8 +293,15 @@ function Workshops() {
 
   const handleJoin = async (id) => {
     try {
-      const res = await axios.post(`${API}/workshops/${id}/join`, {}, { headers: { Authorization: `Bearer ${token}` } })
-      setToast({ message: res.data.waitlisted ? "Class is full — you're on the waitlist!" : 'Joined the class!', type: 'success' })
+      const res = await axios.post(`${API}/workshops/${id}/join`, {}, { headers: authHeaders() })
+      if (res.data.waitlisted) {
+        setToast({ message: "Class is full. You're on the waitlist, nothing is charged yet.", type: 'success' })
+      } else {
+        const held = res.data.heldCredits
+        const balance = typeof res.data.timeCredits === 'number' ? ` Balance: ${res.data.timeCredits}.` : ''
+        setToast({ message: `Joined! ${held} credit${held === 1 ? '' : 's'} held in escrow.${balance}`, type: 'success' })
+      }
+      syncBalance()
       fetchWorkshops()
     } catch (err) {
       setToast({ message: err.response?.data?.message || 'Failed to join', type: 'error' })
@@ -233,21 +310,37 @@ function Workshops() {
 
   const handleLeave = async (id) => {
     try {
-      await axios.post(`${API}/workshops/${id}/leave`, {}, { headers: { Authorization: `Bearer ${token}` } })
-      setToast({ message: 'Left the class', type: 'success' })
+      const res = await axios.post(`${API}/workshops/${id}/leave`, {}, { headers: authHeaders() })
+      setToast({ message: res.data.refunded ? 'Left the class. Your credits were refunded.' : 'Left the class', type: 'success' })
+      syncBalance()
       fetchWorkshops()
     } catch (err) {
-      setToast({ message: 'Failed to leave', type: 'error' })
+      setToast({ message: err.response?.data?.message || 'Failed to leave', type: 'error' })
     }
   }
 
-  const handleComplete = async (id) => {
+  const confirmComplete = async () => {
+    const id = completeId
+    setCompleteId(null)
     try {
-      await axios.post(`${API}/workshops/${id}/complete`, {}, { headers: { Authorization: `Bearer ${token}` } })
-      setToast({ message: 'Class completed, credits settled!', type: 'success' })
+      await axios.post(`${API}/workshops/${id}/complete`, {}, { headers: authHeaders() })
+      setToast({ message: 'Class marked as completed. Students will confirm and their credits are released to you.', type: 'success' })
       fetchWorkshops()
     } catch (err) {
-      setToast({ message: 'Failed to complete class', type: 'error' })
+      setToast({ message: err.response?.data?.message || 'Failed to complete class', type: 'error' })
+    }
+  }
+
+  const confirmAttendance = async () => {
+    const id = confirmId
+    setConfirmId(null)
+    try {
+      await axios.post(`${API}/workshops/${id}/confirm`, {}, { headers: authHeaders() })
+      setToast({ message: 'Thanks! Your credits were released to the host.', type: 'success' })
+      syncBalance()
+      fetchWorkshops()
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Failed to confirm attendance', type: 'error' })
     }
   }
 
@@ -255,11 +348,11 @@ function Workshops() {
     const id = cancelId
     setCancelId(null)
     try {
-      await axios.delete(`${API}/workshops/${id}`, { headers: { Authorization: `Bearer ${token}` } })
-      setToast({ message: 'Class cancelled', type: 'success' })
+      await axios.delete(`${API}/workshops/${id}`, { headers: authHeaders() })
+      setToast({ message: 'Class cancelled. Everyone was refunded.', type: 'success' })
       fetchWorkshops()
     } catch (err) {
-      setToast({ message: 'Failed to cancel', type: 'error' })
+      setToast({ message: err.response?.data?.message || 'Failed to cancel', type: 'error' })
     }
   }
 
@@ -381,11 +474,11 @@ function Workshops() {
               <WorkshopCard
                 key={w._id}
                 workshop={w}
-                currentUserId={user?.id}
                 onJoin={handleJoin}
                 onLeave={handleLeave}
                 onCancel={setCancelId}
-                onComplete={handleComplete}
+                onComplete={setCompleteId}
+                onConfirm={setConfirmId}
               />
             ))
           )}
@@ -393,10 +486,26 @@ function Workshops() {
       </main>
 
       {showCreate && <CreateWorkshopModal onClose={() => setShowCreate(false)} onCreate={handleCreate} />}
+      {completeId && (
+        <ConfirmModal
+          title="Mark this class as completed?"
+          message="Only do this if the class really took place. No credits move yet: each student confirms they attended, and their credits are then released to you."
+          onCancel={() => setCompleteId(null)}
+          onConfirm={confirmComplete}
+        />
+      )}
+      {confirmId && (
+        <ConfirmModal
+          title="Confirm you attended?"
+          message="Only confirm if the class really took place. Your held credits will be released to the host."
+          onCancel={() => setConfirmId(null)}
+          onConfirm={confirmAttendance}
+        />
+      )}
       {cancelId && (
         <ConfirmModal
           title="Cancel this class?"
-          message="All joined students will be notified. This cannot be undone."
+          message="All joined students will be notified and every credit held for this class is refunded. This cannot be undone."
           danger
           onCancel={() => setCancelId(null)}
           onConfirm={confirmCancel}
