@@ -49,7 +49,7 @@ function ResolveModal({ dispute, decision, onClose, onConfirm }) {
       <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', padding: '26px', width: '100%', maxWidth: '420px' }} onClick={e => e.stopPropagation()}>
         <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>
           {releasing
-            ? `Release ${amount} credit${amount > 1 ? 's' : ''} to ${dispute.helper?.name || 'the helper'}`
+            ? `Release ${amount} credit${amount > 1 ? 's' : ''} to ${dispute.helper?.name || 'the receiver'}`
             : `Refund ${amount} credit${amount > 1 ? 's' : ''} to ${dispute.payer?.name || 'the payer'}`}
         </h2>
         <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: 1.5 }}>
@@ -107,11 +107,34 @@ function AdminModeration() {
     }
   }
 
+  // Loads session disputes and class disputes together and shows them in one list
   const fetchDisputes = async () => {
     setLoading(true)
     try {
-      const res = await axios.get(`${API}/disputes`, { params: { status: disputeFilter }, headers: { Authorization: `Bearer ${token}` } })
-      setDisputes(res.data.disputes || [])
+      const headers = { Authorization: `Bearer ${token}` }
+      const params = { status: disputeFilter }
+      const [sessionRes, classRes] = await Promise.all([
+        axios.get(`${API}/disputes`, { params, headers }),
+        // A failure here must never hide the session disputes
+        axios.get(`${API}/class-disputes`, { params, headers }).catch(() => ({ data: { disputes: [] } }))
+      ])
+
+      const sessionItems = (sessionRes.data.disputes || []).map(d => ({ ...d, kind: 'session' }))
+      // A class dispute is shaped like a session dispute: student = payer, host = receiver
+      const classItems = (classRes.data.disputes || []).map(d => ({
+        ...d,
+        kind: 'class',
+        payer: d.student,
+        helper: d.host,
+        openedBy: d.student
+      }))
+
+      const merged = [...sessionItems, ...classItems].sort((a, b) =>
+        disputeFilter === 'open'
+          ? new Date(a.createdAt) - new Date(b.createdAt)
+          : new Date(b.createdAt) - new Date(a.createdAt)
+      )
+      setDisputes(merged)
       setDenied(false)
     } catch (err) {
       if (err.response?.status === 403) setDenied(true)
@@ -157,14 +180,15 @@ function AdminModeration() {
 
   const resolveDispute = async (note) => {
     const { dispute, decision } = resolveTarget
+    const base = dispute.kind === 'class' ? 'class-disputes' : 'disputes'
     try {
       await axios.put(
-        `${API}/disputes/${dispute._id}/resolve`,
+        `${API}/${base}/${dispute._id}/resolve`,
         { decision, note },
         { headers: { Authorization: `Bearer ${token}` } }
       )
       setResolveTarget(null)
-      setToast({ message: decision === 'release' ? 'Credit released to the helper.' : 'Credit refunded to the payer.', type: 'success' })
+      setToast({ message: decision === 'release' ? 'Credit released.' : 'Credit refunded.', type: 'success' })
       fetchDisputes()
     } catch (err) {
       setToast({ message: err.response?.data?.message || 'Failed to resolve dispute', type: 'error' })
@@ -198,13 +222,13 @@ function AdminModeration() {
           <div>
             <h1 className="dash__header-title">Moderation</h1>
             <p className="dash__header-sub">
-              {tab === 'reports' ? 'Review reports filed by the community' : 'Decide who gets the credit when a session goes wrong'}
+              {tab === 'reports' ? 'Review reports filed by the community' : 'Decide who gets the credit when a session or class goes wrong'}
             </p>
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-          {[{ id: 'reports', label: 'Reports' }, { id: 'disputes', label: 'Session disputes' }].map(t => (
+          {[{ id: 'reports', label: 'Reports' }, { id: 'disputes', label: 'Credit disputes' }].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
               padding: '9px 18px', borderRadius: '12px', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
               border: tab === t.id ? 'none' : '1px solid var(--border2)',
@@ -261,13 +285,14 @@ function AdminModeration() {
               ))
             )
           ) : disputes.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-muted)' }}>No {disputeFilter} session disputes</div>
+            <div style={{ textAlign: 'center', padding: '50px 20px', color: 'var(--text-muted)' }}>No {disputeFilter} credit disputes</div>
           ) : (
             disputes.map(d => {
               const amount = d.amount || 1
+              const isClass = d.kind === 'class'
               const confirmations = d.session?.completionConfirmedBy?.length || 0
               return (
-                <div key={d._id} style={{ padding: '16px 12px', borderBottom: '1px solid var(--border2)' }}>
+                <div key={`${d.kind}-${d._id}`} style={{ padding: '16px 12px', borderBottom: '1px solid var(--border2)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', marginBottom: '8px' }}>
                     <div>
                       <div style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--text)' }}>
@@ -277,17 +302,24 @@ function AdminModeration() {
                         {d.payer?.email} → {d.helper?.email}
                       </div>
                       <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        Session: {d.session?.date} at {d.session?.time} · Confirmed by {confirmations} of 2
-                        {d.session?.firstConfirmedAt ? ` · First confirmation ${formatDateTime(d.session.firstConfirmedAt)}` : ''}
+                        {isClass
+                          ? `Class "${d.workshop?.title || 'Unknown'}" · ${d.workshop?.date} at ${d.workshop?.time}`
+                          : `Session: ${d.session?.date} at ${d.session?.time} · Confirmed by ${confirmations} of 2${d.session?.firstConfirmedAt ? ` · First confirmation ${formatDateTime(d.session.firstConfirmedAt)}` : ''}`}
                       </div>
                       <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '2px' }}>
                         Opened by {d.openedBy?.name || 'Unknown'} · {formatDateTime(d.createdAt)}
                       </div>
                     </div>
-                    <span style={{
-                      fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '20px',
-                      background: STATUS_STYLE[d.status]?.bg, color: STATUS_STYLE[d.status]?.color, textTransform: 'capitalize'
-                    }}>{d.status}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                      <span style={{
+                        fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '20px',
+                        background: STATUS_STYLE[d.status]?.bg, color: STATUS_STYLE[d.status]?.color, textTransform: 'capitalize'
+                      }}>{d.status}</span>
+                      <span style={{
+                        fontSize: '10.5px', fontWeight: 700, padding: '3px 9px', borderRadius: '20px',
+                        background: 'rgba(124,111,255,0.1)', color: '#7c6fff'
+                      }}>{isClass ? 'Class' : 'Session'}</span>
+                    </div>
                   </div>
 
                   <div style={{ fontSize: '12px', color: '#7c6fff', fontWeight: 700, marginBottom: '4px' }}>
@@ -307,7 +339,7 @@ function AdminModeration() {
                   {d.status === 'open' ? (
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       <button onClick={() => setResolveTarget({ dispute: d, decision: 'release' })} style={{ background: 'rgba(0,184,148,0.1)', color: '#00b894', border: '1px solid rgba(0,184,148,0.25)', borderRadius: '8px', padding: '7px 14px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>
-                        Release to {d.helper?.name || 'helper'}
+                        Release to {d.helper?.name || 'receiver'}
                       </button>
                       <button onClick={() => setResolveTarget({ dispute: d, decision: 'refund' })} style={{ background: 'rgba(255,80,80,0.08)', color: '#ff5050', border: '1px solid rgba(255,80,80,0.25)', borderRadius: '8px', padding: '7px 14px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer' }}>
                         Refund {d.payer?.name || 'payer'}
@@ -316,7 +348,7 @@ function AdminModeration() {
                   ) : (
                     <div style={{ fontSize: '12.5px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                       <strong style={{ color: d.decision === 'release' ? '#00b894' : '#ff5050' }}>
-                        {d.decision === 'release' ? 'Released to helper' : 'Refunded to payer'}
+                        {d.decision === 'release' ? `Released to ${d.helper?.name || 'receiver'}` : `Refunded to ${d.payer?.name || 'payer'}`}
                       </strong>
                       {' '}by {d.resolvedBy?.name || 'admin'} · {formatDateTime(d.resolvedAt)}
                       {d.resolutionNote && <div style={{ marginTop: '4px', whiteSpace: 'pre-wrap' }}>Note: {d.resolutionNote}</div>}

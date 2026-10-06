@@ -105,7 +105,95 @@ function CreateWorkshopModal({ onClose, onCreate }) {
   )
 }
 
-function WorkshopCard({ workshop, onJoin, onLeave, onCancel, onComplete, onConfirm }) {
+// A student reports a problem. Only THEIR credits are frozen until the team reviews it.
+function ReportProblemModal({ workshop, onClose, onSubmit }) {
+  const [reason, setReason] = useState('')
+  const [loading, setLoading] = useState(false)
+  const valid = reason.trim().length >= 10
+
+  const handleSubmit = async () => {
+    if (!valid || loading) return
+    setLoading(true)
+    const ok = await onSubmit(reason.trim())
+    if (!ok) setLoading(false)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={onClose}>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', padding: '26px', width: '100%', maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
+        <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>Report a problem</h2>
+        <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: 1.5 }}>
+          Your {workshop?.creditsPerPerson} held credit{workshop?.creditsPerPerson > 1 ? 's are' : ' is'} frozen until the TimeBank team reviews "{workshop?.title}". Describe what happened.
+        </p>
+        <textarea
+          value={reason}
+          onChange={e => setReason(e.target.value)}
+          placeholder="For example: the host never started the class."
+          rows={4}
+          maxLength={1000}
+          style={{
+            width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)',
+            borderRadius: '12px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '13px',
+            resize: 'none', boxSizing: 'border-box', fontFamily: 'inherit'
+          }}
+        />
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px' }}>
+          {reason.trim().length}/1000 {reason.trim().length < 10 ? '(at least 10 characters)' : ''}
+        </div>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSubmit} disabled={!valid || loading} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: '#ff5050', color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: valid ? 1 : 0.5 }}>{loading ? 'Sending...' : 'Report problem'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// The host reads the student's report and adds their side of the story.
+function HostResponseModal({ workshop, dispute, onClose, onSubmit }) {
+  const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(false)
+  const valid = message.trim().length >= 5
+
+  const handleSubmit = async () => {
+    if (!valid || loading) return
+    setLoading(true)
+    const ok = await onSubmit(message.trim())
+    if (!ok) setLoading(false)
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} onClick={onClose}>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '20px', padding: '26px', width: '100%', maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
+        <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>Add your side</h2>
+        <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', marginBottom: '10px', lineHeight: 1.5 }}>
+          A student reported a problem with "{workshop?.title}":
+        </p>
+        <div style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '10px 14px', fontSize: '13px', color: 'var(--text)', marginBottom: '14px', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+          {dispute?.reason}
+        </div>
+        <textarea
+          value={message}
+          onChange={e => setMessage(e.target.value)}
+          placeholder="Your explanation for the TimeBank team"
+          rows={4}
+          maxLength={1000}
+          style={{
+            width: '100%', background: 'var(--input-bg)', border: '1px solid var(--border)',
+            borderRadius: '12px', padding: '10px 14px', color: 'var(--text)', outline: 'none', fontSize: '13px',
+            resize: 'none', boxSizing: 'border-box', fontFamily: 'inherit'
+          }}
+        />
+        <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSubmit} disabled={!valid || loading} style={{ flex: 1, padding: '11px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: valid ? 1 : 0.5 }}>{loading ? 'Sending...' : 'Send'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function WorkshopCard({ workshop, myDispute, hostDisputes, onJoin, onLeave, onCancel, onComplete, onConfirm, onReport, onRespond }) {
   // Everything about "me" comes from the server, never from other people's ids
   const viewer = workshop.viewer || {}
   const { isHost, isJoined, isWaitlisted, hasStarted, enrollmentStatus, canConfirm } = viewer
@@ -115,6 +203,9 @@ function WorkshopCard({ workshop, onJoin, onLeave, onCancel, onComplete, onConfi
   // Only real https links are opened (blocks javascript: and data: links)
   const showLink = /^https:\/\//i.test(workshop.meetingLink || '')
   const price = workshop.creditsPerPerson
+
+  const canReport = isJoined && enrollmentStatus === 'held' && hasStarted && !myDispute
+  const unanswered = (hostDisputes || []).filter(d => !d.response)
 
   const smallButton = (extra) => ({
     borderRadius: '8px', padding: '6px 14px', fontSize: '11.5px', fontWeight: 700, cursor: 'pointer', ...extra
@@ -137,7 +228,9 @@ function WorkshopCard({ workshop, onJoin, onLeave, onCancel, onComplete, onConfi
       </div>
     )
   } else if (isJoined) {
-    if (canConfirm) {
+    if (myDispute) {
+      action = <span style={{ fontSize: '11.5px', fontWeight: 700, color: '#ffb800' }}>Under review</span>
+    } else if (canConfirm) {
       action = (
         <button onClick={() => onConfirm(workshop._id)} style={smallButton({ background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none' })}>Confirm attendance</button>
       )
@@ -218,6 +311,23 @@ function WorkshopCard({ workshop, onJoin, onLeave, onCancel, onComplete, onConfi
         </p>
       )}
 
+      {isHost && (hostDisputes || []).length > 0 && (
+        <div style={{ background: 'rgba(255,209,102,0.1)', border: '1px solid rgba(255,209,102,0.3)', borderRadius: '10px', padding: '8px 12px', marginBottom: '12px', fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+          {hostDisputes.length} student{hostDisputes.length > 1 ? 's' : ''} reported a problem with this class. Their credits are frozen until the TimeBank team reviews it.
+          {unanswered.length > 0 && (
+            <div style={{ marginTop: '6px' }}>
+              <button onClick={() => onRespond(workshop, unanswered[0])} style={smallButton({ background: 'linear-gradient(135deg, #7c6fff, #ff6fb0)', color: '#fff', border: 'none' })}>Respond ({unanswered.length})</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {myDispute && (
+        <p style={{ fontSize: '11.5px', color: '#ffb800', fontWeight: 600, margin: '0 0 12px', lineHeight: 1.4 }}>
+          Your problem report is under review. Your credits stay frozen until the TimeBank team decides.
+        </p>
+      )}
+
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{ width: '28px', height: '28px', borderRadius: '50%', overflow: 'hidden', background: workshop.host?.avatar ? 'transparent' : 'linear-gradient(135deg, #7c6fff, #ff6fb0)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '11px', fontWeight: 700 }}>
@@ -227,6 +337,12 @@ function WorkshopCard({ workshop, onJoin, onLeave, onCancel, onComplete, onConfi
         </div>
         {action}
       </div>
+
+      {canReport && (
+        <div style={{ marginTop: '10px', textAlign: 'right' }}>
+          <button onClick={() => onReport(workshop._id)} style={{ background: 'none', border: 'none', color: '#ff5050', fontSize: '11.5px', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Report a problem</button>
+        </div>
+      )}
     </div>
   )
 }
@@ -250,6 +366,7 @@ function Workshops() {
   const { user, token, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [workshops, setWorkshops] = useState([])
+  const [classDisputes, setClassDisputes] = useState([])
   const [loading, setLoading] = useState(true)
   const [category, setCategory] = useState('All')
   const [showCreate, setShowCreate] = useState(false)
@@ -257,7 +374,10 @@ function Workshops() {
   const [cancelId, setCancelId] = useState(null)
   const [completeId, setCompleteId] = useState(null)
   const [confirmId, setConfirmId] = useState(null)
+  const [reportWorkshopId, setReportWorkshopId] = useState(null)
+  const [respondTarget, setRespondTarget] = useState(null) // { workshop, dispute }
 
+  const myId = String(user?.id || '')
   const authHeaders = () => (token ? { Authorization: `Bearer ${token}` } : {})
 
   const syncBalance = () => {
@@ -269,8 +389,15 @@ function Workshops() {
     try {
       const params = category !== 'All' ? { category } : {}
       // Sending the token lets the server tell us what is true for ME (joined, host, ...)
-      const res = await axios.get(`${API}/workshops`, { params, headers: authHeaders() })
+      const [res, disputeRes] = await Promise.all([
+        axios.get(`${API}/workshops`, { params, headers: authHeaders() }),
+        // A failure here must never hide the classes
+        token
+          ? axios.get(`${API}/class-disputes/mine`, { headers: authHeaders() }).catch(() => ({ data: { disputes: [] } }))
+          : Promise.resolve({ data: { disputes: [] } })
+      ])
       setWorkshops(res.data.workshops || [])
+      setClassDisputes(disputeRes.data.disputes || [])
     } catch (err) {
       console.error('Failed to fetch workshops:', err)
     } finally {
@@ -279,6 +406,9 @@ function Workshops() {
   }
 
   useEffect(() => { fetchWorkshops() }, [category, token])
+
+  const openDisputesFor = (workshopId) =>
+    classDisputes.filter(d => String(d.workshop) === String(workshopId) && d.status === 'open')
 
   const handleCreate = async (form) => {
     try {
@@ -355,6 +485,44 @@ function Workshops() {
       setToast({ message: err.response?.data?.message || 'Failed to cancel', type: 'error' })
     }
   }
+
+  // Student: opens a dispute. Returns true on success so the modal can close.
+  const submitReport = async (reason) => {
+    try {
+      await axios.post(
+        `${API}/class-disputes`,
+        { workshopId: reportWorkshopId, reason },
+        { headers: authHeaders() }
+      )
+      setReportWorkshopId(null)
+      setToast({ message: 'Problem reported. Your credits are frozen until the TimeBank team reviews it.', type: 'success' })
+      fetchWorkshops()
+      return true
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Failed to report the problem', type: 'error' })
+      return false
+    }
+  }
+
+  // Host: adds their side. Returns true on success so the modal can close.
+  const submitHostResponse = async (message) => {
+    try {
+      await axios.post(
+        `${API}/class-disputes/${respondTarget.dispute._id}/respond`,
+        { message },
+        { headers: authHeaders() }
+      )
+      setRespondTarget(null)
+      setToast({ message: 'Your side was sent to the TimeBank team.', type: 'success' })
+      fetchWorkshops()
+      return true
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Failed to send your response', type: 'error' })
+      return false
+    }
+  }
+
+  const reportWorkshop = workshops.find(w => w._id === reportWorkshopId)
 
   return (
     <div className="dash">
@@ -470,22 +638,40 @@ function Workshops() {
               <div style={{ fontSize: '13px' }}>Host the first class and teach a group at once!</div>
             </div>
           ) : (
-            workshops.map(w => (
-              <WorkshopCard
-                key={w._id}
-                workshop={w}
-                onJoin={handleJoin}
-                onLeave={handleLeave}
-                onCancel={setCancelId}
-                onComplete={setCompleteId}
-                onConfirm={setConfirmId}
-              />
-            ))
+            workshops.map(w => {
+              const openDisputes = openDisputesFor(w._id)
+              return (
+                <WorkshopCard
+                  key={w._id}
+                  workshop={w}
+                  myDispute={openDisputes.find(d => String(d.student) === myId)}
+                  hostDisputes={openDisputes.filter(d => String(d.host) === myId)}
+                  onJoin={handleJoin}
+                  onLeave={handleLeave}
+                  onCancel={setCancelId}
+                  onComplete={setCompleteId}
+                  onConfirm={setConfirmId}
+                  onReport={setReportWorkshopId}
+                  onRespond={(workshop, dispute) => setRespondTarget({ workshop, dispute })}
+                />
+              )
+            })
           )}
         </div>
       </main>
 
       {showCreate && <CreateWorkshopModal onClose={() => setShowCreate(false)} onCreate={handleCreate} />}
+      {reportWorkshopId && (
+        <ReportProblemModal workshop={reportWorkshop} onClose={() => setReportWorkshopId(null)} onSubmit={submitReport} />
+      )}
+      {respondTarget && (
+        <HostResponseModal
+          workshop={respondTarget.workshop}
+          dispute={respondTarget.dispute}
+          onClose={() => setRespondTarget(null)}
+          onSubmit={submitHostResponse}
+        />
+      )}
       {completeId && (
         <ConfirmModal
           title="Mark this class as completed?"
