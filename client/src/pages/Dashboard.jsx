@@ -69,12 +69,14 @@ function WaveIcon() {
 }
 
 function Dashboard() {
-  const { user, token, logout } = useAuth()
+  const { user, token, logout, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [activeNav, setActiveNav] = useState(0)
   const [mySkills, setMySkills] = useState([])
   const [loadingSkills, setLoadingSkills] = useState(true)
   const [badgeData, setBadgeData] = useState(null)
+  const [recentTxns, setRecentTxns] = useState([])
+  const [loadingTxns, setLoadingTxns] = useState(true)
   const [showOnboarding, setShowOnboarding] = useState(
     !localStorage.getItem('tb_onboarding_seen')
   )
@@ -122,6 +124,25 @@ function Dashboard() {
     }
     fetchBadges()
   }, [user?.id])
+
+  // Latest 5 transactions, and a fresh balance from the server
+  useEffect(() => {
+    const fetchRecentTxns = async () => {
+      try {
+        const res = await axios.get(`${API}/transactions`, { headers: { Authorization: `Bearer ${token}` } })
+        setRecentTxns((res.data.transactions || []).slice(0, 5))
+      } catch (err) {
+        console.error('Failed to fetch transactions:', err)
+      } finally {
+        setLoadingTxns(false)
+      }
+    }
+    if (token) {
+      fetchRecentTxns()
+      if (typeof refreshUser === 'function') refreshUser()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token])
 
   const sessionCount = badgeData?.sessionCount ?? 0
   const memberStatus =
@@ -192,7 +213,7 @@ function Dashboard() {
             <div>
               <div className="dash__sidebar-user-name">{user?.name || 'Mohamed Hamjath'}</div>
               <div className="dash__sidebar-user-credits">
-                {user?.timeCredits || 5} Time Credits
+                {user?.timeCredits ?? 5} Time Credits
               </div>
             </div>
           </div>
@@ -340,10 +361,29 @@ function Dashboard() {
               Recent Transactions
               <span className="dash__section-link" onClick={() => navigate('/wallet')}>View all</span>
             </div>
-            <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: '13px' }}>No transactions yet</div>
-              <div style={{ fontSize: '12px', marginTop: '4px' }}>Start helping others to see activity here</div>
-            </div>
+            {loadingTxns ? (
+              <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)', fontSize: '13px' }}>Loading...</div>
+            ) : recentTxns.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: '13px' }}>No transactions yet</div>
+                <div style={{ fontSize: '12px', marginTop: '4px' }}>Start helping others to see activity here</div>
+              </div>
+            ) : (
+              recentTxns.map(txn => (
+                <div key={txn._id} className="dash__txn">
+                  <div className="dash__txn-icon" style={{ background: txn.type === 'earn' ? 'rgba(111,255,212,0.1)' : 'rgba(255,111,176,0.1)' }}>
+                    {txn.type === 'earn' ? '💰' : '🤝'}
+                  </div>
+                  <div className="dash__txn-info">
+                    <div className="dash__txn-name">{txn.type === 'earn' ? `Helped ${txn.otherName}` : `Helped by ${txn.otherName}`}</div>
+                    <div className="dash__txn-time">{new Date(txn.createdAt).toLocaleDateString()}</div>
+                  </div>
+                  <div className={`dash__txn-amount ${txn.type}`}>
+                    {txn.type === 'earn' ? '+' : '-'}{txn.amount}.0
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           {/* Skills */}

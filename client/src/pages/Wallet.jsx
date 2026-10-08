@@ -13,6 +13,7 @@ function Wallet() {
   const navigate = useNavigate()
   const [txns, setTxns] = useState([])
   const [sessions, setSessions] = useState([])
+  const [classHolds, setClassHolds] = useState({ asStudent: [], asHost: [] })
   const [loading, setLoading] = useState(true)
 
   const initials = user?.name
@@ -23,13 +24,18 @@ function Wallet() {
     const fetchData = async () => {
       try {
         const headers = { Authorization: `Bearer ${token}` }
-        const [txnRes, sessionRes] = await Promise.all([
+        const [txnRes, sessionRes, enrollRes] = await Promise.all([
           axios.get(`${API}/transactions`, { headers }),
-          // A failure here must never hide the transaction history
-          axios.get(`${API}/sessions/mine`, { headers }).catch(() => ({ data: { sessions: [] } }))
+          // A failure in the escrow requests must never hide the transaction history
+          axios.get(`${API}/sessions/mine`, { headers }).catch(() => ({ data: { sessions: [] } })),
+          axios.get(`${API}/enrollments/mine`, { headers }).catch(() => ({ data: { asStudent: [], asHost: [] } }))
         ])
         setTxns(txnRes.data.transactions || [])
         setSessions(sessionRes.data.sessions || [])
+        setClassHolds({
+          asStudent: enrollRes.data.asStudent || [],
+          asHost: enrollRes.data.asHost || []
+        })
       } catch (err) {
         console.error('Failed to fetch wallet data:', err)
       } finally {
@@ -52,8 +58,15 @@ function Wallet() {
   const activeEscrow = sessions.filter(s => s.escrowStatus === 'held' && s.status === 'scheduled')
   const heldByMe = activeEscrow.filter(s => String(s.payer) === myId)
   const incomingForMe = activeEscrow.filter(s => String(s.helper) === myId)
-  const heldTotal = heldByMe.reduce((sum, s) => sum + (s.escrowAmount || 0), 0)
-  const incomingTotal = incomingForMe.reduce((sum, s) => sum + (s.escrowAmount || 0), 0)
+
+  const sessionHeldTotal = heldByMe.reduce((sum, s) => sum + (s.escrowAmount || 0), 0)
+  const sessionIncomingTotal = incomingForMe.reduce((sum, s) => sum + (s.escrowAmount || 0), 0)
+  const classHeldTotal = classHolds.asStudent.reduce((sum, e) => sum + (e.amount || 0), 0)
+  const classIncomingTotal = classHolds.asHost.reduce((sum, r) => sum + (r.amount || 0), 0)
+
+  const heldTotal = sessionHeldTotal + classHeldTotal
+  const incomingTotal = sessionIncomingTotal + classIncomingTotal
+  const hasEscrow = heldByMe.length + incomingForMe.length + classHolds.asStudent.length + classHolds.asHost.length > 0
 
   const otherPersonName = (session) => {
     const organizerId = String(session.organizer?._id || session.organizer || '')
@@ -64,6 +77,12 @@ function Wallet() {
   const escrowStateLabel = (session) => {
     if (session.disputed) return 'Under review'
     if (session.firstConfirmedAt) return 'Waiting for confirmation'
+    return 'Scheduled'
+  }
+
+  const studentClassState = (enrollment) => {
+    if (enrollment.disputed) return 'Under review'
+    if (enrollment.workshop.status === 'completed') return 'Waiting for your confirmation'
     return 'Scheduled'
   }
 
@@ -203,11 +222,11 @@ function Wallet() {
           </div>
         </div>
 
-        {(heldByMe.length > 0 || incomingForMe.length > 0) && (
+        {hasEscrow && (
           <div className="dash__txns" style={{ marginTop: '20px' }}>
             <div className="dash__section-title">Escrow</div>
             <p style={{ fontSize: '12.5px', color: 'var(--text-secondary)', margin: '0 0 12px', lineHeight: 1.5 }}>
-              Credits for booked sessions are held safely until the session is confirmed. {heldTotal > 0 ? `${heldTotal} credit${heldTotal > 1 ? 's' : ''} you paid ${heldTotal > 1 ? 'are' : 'is'} on hold. ` : ''}
+              Credits for booked sessions and joined classes are held safely until they are confirmed. {heldTotal > 0 ? `${heldTotal} credit${heldTotal > 1 ? 's' : ''} you paid ${heldTotal > 1 ? 'are' : 'is'} on hold. ` : ''}
               {incomingTotal > 0 ? `${incomingTotal} credit${incomingTotal > 1 ? 's' : ''} will reach you after confirmation.` : ''}
             </p>
 
@@ -222,6 +241,17 @@ function Wallet() {
               </div>
             ))}
 
+            {classHolds.asStudent.map(e => (
+              <div key={e._id} className="dash__txn">
+                <div className="dash__txn-icon" style={{ background: 'rgba(255,209,102,0.12)' }}>🔒</div>
+                <div className="dash__txn-info">
+                  <div className="dash__txn-name">On hold for class "{e.workshop.title}"</div>
+                  <div className="dash__txn-time">{e.workshop.date} at {e.workshop.time} · {studentClassState(e)}</div>
+                </div>
+                <div className="dash__txn-amount spend">{e.amount}.0</div>
+              </div>
+            ))}
+
             {incomingForMe.map(s => (
               <div key={s._id} className="dash__txn">
                 <div className="dash__txn-icon" style={{ background: 'rgba(111,255,212,0.1)' }}>⏳</div>
@@ -230,6 +260,17 @@ function Wallet() {
                   <div className="dash__txn-time">{s.date} at {s.time} · {escrowStateLabel(s)}</div>
                 </div>
                 <div className="dash__txn-amount earn">+{s.escrowAmount}.0</div>
+              </div>
+            ))}
+
+            {classHolds.asHost.map(r => (
+              <div key={String(r.workshopId)} className="dash__txn">
+                <div className="dash__txn-icon" style={{ background: 'rgba(111,255,212,0.1)' }}>⏳</div>
+                <div className="dash__txn-info">
+                  <div className="dash__txn-name">Incoming from {r.count} student{r.count > 1 ? 's' : ''} for "{r.title}"</div>
+                  <div className="dash__txn-time">{r.date} at {r.time} · {r.status === 'completed' ? 'Waiting for students to confirm' : 'Scheduled'}</div>
+                </div>
+                <div className="dash__txn-amount earn">+{r.amount}.0</div>
               </div>
             ))}
           </div>
