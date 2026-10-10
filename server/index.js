@@ -6,6 +6,7 @@ const dotenv = require('dotenv')
 const connectDB = require('./config/db')
 const { startReminderChecker } = require('./utils/reminderChecker')
 const { startEscrowSettler } = require('./utils/escrowSettler')
+const { activeUserGuard } = require('./utils/activeUserGuard')
 const otpRoutes = require('./routes/otp')
 
 dotenv.config()
@@ -17,6 +18,11 @@ const app = express()
 // express-rate-limit (and req.ip) to see the real client IP instead of
 // the proxy's IP for every request.
 app.set('trust proxy', 1)
+
+// "simple" query parsing keeps URL parameters as plain strings. With the default
+// parser, ?category[$ne]=x becomes an OBJECT { $ne: 'x' }, which could be passed into
+// a database query. With "simple" it stays the harmless text key "category[$ne]".
+app.set('query parser', 'simple')
 
 // Security headers (hides X-Powered-By, sets sensible defaults for
 // XSS/clickjacking/MIME-sniffing protection, etc.)
@@ -43,8 +49,8 @@ app.use(cors({
 
 app.use(express.json({ limit: '5mb' }))
 
-// Lightweight NoSQL-injection guard, hand-rolled instead of using the
-// express-mongo-sanitize package: that package tries to reassign
+// Lightweight NoSQL-injection guard for the request BODY, hand-rolled instead of using
+// the express-mongo-sanitize package: that package tries to reassign
 // req.query/req.params, which are read-only getters on newer
 // Express/Node combinations and crashes EVERY request with a 500.
 // Mutating req.body's own keys in place is always safe.
@@ -73,6 +79,9 @@ const apiLimiter = rateLimit({
   message: { success: false, message: 'Too many requests. Please slow down.' }
 })
 app.use('/api', apiLimiter)
+
+// A suspended account is refused on every request, even if its token is still valid
+app.use('/api', activeUserGuard)
 
 // Routes
 app.use('/api/auth', require('./routes/auth'))
